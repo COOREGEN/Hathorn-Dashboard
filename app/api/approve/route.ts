@@ -43,7 +43,12 @@ export async function POST(req: Request) {
         portalUrl: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/portal`,
       });
     }
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      version: out.version,
+      releaseId: out.releaseId,
+      checksum: out.checksum,
+    });
   } catch (e: any) {
     if (e instanceof AuthError) return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
     if (e instanceof ValidationError) return NextResponse.json({ ok: false, error: e.message }, { status: 400 });

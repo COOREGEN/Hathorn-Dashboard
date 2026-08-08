@@ -201,13 +201,15 @@ export function checkComparability(
       if (added.length) parts.push(`${entityNames(added).join(", ")} reported in ${current.label} but not ${basis.label}`);
       if (removed.length) parts.push(`${entityNames(removed).join(", ")} reported in ${basis.label} but not ${current.label}`);
 
+      // Blocking: a consolidated delta across a composition change invents growth.
+      // Suppress the comparison rather than colouring an unsound movement.
       issues.push({
         code: "entity_composition_change",
-        severity: "warning",
+        severity: "blocking",
         message: `The businesses included differ: ${parts.join("; ")}.`,
         guidance: `Consolidated movement is not like-for-like. Compare ${names.length === 1 ? "excluding that business" : "business by business"} using the selector above.`,
       });
-      reliability *= 0.78;
+      reliability = 0;
     }
   }
 

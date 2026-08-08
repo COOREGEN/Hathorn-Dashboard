@@ -1,6 +1,7 @@
 /**
- * Seed: Criterion In-Home Care — the pilot client, with the fully reconciled
- * Jan–May 2026 dataset from the dashboard design phase. Run: npm run seed
+ * Seed: Hathorn advisory book — anonymized example clients for call prep.
+ * Numbers are the gate-proven Jan–May 2026 home-care dataset, renamed.
+ * Run: npm run seed
  */
 import Database from "better-sqlite3";
 import { readFileSync, mkdirSync } from "fs";
@@ -36,14 +37,23 @@ runMigrations(db);
 const uid = () => crypto.randomBytes(12).toString("hex");
 
 // wipe
-for (const t of ["users","clients","entities","periods","pl_lines","payroll_lines","ar_buckets","cash_balances","goals","story_notes","audit_logs"])
-  db.exec(`DELETE FROM ${t}`);
+const WIPE = [
+  "users","clients","entities","periods","pl_lines","payroll_lines","ar_buckets","cash_balances",
+  "goals","story_notes","audit_logs","budget_lines","balance_lines","action_items","comments",
+  "release_records","period_locks","client_goals","client_pain_points","advisory_sessions",
+  "discovery_findings","cleanup_scope","cleanup_findings","kpi_client_config","kpi_values",
+  "kpi_inputs","client_tags","import_mappings","import_runs","volume_lines","passthrough_lines",
+  "fee_lines","channel_lines","personal_finance","assets","release_deliveries",
+];
+for (const t of WIPE) {
+  try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }
+}
 
 // ---- client ----
 const clientId = uid();
 db.prepare(`INSERT INTO clients (id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,target_labor_lo,target_labor_hi)
   VALUES (?,?,?,?,?,?,?,?,?,?)`)
-  .run(clientId, "Criterion In-Home Care", "criterion", "modern", "#2C504D", "#DB5928", "CRITERION", "IN-HOME CARE", 65, 72);
+  .run(clientId, "Northbridge Home Care", "northbridge", "editorial", "#2C504D", "#DB5928", "NORTHBRIDGE", "HOME CARE", null, null);
 
 // ---- users ----
 const hash = (p: string) => bcrypt.hashSync(p, 12);
@@ -51,23 +61,22 @@ const users = [
   ["regen@hathornadvisorygroup.com", "Regen Hailemariam", "ADMIN", null],
   ["jeremiah@hathornadvisorygroup.com", "Jeremiah Hathorn", "ADVISOR", null],
   ["books@hathornadvisorygroup.com", "Hathorn Bookkeeping", "BOOKKEEPER", null],
-  ["natosha@criterionihc.com", "Natosha Snowden", "CLIENT", clientId],
-];
+  ];
 for (const [email, name, role, cid] of users)
   db.prepare("INSERT INTO users (id,email,password_hash,name,role,client_id) VALUES (?,?,?,?,?,?)")
     .run(uid(), email, hash("ledger2026"), name, role, cid);
 
 // ---- entities ----
 const eIHH = uid(), eCDS = uid(), eDZ = uid();
-db.prepare("INSERT INTO entities (id,client_id,name,status) VALUES (?,?,?,?)").run(eIHH, clientId, "Criterion In-Home Health", "ACTIVE");
-db.prepare("INSERT INTO entities (id,client_id,name,status) VALUES (?,?,?,?)").run(eCDS, clientId, "JE Consumer Directed Services", "ACTIVE");
-db.prepare("INSERT INTO entities (id,client_id,name,status) VALUES (?,?,?,?)").run(eDZ, clientId, "Daisy'z Adult Day Center", "STARTUP");
+db.prepare("INSERT INTO entities (id,client_id,name,status) VALUES (?,?,?,?)").run(eIHH, clientId, "Northbridge In-Home Health", "ACTIVE");
+db.prepare("INSERT INTO entities (id,client_id,name,status) VALUES (?,?,?,?)").run(eCDS, clientId, "Consumer Directed Services", "ACTIVE");
+db.prepare("INSERT INTO entities (id,client_id,name,status) VALUES (?,?,?,?)").run(eDZ, clientId, "Riverbend Adult Day", "STARTUP");
 
 // ---- goals ----
 const goals = [
-  ["IHH labor ratio to 72%", "≤ 72%", "81.1%", 25],
+  ["IHH labor ratio inside agreed band", "≤ 72%", "81.1%", 25],
   ["Restaff to 3,700 hrs/month", "3,700 hrs", "3,051 hrs", 40],
-  ["Daisy'z open by Q3, census 17+", "Open · 17/day", "Licensing in progress", 30],
+  ["Riverbend open by Q3, census 17+", "Open · 17/day", "Licensing in progress", 30],
 ];
 for (const [title, target, current, progress] of goals)
   db.prepare("INSERT INTO goals (id,client_id,title,target,current,progress) VALUES (?,?,?,?,?,?)")
@@ -138,20 +147,20 @@ MONTHS.forEach((month, i) => {
   const insNote = db.prepare("INSERT INTO story_notes (id,period_id,slot,tone,heading,body,sort) VALUES (?,?,?,?,?,?,?)");
   if (isMay) {
     insNote.run(uid(), pid, "WHAT_CHANGED", "warn", "CDS claims lag — $58.3K (timing)",
-      "May attendant hours were worked but claims were submitted June 8. MMAC pays in ~21 days; expect recovery in the June statement. Watch, don't panic.", 0);
+      "May attendant hours were worked but claims submitted June 8. MMAC pays in ~21 days — expect recovery in June. Lead with timing vs operational on the call.", 0);
     insNote.run(uid(), pid, "WHAT_CHANGED", "bad", "In-Home Health hours down 18% (operational)",
-      "3,051 hours delivered vs 3,743 in April after two caregiver departures. This is lost revenue, not delayed revenue — about $21.8K/month until hours are restaffed.", 1);
-    insNote.run(uid(), pid, "WHAT_CHANGED", "info", "The distinction is the story",
-      "Roughly $58K of the May decline comes back on its own. Roughly $22K/month does not — recruiting is the action item for the June meeting.", 2);
+      "3,051 hours vs 3,743 in April after two caregiver departures. Lost revenue, not delayed — about $21.8K/month until restaffed. This is the call action.", 1);
+    insNote.run(uid(), pid, "WHAT_CHANGED", "info", "The story for the meeting",
+      "Roughly $58K comes back on its own. Roughly $22K/month does not — recruiting is the commitment to leave with.", 2);
     insNote.run(uid(), pid, "ACTION", "bad", "Cap overtime at the schedule level",
       "$21.4K of OT premium YTD. Route open shifts to under-40 caregivers before releasing OT.", 0);
     insNote.run(uid(), pid, "ACTION", "warn", "Reprice travel-heavy cases",
       "Cases with drive time over 30 minutes effectively bill below $29/hr. Flag for renegotiation or clustering.", 1);
     insNote.run(uid(), pid, "ACTION", "info", "Work the 90+ day AR first",
-      "$12.8K sits past 90 days across MMAC and MCO buckets — timely-filing risk. Work these before anything else.", 2);
+      "$12.8K past 90 days across MMAC and MCO — timely-filing risk. First collection move this month.", 2);
   } else {
     insNote.run(uid(), pid, "WHAT_CHANGED", "info", "Steady month",
-      "Revenue and labor in expected ranges. Watching IHH labor ratio against the 65–72% band.", 0);
+      "Revenue and labor in expected ranges. Watching IHH labor against the derived band from their own trailing months.", 0);
   }
 });
 
@@ -239,10 +248,10 @@ if (mayPeriod) {
   const ACTIONS: [string, string, string, string, number, string][] = [
     ["Cap overtime at the schedule level",
      "Route open shifts to caregivers under 40 hours before releasing overtime.",
-     "Natosha", "Ongoing", 21.4, marPeriod?.id],
+     "Ops lead", "Ongoing", 21.4, marPeriod?.id],
     ["Recruit four caregivers to restore IHH hours",
      "3,051 hours delivered against a 3,700 target. Roughly $21.8K of monthly revenue.",
-     "Natosha", "30 Jun", 21.8, aprPeriod?.id],
+     "Ops lead", "30 Jun", 21.8, aprPeriod?.id],
     ["Work the 90-plus AR before timely filing lapses",
      "$12.8K across MMAC and MCO buckets.",
      "Billing", "15 Jun", 12.8, aprPeriod?.id],
@@ -259,7 +268,7 @@ if (mayPeriod) {
       VALUES (?,?,?,?,?,?,?,'DONE',?,datetime('now'))`)
       .run(uid(), clientId, marPeriod.id, mayPeriod.id,
         "Renegotiate the travel-heavy Jefferson County cases",
-        "Clustered into two runs; effective rate back above $31/hr.", "Natosha", 6.4);
+        "Clustered into two runs; effective rate back above $31/hr.", "Ops lead", 6.4);
   }
 }
 
@@ -290,7 +299,7 @@ db.prepare("UPDATE clients SET currency='USD', accounting_basis='ACCRUAL', verti
     const { setTags } = require("./portfolio");
     const byslug = (sl: string) => (db.prepare("SELECT id FROM clients WHERE slug=?").get(sl) as any)?.id;
     const tagMap: [string, string[]][] = [
-      ["criterion", ["Monthly advisory", "Jeremiah"]],
+      ["northbridge", ["Monthly advisory", "Jeremiah"]],
       ["lakeside-stays", ["Quarterly", "Regen"]],
       ["bright-path", ["Monthly advisory", "Regen"]],
       ["impact-5", ["Monthly advisory", "Jeremiah", "Growth"]],
@@ -323,15 +332,37 @@ db.prepare("UPDATE clients SET currency='USD', accounting_basis='ACCRUAL', verti
   }
 }
 
-// Run the gate over every seeded period so the demo reflects a real close: tie-out is
-// a recorded fact about a month, not something confidence has to guess at.
+// Run the gate, then lock published months through the release authority so snapshots
+// exist — status='PUBLISHED' alone is not a statement.
 {
   const { runGate } = require("./gate");
+  const { publish } = require("./release");
   for (const per of allPeriods) {
     try { runGate(per.id); } catch { /* a period mid-construction is not a seed failure */ }
   }
+  const admin: any = db.prepare("SELECT id FROM users WHERE role='ADMIN' LIMIT 1").get();
+  // Ensure every period we intend to lock has at least one note — release requires commentary.
+  const published: any[] = db.prepare("SELECT id FROM periods WHERE status='PUBLISHED'").all();
+  const insNote = db.prepare(
+    "INSERT INTO story_notes (id,period_id,slot,tone,heading,body,sort) VALUES (?,?,?,?,?,?,?)");
+  for (const per of published) {
+    const n: any = db.prepare("SELECT COUNT(*) c FROM story_notes WHERE period_id=?").get(per.id);
+    if ((n?.c ?? 0) === 0) {
+      insNote.run(uid(), per.id, "WHAT_CHANGED", "info", "Locked example month",
+        "Seeded statement for advisory call prep. Replace with the real story on a live close.", 0);
+    }
+  }
+  for (const per of published) {
+    // publish() re-checks the gate and freezes the snapshot; seed data is reconciled so this should pass.
+    try {
+      const out = publish(per.id, admin.id);
+      if (!out.ok) console.warn("Seed lock skipped for", per.id, out.blockers?.[0]?.message);
+    } catch (e: any) {
+      console.warn("Seed lock failed:", e.message);
+    }
+  }
 }
 
-console.log("Seeded: Criterion In-Home Care — 3 entities, 5 periods (Jan–Apr published, May in review), 4 users.");
+console.log("Seeded Hathorn advisory book: Northbridge Home Care + vertical examples.");
 console.log("Logins (password: ledger2026):");
 for (const [email, , role] of users) console.log(`  ${String(role).padEnd(10)} ${email}`);

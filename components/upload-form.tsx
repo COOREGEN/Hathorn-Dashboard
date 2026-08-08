@@ -14,10 +14,10 @@ export default function UploadForm({ clients, entities }:
   const [result, setResult] = useState<{ pass: boolean; checks: GateCheck[]; error?: string } | null>(null);
 
   const slots = [
-    ["pnl", "P&L by class (pnl.csv)"],
-    ["payroll", "Payroll register (payroll.csv)"],
-    ["ar", "AR aging (ar.csv)"],
-    ["cash", "Bank balance (cash.csv)"],
+    ["pnl", "P&L (by class / export)"],
+    ["payroll", "Payroll register"],
+    ["ar", "AR aging"],
+    ["cash", "Bank balance"],
     ["balance", "Balance sheet (optional)"],
     ["budget", "Budget (optional)"],
   ] as const;

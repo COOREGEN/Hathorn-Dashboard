@@ -94,11 +94,19 @@ export default async function Engagement({ searchParams }: {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {clients.length > 1 && (
-              <select className="input" style={{ minWidth: 190 }} defaultValue={clientId}
-                // A plain link list would be unusable past a dozen clients.
-                name="client">
-                {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <div className="flex flex-wrap gap-2" style={{ maxWidth: 360 }}>
+                {clients.map((c) => (
+                  <Link key={c.id} href={`/engagement?client=${c.id}`}
+                    className="tag" style={{
+                      textDecoration: "none",
+                      background: c.id === clientId ? "var(--brand-tint)" : "transparent",
+                      borderColor: c.id === clientId ? "var(--brand)" : "var(--hairline)",
+                      color: "var(--ink)",
+                    }}>
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
             )}
             <Link href={`/dash?client=${clientId}`} className="btn btn-quiet">Dashboard →</Link>
           </div>

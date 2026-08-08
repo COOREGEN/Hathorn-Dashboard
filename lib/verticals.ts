@@ -473,7 +473,10 @@ export function bandsFor(profile: VerticalProfile, client: {
   target_labor_lo?: number | null; target_labor_hi?: number | null;
 }): VerticalProfile["bands"] {
   const bands = { ...profile.bands };
-  if (client.target_labor_lo != null && client.target_labor_hi != null && profile.bands.labor) {
+  // Ignore 0/0 — that used to mean "unset" and was misread as a real band.
+  if (client.target_labor_lo != null && client.target_labor_hi != null
+      && !(client.target_labor_lo === 0 && client.target_labor_hi === 0)
+      && profile.bands.labor) {
     bands.labor = { lo: client.target_labor_lo, hi: client.target_labor_hi };
   }
   return bands;

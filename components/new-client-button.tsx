@@ -82,7 +82,7 @@ export default function NewClientButton({ knownIndustries = [] }: { knownIndustr
           <input id="nc-name" ref={nameRef} className="input" style={{ marginTop: 5 }}
             value={name} onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) create(); }}
-            placeholder="Criterion In-Home Care" />
+            placeholder="Northbridge Home Care" />
         </div>
 
         <div style={{ marginTop: 16, position: "relative" }}>

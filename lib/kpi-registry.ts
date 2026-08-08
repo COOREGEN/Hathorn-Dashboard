@@ -460,8 +460,13 @@ export function computeKpis(
       value: def.kind === "NON_FINANCIAL" ? (h.values[def.key] ?? null) : evaluate(def.formula, h.values),
     }));
     const priorValue = trend.length > 1 ? trend[trend.length - 2].value : null;
-    const changePct = priorValue !== null && priorValue !== 0 && value !== null
-      ? Math.round(((value - priorValue) / Math.abs(priorValue)) * 1000) / 10
+    // Percent/ratio metrics move in points, not relative percent-of-percent.
+    const changePct = priorValue !== null && value !== null
+      ? (def.unit === "percent" || def.unit === "ratio"
+          ? Math.round((value - priorValue) * 10) / 10
+          : priorValue !== 0
+            ? Math.round(((value - priorValue) / Math.abs(priorValue)) * 1000) / 10
+            : null)
       : null;
 
     out.push({

@@ -36,7 +36,7 @@ export default function Login() {
         </div>
 
         <div style={{ background: "var(--paper)", padding: "32px 30px" }}>
-          <div className="eyebrow" style={{ marginBottom: 20 }}>Client reporting</div>
+          <div className="eyebrow" style={{ marginBottom: 20 }}>Advisory book</div>
 
           <label className="field-label" htmlFor="email">Email</label>
           <input id="email" className="input" style={{ marginTop: 5, marginBottom: 16 }}
@@ -61,7 +61,7 @@ export default function Login() {
 
         <p style={{ textAlign: "center", marginTop: 22, fontFamily: "var(--utility)",
           fontSize: 9.5, letterSpacing: ".18em", textTransform: "uppercase", color: "#5F5A52" }}>
-          Confidential · Prepared for client use
+          Internal · Call prep & storytelling
         </p>
       </div>
     </div>

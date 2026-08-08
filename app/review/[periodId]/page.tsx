@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { clientHistory, computePeriod } from "@/lib/metrics";
+import { clientHistory } from "@/lib/metrics";
 import { buildAdvisory, buildComparabilityMatrix } from "@/app/portal/page";
 import { periodContext, normalisePerDay } from "@/lib/comparability";
 import { assessConfidence } from "@/lib/confidence";
 import { runGate } from "@/lib/gate";
-import Dashboard, { type ClientMeta, type GoalRow } from "@/components/dashboard";
+import { evaluate, releaseHistory } from "@/lib/release";
+import { statementGoals } from "@/lib/statement";
+import Dashboard, { type ClientMeta } from "@/components/dashboard";
 import ReviewPanel from "@/components/review-panel";
 import { config } from "@/lib/config";
 
@@ -17,26 +19,33 @@ export default async function Review({ params }: { params: { periodId: string } 
   if (!s || !["ADMIN", "ADVISOR"].includes(s.role)) redirect("/login");
 
   const period: any = db().prepare("SELECT * FROM periods WHERE id=?").get(params.periodId);
-  if (!period) redirect("/admin");
+  if (!period) redirect("/today");
   const c: any = db().prepare("SELECT * FROM clients WHERE id=?").get(period.client_id);
 
   const gate = runGate(params.periodId);
+  const evaluation = evaluate(params.periodId);
+  const history = releaseHistory(params.periodId);
+
   const client: ClientMeta = {
     name: c.name, template: c.template, brandPrimary: c.brand_primary, brandAccent: c.brand_accent,
     logoText: c.logo_text, logoSub: c.logo_sub,
     logoUrl: c.logo_asset_id ? `/api/assets/${c.logo_asset_id}` : null,
     targetLaborLo: c.target_labor_lo, targetLaborHi: c.target_labor_hi,
   };
-  const goals: GoalRow[] = (db().prepare("SELECT * FROM goals WHERE client_id=? AND active=1").all(c.id) as any[])
-    .map((g) => ({ id: g.id, title: g.title, target: g.target, current: g.current, progress: g.progress }));
+  const goals = statementGoals(c.id);
 
-  // Advisor sees history INCLUDING this draft period.
+  // Advisor sees live history including this draft — call prep works on working papers.
   const periods = clientHistory(c.id, false).filter(
     (p) => p.status === "PUBLISHED" || p.periodId === params.periodId
   );
   const notes: any[] = db()
     .prepare("SELECT * FROM story_notes WHERE period_id=? ORDER BY slot, sort")
     .all(params.periodId);
+
+  const allComments: any[] = periods.length
+    ? (db().prepare(`SELECT * FROM comments WHERE period_id IN (${periods.map(() => "?").join(",")}) ORDER BY created_at`)
+        .all(...periods.map((p) => p.periodId)) as any[])
+    : [];
 
   return (
     <div>
@@ -47,9 +56,16 @@ export default async function Review({ params }: { params: { periodId: string } 
         gate={gate}
         notes={notes.map((n) => ({ id: n.id, slot: n.slot, tone: n.tone, heading: n.heading, body: n.body }))}
         storyAgentEnabled={config.anthropic.enabled}
+        history={history}
+        evaluation={{
+          canPublish: evaluation.canPublish,
+          blockers: evaluation.blockers,
+          warnings: evaluation.warnings,
+          nextVersion: evaluation.nextVersion,
+        }}
       />
       <Dashboard client={client} periods={periods} goals={goals} selectedId={params.periodId}
-        userRole={s.role} allComments={[]}
+        userRole={s.role} allComments={allComments}
         advisoryByPeriod={Object.fromEntries(periods.map((p) => [p.periodId, buildAdvisory(c.id, p)]))}
         comparabilityByPair={buildComparabilityMatrix(c.id, periods)}
         confidenceByPeriod={Object.fromEntries(periods.map((p) => [p.periodId, assessConfidence(p, c.id)]))}

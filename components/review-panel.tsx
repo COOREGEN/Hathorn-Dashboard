@@ -1,32 +1,57 @@
 "use client";
 /**
- * The advisor's cockpit, docked above the dashboard preview:
- * gate status, inline story editing, and the Approve & Publish action.
+ * The advisor's call-prep cockpit: gate status, story editing, lock for the call,
+ * amendments, and version history.
  */
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type Note = { id: string; slot: string; tone: string; heading: string; body: string };
 type Gate = { pass: boolean; checks: { name: string; pass: boolean; detail: string }[] };
+type ReleaseVersion = {
+  id: string; version: number; publishedAt: string; status: string;
+  amendmentReason: string; revokedReason: string;
+};
+type EvalPreview = {
+  canPublish: boolean;
+  blockers: { message: string }[];
+  warnings: { message: string }[];
+  nextVersion: number;
+};
 
-export default function ReviewPanel({ periodId, clientName, status, gate, notes: initial, storyAgentEnabled }:
-  { periodId: string; clientName: string; status: string; gate: Gate; notes: Note[]; storyAgentEnabled: boolean }) {
+export default function ReviewPanel({
+  periodId, clientName, status, gate, notes: initial, storyAgentEnabled,
+  history = [], evaluation,
+}: {
+  periodId: string; clientName: string; status: string; gate: Gate; notes: Note[];
+  storyAgentEnabled: boolean; history?: ReleaseVersion[]; evaluation?: EvalPreview | null;
+}) {
   const [notes, setNotes] = useState(initial);
   const [drafting, setDrafting] = useState(false);
   const [draftMsg, setDraftMsg] = useState("");
   const [open, setOpen] = useState(true);
   const [showGate, setShowGate] = useState(!gate.pass);
+  const [showHistory, setShowHistory] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [blockers, setBlockers] = useState<string[]>([]);
+  const [blockers, setBlockers] = useState<string[]>(
+    evaluation && !evaluation.canPublish
+      ? evaluation.blockers.map((b) => b.message)
+      : [],
+  );
   const [publishMsg, setPublishMsg] = useState("");
   const [saved, setSaved] = useState("");
   const router = useRouter();
 
   async function saveNote(n: Note) {
     setSaved("");
-    await fetch("/api/notes", {
+    const res = await fetch("/api/notes", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(n),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setBlockers([data.error || "Could not save note."]);
+      return;
+    }
     setSaved(n.id);
     setTimeout(() => setSaved(""), 1500);
     router.refresh();
@@ -38,24 +63,24 @@ export default function ReviewPanel({ periodId, clientName, status, gate, notes:
       body: JSON.stringify({ periodId, slot }),
     });
     const n = await res.json();
+    if (!res.ok) { setBlockers([n.error || "Could not add note."]); return; }
     setNotes([...notes, n]);
     router.refresh();
   }
 
   async function removeNote(id: string) {
-    await fetch("/api/notes", {
+    const res = await fetch("/api/notes", {
       method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setBlockers([data.error || "Could not remove note."]);
+      return;
+    }
     setNotes(notes.filter((n) => n.id !== id));
     router.refresh();
   }
 
-  /**
-   * Publishing now goes through the release authority, which re-evaluates inside the
-   * transaction and can refuse with named blockers. The previous handler only acted on
-   * success — a refused publish did nothing at all, so the button read as broken when it
-   * was in fact working correctly and had something to say.
-   */
   async function approve() {
     setBusy(true); setBlockers([]); setPublishMsg("");
     const res = await fetch("/api/approve", {
@@ -65,18 +90,16 @@ export default function ReviewPanel({ periodId, clientName, status, gate, notes:
     setBusy(false);
 
     if (!res.ok || !data.ok) {
-      // Show every reason, not just the first — a publish usually fails for more than one.
       setBlockers(data.blockers?.length
         ? data.blockers.map((b: any) => b.message)
-        : [data.error || "This period could not be published."]);
+        : [data.error || "This period could not be locked."]);
       return;
     }
     setPublishMsg(
-      `Published as version ${data.version ?? 1}. The period is now locked — changing it means issuing an amendment.`);
-    setTimeout(() => router.push("/portfolio"), 1400);
+      `Locked as version ${data.version ?? 1} for the advisory call. Changing it means issuing an amendment.`);
+    setTimeout(() => router.push("/today"), 1400);
   }
 
-  /** The only route back into a locked period. */
   async function amend() {
     const reason = prompt("Why is this month being amended? The reason travels with the new version.");
     if (!reason?.trim()) return;
@@ -88,11 +111,10 @@ export default function ReviewPanel({ periodId, clientName, status, gate, notes:
     const data = await res.json().catch(() => ({ ok: false }));
     setBusy(false);
     if (!data.ok) { setBlockers([data.error || "Could not open an amendment."]); return; }
-    setPublishMsg("Amendment open. Correct the figures, then publish again to issue a new version.");
+    setPublishMsg("Amendment open. Correct the figures and story, then lock again to issue a new version.");
     router.refresh();
   }
 
-  /** Asks the agent for a first draft. Replaces existing notes only after confirmation. */
   async function draftStory() {
     const hasWork = notes.some((n) => n.body && !n.heading.startsWith("Draft —"));
     if (hasWork && !confirm("Replace the current commentary with a fresh draft?")) return;
@@ -106,39 +128,52 @@ export default function ReviewPanel({ periodId, clientName, status, gate, notes:
     if (!data.ok) { setDraftMsg(data.error || "Draft failed."); return; }
     setDraftMsg(
       data.warning ||
-      `Drafted ${data.count} notes${data.source === "claude" ? "" : " from threshold signals"}. Edit before publishing.`,
+      `Drafted ${data.count} notes${data.source === "claude" ? "" : " from threshold signals"}. Edit before locking for the call.`,
     );
     router.refresh();
   }
 
-  async function unpublish() {
-    if (!confirm("Unpublish this period? The client will lose access until it's re-approved.")) return;
-    await fetch("/api/admin/unpublish", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ periodId }),
+  async function withdraw() {
+    const reason = prompt("Why withdraw this locked statement? Required.");
+    if (!reason?.trim()) return;
+    if (!confirm("Withdraw this lock? The month returns to draft for call prep.")) return;
+    setBusy(true);
+    const res = await fetch("/api/admin/unpublish", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ periodId, reason }),
     });
+    const data = await res.json().catch(() => ({ ok: false }));
+    setBusy(false);
+    if (!data.ok) { setBlockers([data.error || "Could not withdraw."]); return; }
     router.refresh();
   }
 
-  // Server-refreshed notes (e.g. after a draft) must replace local state.
   useEffect(() => { setNotes(initial); }, [initial]);
 
   const slotNotes = (slot: string) => notes.filter((n) => n.slot === slot);
+  const warnings = evaluation?.warnings?.map((w) => w.message) ?? [];
 
   return (
     <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 40, background: "var(--ink)", borderBottom: "1px solid var(--hairline-dark)" }}>
       <div style={{ maxWidth: 1080, margin: "0 auto", padding: "14px 28px" }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="wordmark-sub">Review · {clientName}</div>
+            <div className="wordmark-sub">Call prep · {clientName}</div>
             <div style={{ fontFamily: "var(--display)", fontSize: 19, color: "var(--paper)", marginTop: 2 }}>
-              {status === "PUBLISHED" ? "Published" : "Draft — not visible to the client"}
+              {status === "PUBLISHED" ? "Locked for the advisory call" : "Draft — still open for prep"}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button className="tag" style={{ background: "transparent", color: gate.pass ? "#7FC29B" : "#E08B6B", cursor: "pointer", padding: "5px 11px" }}
               onClick={() => setShowGate(!showGate)}>
               Gate: {gate.pass ? "ALL TIES PASS" : "FAILING"} · {gate.checks.filter((c) => c.pass).length}/{gate.checks.length}
             </button>
+            {history.length > 0 && (
+              <button className="tag" style={{ background: "transparent", color: "#A8A196", cursor: "pointer", padding: "5px 11px" }}
+                onClick={() => setShowHistory(!showHistory)}>
+                Versions · {history.length}
+              </button>
+            )}
             <button className="tag" style={{ background: "transparent", color: "#A8A196", cursor: "pointer", padding: "5px 11px" }} onClick={() => setOpen(!open)}>
               {open ? "Hide story editor" : "Edit story"}
             </button>
@@ -146,33 +181,47 @@ export default function ReviewPanel({ periodId, clientName, status, gate, notes:
               <button className="tag" style={{ background: "transparent", color: "var(--gold)", cursor: "pointer", padding: "5px 11px" }}
                 disabled={drafting} onClick={draftStory}
                 title={storyAgentEnabled
-                  ? "Draft commentary from this month's numbers"
+                  ? "Draft commentary for the advisory call"
                   : "No API key set — will draft from threshold signals"}>
                 {drafting ? "Drafting…" : "Draft the story"}
               </button>
             )}
             <button className="tag" style={{ background: "transparent", color: "#A8A196", cursor: "pointer", padding: "5px 11px" }} onClick={() => window.print()}>
-              PDF ↓
+              Print
             </button>
             {status === "PUBLISHED" && (
-              <button className="tag" style={{ background: "transparent", color: "#E08B6B", cursor: "pointer", padding: "5px 11px" }} onClick={amend}>
-                Amend
-              </button>
+              <>
+                <button className="tag" style={{ background: "transparent", color: "#E08B6B", cursor: "pointer", padding: "5px 11px" }} onClick={amend}>
+                  Amend
+                </button>
+                <button className="tag" style={{ background: "transparent", color: "#E08B6B", cursor: "pointer", padding: "5px 11px" }}
+                  disabled={busy} onClick={withdraw}>
+                  Withdraw
+                </button>
+              </>
             )}
             {status !== "PUBLISHED" && (
               <button className="btn" style={{ padding: "9px 18px" }}
-                disabled={!gate.pass || busy} onClick={approve}>
-                {busy ? "Publishing…" : "Approve & Publish"}
+                disabled={!gate.pass || busy || (evaluation ? !evaluation.canPublish : false)} onClick={approve}>
+                {busy ? "Locking…" : `Lock for call${evaluation?.nextVersion ? ` · v${evaluation.nextVersion}` : ""}`}
               </button>
             )}
           </div>
         </div>
 
+        {warnings.length > 0 && status !== "PUBLISHED" && (
+          <div className="caption" style={{ marginTop: 10, padding: "10px 13px",
+            border: "1px solid var(--hairline-dark)", color: "var(--gold-label)" }}>
+            <strong style={{ display: "block", marginBottom: 5 }}>Before you lock</strong>
+            {warnings.map((w, i) => <div key={i} style={{ marginTop: 4 }}>— {w}</div>)}
+          </div>
+        )}
+
         {blockers.length > 0 && (
           <div className="caption" style={{ marginTop: 10, padding: "10px 13px",
             border: "1px solid #7A3A1C", color: "#E08B6B" }}>
             <strong style={{ display: "block", marginBottom: 5 }}>
-              This period cannot be published yet
+              This period cannot be locked yet
             </strong>
             {blockers.map((b, i) => <div key={i} style={{ marginTop: 4 }}>— {b}</div>)}
           </div>
@@ -188,6 +237,19 @@ export default function ReviewPanel({ periodId, clientName, status, gate, notes:
         {draftMsg && (
           <div className="caption" style={{ marginTop: 10, padding: "9px 12px", border: "1px solid var(--hairline-dark)", color: "var(--gold-label)" }}>
             {draftMsg}
+          </div>
+        )}
+
+        {showHistory && history.length > 0 && (
+          <div className="mt-3" style={{ border: "1px solid var(--hairline-dark)", padding: "10px 12px" }}>
+            <div className="wordmark-sub" style={{ marginBottom: 8 }}>Version history</div>
+            {history.map((h) => (
+              <div key={h.id} className="caption" style={{ color: "#C9C2B6", marginBottom: 6 }}>
+                v{h.version} · {h.status} · {h.publishedAt?.slice(0, 16) || "—"}
+                {h.amendmentReason ? ` · ${h.amendmentReason}` : ""}
+                {h.revokedReason ? ` · withdrawn: ${h.revokedReason}` : ""}
+              </div>
+            ))}
           </div>
         )}
 
@@ -208,7 +270,7 @@ export default function ReviewPanel({ periodId, clientName, status, gate, notes:
               <div key={slot}>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="wordmark-sub">
-                    {slot === "WHAT_CHANGED" ? "What Changed" : "Actions"}
+                    {slot === "WHAT_CHANGED" ? "The story for the call" : "Commitments to leave with"}
                   </span>
                   <button style={{ fontFamily: "var(--utility)", fontSize: 10, color: "#8C857A", cursor: "pointer" }} onClick={() => addNote(slot)}>
                     + Add note

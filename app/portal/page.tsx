@@ -1,16 +1,24 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { clientHistory, computePeriods } from "@/lib/metrics";
+import { computePeriods } from "@/lib/metrics";
 import { yearOverYear, budgetVariance, balanceSheet, cashOutlook, openActions, closedSince } from "@/lib/advisory";
 import { periodContext, checkComparability, normalisePerDay } from "@/lib/comparability";
 import { assessConfidence } from "@/lib/confidence";
+import { lockedStatements, statementGoals } from "@/lib/statement";
+import { activeRelease } from "@/lib/release";
 import Dashboard, { type ClientMeta, type GoalRow } from "@/components/dashboard";
 import LogoutButton from "@/components/logout-button";
 
 export const dynamic = "force-dynamic";
 
-export default async function Portal({ searchParams }: { searchParams: { client?: string } }) {
+/**
+ * Locked-statement preview.
+ *
+ * Staff use this to see exactly what was locked for a call. Reads active release
+ * snapshots only — never live tables — so a statement cannot change underneath the reader.
+ */
+export default async function Portal({ searchParams }: { searchParams: { client?: string; month?: string } }) {
   const s = await getSession();
   if (!s) redirect("/login");
 
@@ -19,7 +27,7 @@ export default async function Portal({ searchParams }: { searchParams: { client?
     const c: any = db().prepare("SELECT id FROM clients WHERE slug=?").get(searchParams.client);
     clientId = c?.id;
   }
-  if (!clientId) redirect(s.role === "CLIENT" ? "/login" : "/admin");
+  if (!clientId) redirect(s.role === "CLIENT" ? "/login" : "/today");
 
   const c: any = db().prepare("SELECT * FROM clients WHERE id=?").get(clientId);
   const client: ClientMeta = {
@@ -28,29 +36,40 @@ export default async function Portal({ searchParams }: { searchParams: { client?
     logoUrl: c.logo_asset_id ? `/api/assets/${c.logo_asset_id}` : null,
     targetLaborLo: c.target_labor_lo, targetLaborHi: c.target_labor_hi,
   };
-  const goals: GoalRow[] = (db().prepare("SELECT * FROM goals WHERE client_id=? AND active=1").all(clientId) as any[])
-    .map((g) => ({ id: g.id, title: g.title, target: g.target, current: g.current, progress: g.progress }));
+  const goals: GoalRow[] = statementGoals(clientId);
 
-  const periods = clientHistory(clientId, true);
+  const periods = lockedStatements(clientId);
+  if (!periods.length) {
+    return (
+      <div style={{ maxWidth: 640, margin: "80px auto", padding: 24 }}>
+        <div className="eyebrow">Locked statements</div>
+        <h1 className="display-m" style={{ marginTop: 8 }}>No locked months yet</h1>
+        <p className="caption" style={{ marginTop: 12 }}>
+          Lock a month from Review when the story is ready for the advisory call.
+          Until then, prepare on Today, Portfolio, and Dash.
+        </p>
+      </div>
+    );
+  }
 
-  // Load comment threads for all published periods
+  const selectedId = searchParams.month && periods.some((p) => p.periodId === searchParams.month)
+    ? searchParams.month
+    : undefined;
+
   const allComments: any[] = periods.length
     ? (db().prepare(`SELECT * FROM comments WHERE period_id IN (${periods.map(() => "?").join(",")}) ORDER BY created_at`)
         .all(...periods.map((p) => p.periodId)) as any[])
     : [];
 
-  // Every period gets its own advisory bundle so switching months keeps the balance
-  // sheet, budget and cash outlook that belong to that month rather than the latest.
-  // The metrics engine is batched, so this is a handful of queries, not one per month.
   const advisoryByPeriod: Record<string, ReturnType<typeof buildAdvisory>> = {};
   for (const p of periods) advisoryByPeriod[p.periodId] = buildAdvisory(clientId, p);
 
-  // Comparability needs period context that only the server can read, so the pairwise
-  // results are precomputed for every combination the picker can produce. The client
-  // then switches comparison instantly without losing the gate.
   const comparabilityByPair = buildComparabilityMatrix(clientId, periods);
   const confidenceByPeriod: Record<string, ReturnType<typeof assessConfidence>> = {};
-  for (const p of periods) confidenceByPeriod[p.periodId] = assessConfidence(p, clientId);
+  for (const p of periods) {
+    const snap = activeRelease(p.periodId)?.snapshot;
+    confidenceByPeriod[p.periodId] = snap?.confidence ?? assessConfidence(p, clientId);
+  }
 
   const perDayByPeriod: Record<string, ReturnType<typeof normalisePerDay>> = {};
   for (const p of periods) {
@@ -61,6 +80,7 @@ export default async function Portal({ searchParams }: { searchParams: { client?
     <div className="relative">
       <div className="absolute right-4 top-4 z-20 no-print"><LogoutButton /></div>
       <Dashboard client={client} periods={periods} goals={goals} userRole={s.role}
+        selectedId={selectedId}
         allComments={allComments} advisoryByPeriod={advisoryByPeriod}
         comparabilityByPair={comparabilityByPair}
         confidenceByPeriod={confidenceByPeriod}
@@ -72,10 +92,10 @@ export default async function Portal({ searchParams }: { searchParams: { client?
 
 /** Assembles everything the advisory sections need in one place. */
 export function buildAdvisory(clientId: string, cur: any) {
-  // Prior-year revenue aligned to the months on screen, for the trend overlay.
+  // Prior-year overlay: locked/published months only — drafts must not enter a statement.
   const priorRows: any[] = db()
     .prepare(`SELECT id, month FROM periods
-               WHERE client_id=? AND year=? AND status IN ('PUBLISHED','IN_REVIEW') ORDER BY month`)
+               WHERE client_id=? AND year=? AND status='PUBLISHED' ORDER BY month`)
     .all(clientId, cur.year - 1);
   const priorMetrics = computePeriods(priorRows.map((r) => r.id));
   const priorByMonth = new Map(priorMetrics.map((p) => [p.month, p.revenue]));

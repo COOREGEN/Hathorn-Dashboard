@@ -109,11 +109,12 @@ const hours = (p: PeriodMetrics) => p.entities.reduce((s, e) => s + e.payroll.ho
 /** The standard set of lines, used for every period-to-period comparison. */
 function standardLines(
   cur: PeriodMetrics, basis: PeriodMetrics,
-  laborTarget: { lo: number; hi: number },
+  laborTarget: { lo: number; hi: number } | null,
   language?: { revenueLabel: string; directCostLabel: string; laborRatioLabel: string; laborGuidance: string },
 ): CompareLine[] {
-  const r = metricRules(laborTarget, language);
-  return [
+  // Placeholder band only so other rules construct; labor line is omitted when unprovenanced.
+  const r = metricRules(laborTarget ?? { lo: 0, hi: 0 }, language);
+  const lines: CompareLine[] = [
     line(r.revenue, cur.revenue, basis.revenue),
     line(r.directCost, cur.directCost, basis.directCost),
     line(r.grossProfit, cur.grossProfit, basis.grossProfit),
@@ -121,12 +122,16 @@ function standardLines(
     line(r.opex, cur.opex, basis.opex),
     line(r.netIncome, cur.netIncome, basis.netIncome),
     line(r.netMarginPct, cur.netMarginPct, basis.netMarginPct),
-    line(r.laborPct, cur.laborPct, basis.laborPct),
+  ];
+  // No agreed/derived band → report labor elsewhere; do not invent a verdict.
+  if (laborTarget) lines.push(line(r.laborPct, cur.laborPct, basis.laborPct));
+  lines.push(
     line(r.otPremium, cur.otPremium, basis.otPremium),
     line(r.hours, hours(cur), hours(basis)),
     line(r.cash, cur.cash.total, basis.cash.total),
     line(r.arTotal, cur.arTotal, basis.arTotal),
-  ];
+  );
+  return lines;
 }
 
 /** Sums a run of periods into one synthetic period for year-to-date comparison. */
@@ -197,14 +202,14 @@ export function buildComparison(
   mode: ComparisonMode,
   budget?: { revenue: number; directCost: number; opex: number; netIncome: number } | null,
   opts: {
-    laborTarget?: { lo: number; hi: number };
+    laborTarget?: { lo: number; hi: number } | null;
     language?: { revenueLabel: string; directCostLabel: string; laborRatioLabel: string; laborGuidance: string };
     /** Supplied by the server, which alone can read period context from the database. */
     checkPair?: (a: PeriodMetrics, b: PeriodMetrics, mode: string) => ComparabilityResult;
     entityScope?: string;
   } = {},
 ): Comparison {
-  const laborTarget = opts.laborTarget ?? { lo: 65, hi: 72 };
+  const laborTarget = opts.laborTarget ?? null;
   const base: Comparison = {
     mode, available: false, currentLabel: cur.label, basisLabel: "", lines: [], issues: [],
   };
@@ -299,7 +304,7 @@ export function buildComparison(
   }
   // A budget is a plan, not another period: no day count, no accounting basis, nothing
   // to gate. The only question is whether the number was met.
-  const r = metricRules(laborTarget, opts.language);
+  const r = metricRules(laborTarget ?? { lo: 0, hi: 0 }, opts.language);
   return {
     ...base, available: true, basisLabel: "Budget",
     lines: [

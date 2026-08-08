@@ -3,6 +3,7 @@ import { db, uid, log } from "@/lib/db";
 import { requireRole, audit, AuthError } from "@/lib/auth";
 
 const MAX_BYTES = 900_000;
+// SVG logos are accepted but served as attachment (see /api/assets/[id]) to block scripted XSS.
 const ALLOWED = ["image/png", "image/jpeg", "image/svg+xml", "image/webp"];
 
 export async function POST(req: Request) {

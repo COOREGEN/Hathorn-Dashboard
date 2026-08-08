@@ -39,7 +39,7 @@ export type YoY = {
 export function yearOverYear(cur: PeriodMetrics, clientId: string): YoY {
   const prior: any = db().prepare(
     `SELECT id FROM periods
-      WHERE client_id=? AND year=? AND month=? AND status IN ('PUBLISHED','IN_REVIEW')`,
+      WHERE client_id=? AND year=? AND month=? AND status='PUBLISHED'`,
   ).get(clientId, cur.year - 1, cur.month);
 
   const empty: YoY = {
@@ -112,7 +112,7 @@ export function budgetVariance(cur: PeriodMetrics, clientId: string): BudgetVari
   const ytdBudget = (cat: string) => ytdRows.find((r) => r.category === cat)?.total ?? 0;
 
   const actualPeriods: any[] = db().prepare(
-    `SELECT id FROM periods WHERE client_id=? AND year=? AND month<=? AND status IN ('PUBLISHED','IN_REVIEW')
+    `SELECT id FROM periods WHERE client_id=? AND year=? AND month<=? AND status='PUBLISHED'
       ORDER BY month`,
   ).all(clientId, cur.year, cur.month);
   const actuals = computePeriods(actualPeriods.map((p) => p.id));

@@ -334,6 +334,20 @@ export function revoke(releaseId: string, actorId: string, reason: string) {
   return { ok: true };
 }
 
+/**
+ * Withdraws the active release for a period. The only supported unpublish path —
+ * flipping status alone leaves locks and snapshots lying.
+ */
+export function revokePeriod(periodId: string, actorId: string, reason: string) {
+  const active = activeRelease(periodId);
+  if (!active) {
+    db().prepare("UPDATE periods SET status='IN_REVIEW', published_at=NULL WHERE id=?").run(periodId);
+    db().prepare("DELETE FROM period_locks WHERE period_id=?").run(periodId);
+    return { ok: true, revoked: false };
+  }
+  return { ...revoke(active.id, actorId, reason), revoked: true, releaseId: active.id };
+}
+
 /* ------------------------------------------------------------------ */
 /* Reading                                                             */
 /* ------------------------------------------------------------------ */

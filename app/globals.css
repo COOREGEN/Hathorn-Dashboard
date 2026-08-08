@@ -35,6 +35,10 @@
   --editorial: "EB Garamond", Georgia, serif;
   --utility: "Libre Franklin", ui-sans-serif, system-ui, sans-serif;
 
+  /* Shell */
+  --rail: 232px;
+  --brand-text: var(--brand-deep);
+
   /* Client accents — overridden inline per client */
   --brand: #2C504D;
   --brand-deep: #1D342F;
@@ -174,6 +178,12 @@ body {
 .btn:disabled { opacity: .35; cursor: not-allowed; }
 .btn-quiet { background: transparent; color: var(--ink); border-color: var(--hairline); }
 .btn-gold  { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.linkish {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; color: var(--brand-deep); text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.linkish:hover { color: var(--accent-deep); }
 
 .input { font-family: var(--utility); font-size: 12.5px; width: 100%;
          border: 1px solid var(--hairline); background: #FFFDF8; padding: 9px 11px; color: var(--ink); }

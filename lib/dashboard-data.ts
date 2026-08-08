@@ -14,7 +14,19 @@ import { periodContext, checkComparability, normalisePerDay } from "./comparabil
 import { assessConfidence } from "./confidence";
 import { getSession } from "./auth";
 import { vertical, bandsFor } from "./verticals";
+import { clientConfig } from "./kpi-registry";
 import { managementBasis, feeRecovery, channelMix } from "./management-basis";
+
+/**
+ * Labor band only when the client has a provenanced target (AGREED / DERIVED / BENCHMARK).
+ * Vertical preset bands are selection hints, not judgement — inventing 65–72 was the bug.
+ */
+function provenancedLaborTarget(clientId: string): { lo: number; hi: number } | null {
+  const cfg = clientConfig(clientId).find((c) => c.kpiKey === "labor_ratio");
+  if (!cfg || cfg.targetSource === "NONE") return null;
+  if (cfg.targetLo != null && cfg.targetHi != null) return { lo: cfg.targetLo, hi: cfg.targetHi };
+  return null;
+}
 
 export type DashboardContext = Awaited<ReturnType<typeof loadDashboard>>;
 
@@ -77,11 +89,10 @@ export async function loadDashboard(params: {
   const mode = (params.mode as ComparisonMode) || "PRIOR_MONTH";
   const entity = params.entity || "ALL";
 
-  // The vertical carries the opinion; the client record overrides it where a business
-  // genuinely differs from its industry.
   const profile = vertical(client.vertical);
+  // Structural presets (sections, tie-outs, language) — not invented judgement bands.
   const bands = bandsFor(profile, client);
-  const laborTarget = bands.labor ?? { lo: client.target_labor_lo, hi: client.target_labor_hi };
+  const laborTarget = provenancedLaborTarget(clientId);
   const checkPair = (a: PeriodMetrics, b: PeriodMetrics, m: string) =>
     checkComparability(periodContext(a, clientId), periodContext(b, clientId),
       { mode: m, entityScope: entity });
@@ -175,22 +186,23 @@ export function alertsFor(ctx: NonNullable<DashboardContext>) {
   const { cur, client, comparison, confidence, actions } = ctx as any;
   const out: { sev: "critical" | "high" | "medium" | "low"; heading: string; body: string; meta: string }[] = [];
 
-  // Only alert on a band the vertical actually defines. A short-term rental has no
-  // labour ratio worth judging, and inventing one would be noise.
-  const band = (ctx as any).bands?.labor;
+  // Only alert on a provenanced labor target — never a vertical preset band.
+  const band = (ctx as any).laborTarget as { lo: number; hi: number } | null;
   const lang = (ctx as any).profile?.language;
   if (band && cur.laborPct > band.hi)
-    out.push({ sev: "high", heading: `${lang?.laborRatioLabel ?? "Labor ratio"} above the healthy band`,
+    out.push({ sev: "high", heading: `${lang?.laborRatioLabel ?? "Labor ratio"} above the agreed band`,
       body: `${cur.laborPct.toFixed(1)}% against a ${band.lo}–${band.hi}% band. ${lang?.laborGuidance ?? ""}`.trim(),
       meta: `Metric · ${(lang?.laborRatioLabel ?? "labor ratio").toLowerCase()} · consolidated` });
   if (band && cur.revenue > 0 && cur.laborPct < band.lo)
-    out.push({ sev: "high", heading: `${lang?.laborRatioLabel ?? "Labor ratio"} below the healthy band`,
+    out.push({ sev: "high", heading: `${lang?.laborRatioLabel ?? "Labor ratio"} below the agreed band`,
       body: `${cur.laborPct.toFixed(1)}% is below the floor. ${lang?.laborGuidance ?? ""}`.trim(),
       meta: `Metric · ${(lang?.laborRatioLabel ?? "labor ratio").toLowerCase()} · consolidated` });
 
-  // Occupancy and enrolment, where the vertical tracks capacity.
+  // Occupancy / utilisation only when the client has a provenanced occupancy KPI.
   const vol = (ctx as any).volume;
-  const occBand = (ctx as any).bands?.occupancy;
+  const occCfg = clientConfig(client.id).find((c) => c.kpiKey === "occupancy" || c.kpiKey === "utilisation");
+  const occBand = occCfg && occCfg.targetSource !== "NONE" && occCfg.targetLo != null && occCfg.targetHi != null
+    ? { lo: occCfg.targetLo, hi: occCfg.targetHi } : null;
   if (vol?.utilisation != null && occBand) {
     const unit = (ctx as any).profile?.volume?.label ?? "Utilisation";
     if (vol.utilisation < occBand.lo)

@@ -3,25 +3,60 @@ import { db, uid } from "@/lib/db";
 import { requireRole, audit, AuthError } from "@/lib/auth";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import { runGate } from "@/lib/gate";
+import { assertEditable } from "@/lib/release";
 import { ValidationError, period as validPeriod } from "@/lib/validate";
+import {
+  detect, applyMapping, saveMapping, parseAmount, splitCsvLine,
+  NUMERIC_FIELDS, type DocType,
+} from "@/lib/import";
 
-/** Tiny CSV parser — header row + simple comma fields (no quoted-comma support needed for these formats). */
-function parseCsv(text: string): Record<string, string>[] {
+/** Exact-header fallback for the original four-file close format. */
+function parseExactCsv(text: string): Record<string, string>[] {
   const lines = text.replace(/\r/g, "").split("\n").map((l) => l.trim()).filter(Boolean);
   if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+  const headers = splitCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
   return lines.slice(1).map((line) => {
-    const cells = line.split(",").map((c) => c.trim());
+    const cells = splitCsvLine(line);
     const row: Record<string, string> = {};
     headers.forEach((h, i) => (row[h] = cells[i] ?? ""));
     return row;
   });
 }
 
-const num = (v: string) => {
-  const n = parseFloat(String(v).replace(/[$,]/g, ""));
-  return isNaN(n) ? 0 : n;
-};
+const num = (v: string) => parseAmount(v) ?? 0;
+
+/**
+ * Prefer detected column mapping (and remember it per client); fall back to exact headers.
+ * Normalises common aliases so payroll hoursPaid → hours, otPremium → ot_premium, etc.
+ */
+function rowsFor(text: string, clientId: string, hint: DocType): Record<string, string>[] {
+  const d = detect(text);
+  if (d.docType !== "UNKNOWN" && (d.docType === hint || hint === "UNKNOWN") && Object.keys(d.columnMap).length) {
+    saveMapping(clientId, d.docType, {
+      sourceLabel: d.sourceLabel,
+      headerRow: d.headerRow,
+      columnMap: d.columnMap,
+    });
+    const { rows } = applyMapping(text, {
+      headerRow: d.headerRow,
+      columnMap: d.columnMap,
+      wideFormat: d.wideFormat,
+      entityColumns: d.entityColumns,
+    }, NUMERIC_FIELDS[d.docType] || []);
+    return rows.map((r) => {
+      const out: Record<string, string> = {};
+      for (const [k, v] of Object.entries(r)) {
+        const key = k === "hoursPaid" ? "hours"
+          : k === "otPremium" ? "ot_premium"
+          : k === "workersComp" ? "workers_comp"
+          : k;
+        out[key] = v == null ? "" : String(v);
+      }
+      return out;
+    });
+  }
+  return parseExactCsv(text);
+}
 
 export async function POST(req: Request) {
   try {
@@ -32,9 +67,13 @@ export async function POST(req: Request) {
     // A month of 13 used to create a phantom period no calendar view could reach.
     const { year, month } = validPeriod(fd.get("year"), fd.get("month"));
 
+    const hintFor: Record<string, DocType> = {
+      pnl: "PNL", payroll: "PAYROLL", ar: "AR", cash: "CASH", balance: "BALANCE",
+    };
     const read = async (k: string) => {
       const f = fd.get(k) as File | null;
-      return f ? parseCsv(await f.text()) : [];
+      if (!f) return [];
+      return rowsFor(await f.text(), clientId, hintFor[k] || "UNKNOWN");
     };
 
     const d = db();
@@ -54,9 +93,11 @@ export async function POST(req: Request) {
       const pid = uid();
       d.prepare("INSERT INTO periods (id, client_id, year, month, status) VALUES (?,?,?,?, 'AWAITING')").run(pid, clientId, year, month);
       period = { id: pid };
-    } else if (period.status === "PUBLISHED") {
-      return NextResponse.json({ pass: false, checks: [], error: "This period is already published. Open an amendment from the review screen to change it." }, { status: 400 });
     } else {
+      try { assertEditable(period.id); }
+      catch (e: any) {
+        return NextResponse.json({ pass: false, checks: [], error: e.message }, { status: 400 });
+      }
       d.prepare("UPDATE periods SET status='AWAITING' WHERE id=?").run(period.id);
     }
     const pid = period.id;
@@ -69,11 +110,11 @@ export async function POST(req: Request) {
     });
     replace();
 
-    const pnl = fd.get("pnl") ? parseCsv(await (fd.get("pnl") as File).text()) : [];
+    const pnl = await read("pnl");
     for (const r of pnl) {
       const cat = String(r.category || "").toUpperCase();
       if (!["REVENUE", "DIRECT_COST", "OPEX"].includes(cat))
-        throw new Error(`pnl.csv: invalid category "${r.category}" (use REVENUE, DIRECT_COST, or OPEX)`);
+        throw new Error(`P&L: invalid category "${r.category}" (use REVENUE, DIRECT_COST, or OPEX)`);
       d.prepare("INSERT INTO pl_lines (id, period_id, entity_id, category, label, amount) VALUES (?,?,?,?,?,?)")
         .run(uid(), pid, resolveEntity(r.entity), cat, r.label || cat, num(r.amount));
     }

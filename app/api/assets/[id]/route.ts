@@ -20,12 +20,16 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     return new NextResponse("Not found", { status: 404 });
   }
 
+  // SVG must not render as a navigable document (scriptable XSS under our origin).
+  // Force download/attachment for SVG; raster logos stay inline for <img>.
+  const isSvg = String(asset.mime).includes("svg");
   return new NextResponse(asset.bytes, {
     headers: {
-      "Content-Type": asset.mime,
+      "Content-Type": isSvg ? "image/svg+xml" : asset.mime,
       "Cache-Control": "public, max-age=31536000, immutable",
-      "Content-Disposition": "inline",
+      "Content-Disposition": isSvg ? 'attachment; filename="logo.svg"' : "inline",
       "X-Content-Type-Options": "nosniff",
+      ...(isSvg ? { "Content-Security-Policy": "default-src 'none'; sandbox" } : {}),
     },
   });
 }

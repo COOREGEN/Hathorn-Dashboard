@@ -3,6 +3,7 @@ import { requireRole, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import { draftStory } from "@/lib/story-agent";
+import { assertEditable } from "@/lib/release";
 import { db, uid } from "@/lib/db";
 
 /**
@@ -19,9 +20,9 @@ export async function POST(req: Request) {
 
     const period: any = db().prepare("SELECT * FROM periods WHERE id=?").get(periodId);
     if (!period) return NextResponse.json({ ok: false, error: "Period not found" }, { status: 404 });
-    if (period.status === "PUBLISHED") {
-      return NextResponse.json(
-        { ok: false, error: "This period is published. Unpublish it before redrafting." }, { status: 400 });
+    try { assertEditable(periodId); }
+    catch (e: any) {
+      return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
     }
 
     const { notes, source, warning } = await draftStory(periodId);

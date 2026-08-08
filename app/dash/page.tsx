@@ -14,8 +14,9 @@ export default function Overview({ searchParams }: { searchParams: Record<string
         const active = cur.entities.filter((e: any) => e.revenue > 0);
         const trend = periods.filter((p: any) => p.year === cur.year && p.month <= cur.month);
         const priorYear = periods.filter((p: any) => p.year === cur.year - 1 && p.month <= cur.month);
-        const laborBad = Boolean(bands.labor) &&
-          (view.laborPct > bands.labor.hi || view.laborPct < bands.labor.lo);
+        // Judgement only against a provenanced client target — never a vertical preset.
+        const laborBad = Boolean(laborTarget) &&
+          (view.laborPct > laborTarget.hi || view.laborPct < laborTarget.lo);
 
         return (
           <>
@@ -29,20 +30,19 @@ export default function Overview({ searchParams }: { searchParams: Record<string
                 sub={`${pct(view.netMarginPct)} net margin`} tone={view.netIncome >= 0 ? "ok" : "bad"} />
               <Kpi label="Cash position" value={money(cur.cash.total)}
                 sub={`${money(cur.cash.operating)} operating · ${money(cur.cash.reserve)} reserve`} />
-              {bands.labor ? (
+              {laborTarget ? (
                 <Kpi label={L.laborRatioLabel} value={pct(view.laborPct)}
-                  sub={`Healthy band ${bands.labor.lo}–${bands.labor.hi}%`}
+                  sub={`Agreed band ${laborTarget.lo}–${laborTarget.hi}%`}
                   tone={laborBad ? "bad" : "ok"} />
+              ) : profile.directCostModel === "payroll_only" || profile.directCostModel === "payroll_plus_materials" ? (
+                <Kpi label={L.laborRatioLabel} value={pct(view.laborPct)}
+                  sub="Reported, not judged — no agreed band yet" tone="n" />
               ) : volume?.utilisation != null ? (
-                // Verticals without a labour band lead on utilisation instead — for a
-                // rental or a childcare centre that is the number that moves everything.
                 <Kpi label={profile.volume.label} value={`${volume.utilisation}%`}
-                  sub={bands.occupancy ? `Target ${bands.occupancy.lo}–${bands.occupancy.hi}%` : "Capacity used"}
-                  tone={bands.occupancy && (volume.utilisation < bands.occupancy.lo) ? "bad" : "ok"} />
+                  sub="Capacity used" tone="n" />
               ) : (
                 <Kpi label="Gross margin" value={pct(view.grossMarginPct)}
-                  sub={bands.grossMargin ? `Healthy ${bands.grossMargin.lo}–${bands.grossMargin.hi}%` : "Of revenue"}
-                  tone={bands.grossMargin && view.grossMarginPct < bands.grossMargin.lo ? "bad" : "ok"} />
+                  sub="Of revenue" tone="n" />
               )}
             </div>
 

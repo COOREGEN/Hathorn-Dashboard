@@ -4,6 +4,7 @@ import { ValidationError, jsonObject } from "@/lib/validate";
 import { syncPeriod, getConnection, disconnect } from "@/lib/qbo";
 import { db, uid } from "@/lib/db";
 import { runGate } from "@/lib/gate";
+import { assertEditable } from "@/lib/release";
 import { rateLimit, RateLimited, LIMITS, UpstreamTimeout } from "@/lib/security";
 
 /**
@@ -25,15 +26,16 @@ export async function POST(req: Request) {
 
     let period: any = d.prepare("SELECT * FROM periods WHERE client_id=? AND year=? AND month=?")
       .get(clientId, year, month);
-    if (period?.status === "PUBLISHED") {
-      return NextResponse.json(
-        { ok: false, error: "This period is published. Unpublish it before syncing." }, { status: 400 });
-    }
     if (!period) {
       const pid = uid();
       d.prepare("INSERT INTO periods (id,client_id,year,month,status) VALUES (?,?,?,?,'AWAITING')")
         .run(pid, clientId, year, month);
       period = { id: pid };
+    } else {
+      try { assertEditable(period.id); }
+      catch (e: any) {
+        return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+      }
     }
     const pid = period.id;
 

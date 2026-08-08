@@ -24,10 +24,10 @@ export async function POST(req: Request) {
      *
      * A band is agreed in the alignment session and recorded through the goals form,
      * which captures who agreed it and when. Setting one here would manufacture a target
-     * with no provenance — the exact thing the metric registry exists to prevent. Zeroes
-     * mean "not yet agreed", and the metric is reported without a verdict until it is.
+     * with no provenance — the exact thing the metric registry exists to prevent. NULL
+     * means "not yet agreed"; zeroes used to look like a real 0–0 band.
      */
-    const lo = 0, hi = 0;
+    const lo = null, hi = null;
 
     // Industry is a free tag, not a fixed list. The firm's own book defines what
     // industries exist; a menu I invented would only ever be wrong.

@@ -10,21 +10,22 @@ const GUARDS: [string, string[]][] = [
   ["/api/admin", ["ADMIN", "ADVISOR"]],
   ["/api/approve", ["ADMIN", "ADVISOR"]],
   ["/api/notes", ["ADMIN", "ADVISOR"]],
-  ["/api/upload", ["ADMIN", "BOOKKEEPER"]],
+  ["/api/upload", ["ADMIN", "BOOKKEEPER", "ADVISOR"]],
   ["/api/comments", ["ADMIN", "ADVISOR", "CLIENT"]],
   ["/api/qbo", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/api/story", ["ADMIN", "ADVISOR"]],
-  // Pages
+  ["/api/engagement", ["ADMIN", "ADVISOR"]],
+  ["/api/actions", ["ADMIN", "ADVISOR"]],
+  // /api/assets GET is public (logos in <img>); POST/DELETE enforce requireRole in the handler.
+  // Pages — internal advisory book. Portal is staff preview of a locked statement.
   ["/admin", ["ADMIN", "ADVISOR"]],
-  // The dashboard is the staff tool; clients get the statement at /portal.
   ["/dash", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
-  // The book is the firm looking at itself; a client must never see it.
   ["/today", ["ADMIN", "ADVISOR"]],
   ["/portfolio", ["ADMIN", "ADVISOR"]],
   ["/clients", ["ADMIN", "ADVISOR"]],
   ["/engagement", ["ADMIN", "ADVISOR"]],
   ["/review", ["ADMIN", "ADVISOR"]],
-  ["/upload", ["ADMIN", "BOOKKEEPER"]],
+  ["/upload", ["ADMIN", "BOOKKEEPER", "ADVISOR"]],
   ["/portal", ["ADMIN", "ADVISOR", "CLIENT"]],
 ];
 
@@ -42,6 +43,18 @@ function deny(req: NextRequest, isApi: boolean, status: 401 | 403) {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isApi = pathname.startsWith("/api/");
+
+  // Fail closed in production if the signing secret was never set — never mint or
+  // accept sessions with the published default.
+  if (process.env.NODE_ENV === "production" && !process.env.AUTH_SECRET) {
+    if (isApi) {
+      return NextResponse.json(
+        { ok: false, error: "Server misconfigured: AUTH_SECRET is required." },
+        { status: 503 },
+      );
+    }
+    return new NextResponse("Server misconfigured: AUTH_SECRET is required.", { status: 503 });
+  }
 
   // Intuit redirects the browser here after consent; the OAuth state token is the
   // proof of intent, not a session cookie. Guarding it would break the handshake.
@@ -75,5 +88,6 @@ export const config = {
     "/api/admin/:path*", "/api/approve/:path*", "/api/notes/:path*",
     "/api/upload/:path*", "/api/comments/:path*",
     "/api/qbo/:path*", "/api/story/:path*",
+    "/api/engagement/:path*", "/api/actions/:path*",
   ],
 };

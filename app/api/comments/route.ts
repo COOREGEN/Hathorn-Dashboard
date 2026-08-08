@@ -15,9 +15,13 @@ import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
  */
 async function authorizePeriod(periodId: string) {
   const session = await requireRole("ADMIN", "ADVISOR", "CLIENT");
-  const period: any = db().prepare("SELECT id, client_id FROM periods WHERE id=?").get(periodId);
+  const period: any = db().prepare("SELECT id, client_id, status FROM periods WHERE id=?").get(periodId);
   if (!period) throw new AuthError(403);
-  if (session.role === "CLIENT" && session.clientId !== period.client_id) throw new AuthError(403);
+  if (session.role === "CLIENT") {
+    if (session.clientId !== period.client_id) throw new AuthError(403);
+    // Clients only ever see locked months — drafts are firm-side prep.
+    if (period.status !== "PUBLISHED") throw new AuthError(403);
+  }
   return { session, period };
 }
 
