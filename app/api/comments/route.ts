@@ -5,6 +5,7 @@ import { ValidationError, jsonObject } from "@/lib/validate";
 import { sendCommentReply } from "@/lib/email";
 import { config } from "@/lib/config";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
+import { activeRelease } from "@/lib/release";
 
 /**
  * Resolves a period to its owning client and confirms the caller may touch it.
@@ -12,6 +13,10 @@ import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
  * Role alone is not enough here: every CLIENT user has the CLIENT role, so a check
  * that stops at "is this a client?" lets one tenant read another tenant's threads by
  * guessing a period id. Ownership must be verified against the row itself.
+ *
+ * For clients, an *active release* is the authority — not periods.status. During an
+ * amendment the status flips to IN_REVIEW while the prior statement stays visible;
+ * comments must still work on that live statement.
  */
 async function authorizePeriod(periodId: string) {
   const session = await requireRole("ADMIN", "ADVISOR", "CLIENT");
@@ -19,8 +24,7 @@ async function authorizePeriod(periodId: string) {
   if (!period) throw new AuthError(403);
   if (session.role === "CLIENT") {
     if (session.clientId !== period.client_id) throw new AuthError(403);
-    // Clients only ever see locked months — drafts are firm-side prep.
-    if (period.status !== "PUBLISHED") throw new AuthError(403);
+    if (!activeRelease(periodId)) throw new AuthError(403);
   }
   return { session, period };
 }

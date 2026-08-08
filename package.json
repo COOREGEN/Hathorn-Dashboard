@@ -10,7 +10,8 @@
     "seed": "tsx lib/seed.ts",
     "backup": "tsx scripts/backup.ts",
     "db:migrate-postgres": "tsx scripts/migrate-to-postgres.ts",
-    "seed:book": "tsx scripts/seed-demo-book.ts"
+    "seed:book": "tsx scripts/seed-demo-book.ts",
+    "proof": "bash scripts/workflow-proof.sh"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

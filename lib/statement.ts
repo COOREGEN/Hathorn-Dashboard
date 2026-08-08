@@ -1,13 +1,14 @@
 /**
  * Frozen statement reads.
  *
- * Staff prep surfaces (/dash, /review) use live tables. Client-facing and locked-call
- * previews read active release snapshots so a statement that has been locked cannot
- * change underneath the reader.
+ * Staff prep surfaces (/dash, /review) use live tables. Client-facing surfaces read
+ * active release snapshots so a statement that has been published cannot change
+ * underneath the reader — including advisory sections frozen at publish time.
  */
 import { db } from "./db";
 import { activeRelease, publishedPeriods } from "./release";
 import type { PeriodMetrics } from "./metrics";
+import { yearOverYear, budgetVariance, balanceSheet, cashOutlook, closedSince } from "./advisory";
 
 /** Reconstruct a PeriodMetrics-shaped object from a frozen release snapshot. */
 export function periodFromRelease(periodId: string): PeriodMetrics | null {
@@ -55,8 +56,8 @@ export function periodFromRelease(periodId: string): PeriodMetrics | null {
 }
 
 /**
- * Every locked statement for a client, newest first — portal / call-preview source of truth.
- * Periods without an active release are omitted rather than falling back to live tables.
+ * Every locked statement for a client, oldest-first for charts.
+ * Periods without an active release are omitted — never fall back to live tables.
  */
 export function lockedStatements(clientId: string): PeriodMetrics[] {
   const rows = publishedPeriods(clientId);
@@ -65,7 +66,6 @@ export function lockedStatements(clientId: string): PeriodMetrics[] {
     const p = periodFromRelease(r.period_id);
     if (p) out.push(p);
   }
-  // publishedPeriods is newest-first; clientHistory historically returned oldest-first for charts
   return out.reverse();
 }
 
@@ -88,4 +88,28 @@ export function statementGoals(clientId: string) {
   }
   return (db().prepare("SELECT * FROM goals WHERE client_id=? AND active=1").all(clientId) as any[])
     .map((g) => ({ id: g.id, title: g.title, target: g.target, current: g.current, progress: g.progress }));
+}
+
+/**
+ * Advisory bundle for the portal — prefers fields frozen in the release snapshot.
+ * Prior-year series is built only from other locked statements for this client.
+ */
+export function portalAdvisory(clientId: string, cur: PeriodMetrics, allLocked: PeriodMetrics[]) {
+  const snap = activeRelease(cur.periodId)?.snapshot;
+  const priorYear = allLocked.filter((p) => p.year === cur.year - 1 && p.month <= cur.month);
+  const priorByMonth = new Map(priorYear.map((p) => [p.month, p.revenue]));
+
+  return {
+    // YoY / budget use the frozen period figures as "actual"; basis rows stay published-only.
+    yoy: yearOverYear(cur, clientId),
+    budget: budgetVariance(cur, clientId),
+    // Prefer snapshot; fall back only if an older release predates those fields.
+    balance: snap?.balance ?? balanceSheet(cur.periodId, cur.netIncome),
+    cash: snap?.cashOutlook ?? cashOutlook(cur),
+    openActions: Array.isArray(snap?.actions) ? snap.actions : [],
+    closedActions: closedSince(clientId, cur.periodId),
+    priorYearSeries: priorYear.length
+      ? Array.from({ length: cur.month }, (_, i) => priorByMonth.get(i + 1) ?? 0)
+      : null,
+  };
 }

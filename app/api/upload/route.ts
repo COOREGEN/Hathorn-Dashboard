@@ -25,11 +25,31 @@ function parseExactCsv(text: string): Record<string, string>[] {
 
 const num = (v: string) => parseAmount(v) ?? 0;
 
+const EXACT_HEADERS: Record<DocType, string[]> = {
+  PNL: ["entity", "category", "label", "amount"],
+  PAYROLL: ["entity", "wages", "ot_premium", "taxes", "workers_comp", "processing", "hours"],
+  AR: ["payer", "b0_30", "b31_60", "b61_90", "b90p"],
+  CASH: ["operating", "reserve"],
+  BALANCE: ["section", "label", "amount"],
+  VOLUME: [],
+  UNKNOWN: [],
+};
+
+function looksExact(text: string, hint: DocType): boolean {
+  const needed = EXACT_HEADERS[hint];
+  if (!needed.length) return false;
+  const first = text.replace(/\r/g, "").split("\n").map((l) => l.trim()).find(Boolean) || "";
+  const headers = new Set(splitCsvLine(first).map((h) => h.trim().toLowerCase()));
+  return needed.every((h) => headers.has(h));
+}
+
 /**
- * Prefer detected column mapping (and remember it per client); fall back to exact headers.
- * Normalises common aliases so payroll hoursPaid → hours, otPremium → ot_premium, etc.
+ * Exact-header CSVs win when they already match the close format.
+ * Otherwise detect/map/remember for real QuickBooks / payroll exports.
  */
 function rowsFor(text: string, clientId: string, hint: DocType): Record<string, string>[] {
+  if (looksExact(text, hint)) return parseExactCsv(text);
+
   const d = detect(text);
   if (d.docType !== "UNKNOWN" && (d.docType === hint || hint === "UNKNOWN") && Object.keys(d.columnMap).length) {
     saveMapping(clientId, d.docType, {
@@ -60,7 +80,7 @@ function rowsFor(text: string, clientId: string, hint: DocType): Record<string, 
 
 export async function POST(req: Request) {
   try {
-    const s = await requireRole("ADMIN", "BOOKKEEPER");
+    const s = await requireRole("ADMIN", "BOOKKEEPER", "ADVISOR");
     rateLimit({ action: "upload", subject: s.userId, ...LIMITS.upload });
     const fd = await req.formData();
     const clientId = String(fd.get("clientId"));
@@ -238,12 +258,8 @@ export async function POST(req: Request) {
       }
     }
 
-    // seed empty story slots if none exist (advisor fills in review)
-    const noteCount: any = d.prepare("SELECT COUNT(*) n FROM story_notes WHERE period_id=?").get(pid);
-    if (noteCount.n === 0) {
-      d.prepare("INSERT INTO story_notes (id, period_id, slot, tone, heading, body, sort) VALUES (?,?,?,?,?,?,0)")
-        .run(uid(), pid, "WHAT_CHANGED", "info", "Draft — advisor to complete", "A number, a cause, an action.");
-    }
+    // Do not seed a WHAT_CHANGED placeholder — evaluate() requires real commentary
+    // before publish, and a stub used to satisfy a row-count check.
 
     const gate = runGate(pid);
     if (!gate.pass) d.prepare("UPDATE periods SET status='GATED' WHERE id=?").run(pid);

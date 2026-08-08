@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { computePeriods } from "@/lib/metrics";
-import { yearOverYear, budgetVariance, balanceSheet, cashOutlook, openActions, closedSince } from "@/lib/advisory";
 import { periodContext, checkComparability, normalisePerDay } from "@/lib/comparability";
 import { assessConfidence } from "@/lib/confidence";
-import { lockedStatements, statementGoals } from "@/lib/statement";
+import { lockedStatements, statementGoals, portalAdvisory } from "@/lib/statement";
 import { activeRelease } from "@/lib/release";
+import { yearOverYear, budgetVariance, balanceSheet, cashOutlook, openActions, closedSince } from "@/lib/advisory";
+import { computePeriods } from "@/lib/metrics";
 import Dashboard, { type ClientMeta, type GoalRow } from "@/components/dashboard";
 import LogoutButton from "@/components/logout-button";
 
@@ -51,7 +51,7 @@ export default async function Portal({ searchParams }: { searchParams: { client?
         <p className="caption" style={{ marginTop: 12 }}>
           {s.role === "CLIENT"
             ? "Your advisor will publish this month’s statement when the numbers are ready. You’ll see it here."
-            : "Lock a month from Review when the story is ready. Until then, prepare on Today, Portfolio, and Dash."}
+            : "Publish a month from Review when the story is ready. Until then, prepare on Today, Portfolio, and Dash."}
         </p>
       </div>
     );
@@ -66,8 +66,8 @@ export default async function Portal({ searchParams }: { searchParams: { client?
         .all(...periods.map((p) => p.periodId)) as any[])
     : [];
 
-  const advisoryByPeriod: Record<string, ReturnType<typeof buildAdvisory>> = {};
-  for (const p of periods) advisoryByPeriod[p.periodId] = buildAdvisory(clientId, p);
+  const advisoryByPeriod: Record<string, ReturnType<typeof portalAdvisory>> = {};
+  for (const p of periods) advisoryByPeriod[p.periodId] = portalAdvisory(clientId, p, periods);
 
   const comparabilityByPair = buildComparabilityMatrix(clientId, periods);
   const confidenceByPeriod: Record<string, ReturnType<typeof assessConfidence>> = {};
@@ -78,7 +78,9 @@ export default async function Portal({ searchParams }: { searchParams: { client?
 
   const perDayByPeriod: Record<string, ReturnType<typeof normalisePerDay>> = {};
   for (const p of periods) {
-    perDayByPeriod[p.periodId] = normalisePerDay(p, periodContext(p, clientId).daysCovered);
+    const days = activeRelease(p.periodId)?.snapshot?.period?.daysCovered
+      ?? periodContext(p, clientId).daysCovered;
+    perDayByPeriod[p.periodId] = normalisePerDay(p, days);
   }
 
   return (
@@ -95,9 +97,11 @@ export default async function Portal({ searchParams }: { searchParams: { client?
 }
 
 
-/** Assembles everything the advisory sections need in one place. */
+/**
+ * Live advisory for staff review / dash — recomputed from working papers.
+ * Portal must use portalAdvisory() / snapshots instead.
+ */
 export function buildAdvisory(clientId: string, cur: any) {
-  // Prior-year overlay: locked/published months only — drafts must not enter a statement.
   const priorRows: any[] = db()
     .prepare(`SELECT id, month FROM periods
                WHERE client_id=? AND year=? AND status='PUBLISHED' ORDER BY month`)
@@ -119,13 +123,6 @@ export function buildAdvisory(clientId: string, cur: any) {
 }
 
 
-/**
- * Precomputes comparability for every pair the period picker can produce.
- *
- * Keyed `currentId::basisId::mode`, because the same pair can be legitimate in one mode
- * and not another — a year-to-date aggregate spans unequal day counts by construction,
- * while a month-on-month pair does not.
- */
 export function buildComparabilityMatrix(clientId: string, periods: any[]) {
   const contexts = new Map(periods.map((p) => [p.periodId, periodContext(p, clientId)]));
   const matrix: Record<string, ReturnType<typeof checkComparability>> = {};

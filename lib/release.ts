@@ -104,11 +104,22 @@ export function evaluate(periodId: string): Evaluation {
   }
 
   // A statement with no explanation is a chart, and the explanation is the product.
-  const notes: any = db().prepare(
-    "SELECT COUNT(*) n FROM story_notes WHERE period_id=? AND slot='WHAT_CHANGED'").get(periodId);
-  if ((notes?.n ?? 0) === 0) {
+  // Placeholder upload stubs ("Draft — advisor to complete") do not count — they used
+  // to satisfy a row-count check and let empty stories reach the client.
+  const noteRows: any[] = db().prepare(
+    "SELECT heading, body FROM story_notes WHERE period_id=? AND slot='WHAT_CHANGED'").all(periodId);
+  const realNotes = noteRows.filter((n) => {
+    const heading = String(n.heading || "").trim();
+    const body = String(n.body || "").trim();
+    if (body.length < 40) return false;
+    if (/^draft\b/i.test(heading)) return false;
+    if (/advisor to complete/i.test(`${heading} ${body}`)) return false;
+    if (/^a number,\s*a cause/i.test(body)) return false;
+    return true;
+  });
+  if (!realNotes.length) {
     blockers.push({ code: "no_commentary", severity: "blocking",
-      message: "No commentary has been written for this period.",
+      message: "No real commentary has been written for this period — a draft placeholder is not enough.",
       action: "Write the commentary", href: `/review/${periodId}` });
   }
 

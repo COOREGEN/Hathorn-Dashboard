@@ -228,7 +228,7 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
   return (
     <div className={`tpl-${client.template}`} style={palette.vars as any}>
       {/* ── Masthead: client's mark, Hathorn's craft ─────────────────────── */}
-      <header className="masthead no-print">
+      <header className="masthead">
         <div className="masthead-inner">
           <div className="flex items-center gap-4">
             {client.logoUrl ? (
@@ -251,17 +251,19 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
             <div className="prepared-by hidden xl:block">
               Prepared by Hathorn Advisory Group
             </div>
-            <ConfidenceBadge confidence={confidence} onOpen={() => setShowConfidence((v) => !v)} />
-            <PeriodControls
-              periods={periods} periodId={periodId} onPeriod={setPeriodId}
-              mode={mode} onMode={setMode}
-              entities={cur.entities.map((e) => ({ id: e.id, name: e.name }))}
-              entityId={entityId} onEntity={setEntityId}
-              availableModes={availableModes} />
-            <button type="button" className="tag" style={{ cursor: "pointer" }}
-              onClick={() => window.print()} title="Print or save as PDF">
-              Download PDF
-            </button>
+            <div className="no-print flex items-center gap-3 flex-wrap">
+              <ConfidenceBadge confidence={confidence} onOpen={() => setShowConfidence((v) => !v)} />
+              <PeriodControls
+                periods={periods} periodId={periodId} onPeriod={setPeriodId}
+                mode={mode} onMode={setMode}
+                entities={cur.entities.map((e) => ({ id: e.id, name: e.name }))}
+                entityId={entityId} onEntity={setEntityId}
+                availableModes={availableModes} />
+              <button type="button" className="tag" style={{ cursor: "pointer" }}
+                onClick={() => window.print()} title="Print or save as PDF">
+                Download PDF
+              </button>
+            </div>
           </div>
         </div>
       </header>

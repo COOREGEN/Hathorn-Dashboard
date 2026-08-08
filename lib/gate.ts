@@ -262,7 +262,9 @@ export function runGate(periodId: string): GateResult {
   const checks = profile.tieOutRules.flatMap((rule) => RULES[rule]?.(ctx) ?? []);
 
   const pass = checks.every((c) => c.pass);
-  if (pass && period.status === "AWAITING") {
+  // Promote into review whenever the close ties — including a re-upload/sync that
+  // clears a previous GATED failure. Without this, Today never shows "ready to publish".
+  if (pass && (period.status === "AWAITING" || period.status === "GATED")) {
     d.prepare("UPDATE periods SET status='IN_REVIEW' WHERE id=?").run(periodId);
   }
 
@@ -299,18 +301,16 @@ export function rulesFor(verticalKey: string) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Publishes a period, re-running the gate first.
- *
- * The re-run is deliberate: data can change between upload and approval, and the gate is
- * the release authority, not a one-time formality at intake.
+ * @deprecated Use `publish()` from lib/release.ts — the only path that freezes a snapshot.
+ * Kept as a hard error so a stray caller cannot flip status without a release record.
  */
-export function approvePeriod(periodId: string) {
-  const gate = runGate(periodId);
-  if (!gate.pass) throw new Error("Cannot publish: gate checks failing");
-  db().prepare("UPDATE periods SET status='PUBLISHED', published_at=datetime('now') WHERE id=?").run(periodId);
+export function approvePeriod(_periodId: string): never {
+  throw new Error("Use publish() from lib/release.ts — status-only publish is not allowed.");
 }
 
-/** Pulls a published period back into review. The client immediately stops seeing it. */
-export function unpublishPeriod(periodId: string) {
-  db().prepare("UPDATE periods SET status='IN_REVIEW', published_at=NULL WHERE id=?").run(periodId);
+/**
+ * @deprecated Use `revokePeriod()` from lib/release.ts so locks and release records clear.
+ */
+export function unpublishPeriod(_periodId: string): never {
+  throw new Error("Use revokePeriod() from lib/release.ts — status-only unpublish is not allowed.");
 }

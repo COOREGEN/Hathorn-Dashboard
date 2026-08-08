@@ -35,4 +35,17 @@ Example book after seed: **Northbridge Home Care** plus Lakeside Stays, Bright P
 npm run seed:book   # add synthetic clients for density testing
 ```
 
+## Prove the workflow
+
+With the server running (`npm run start` or `npm run dev`):
+
+```bash
+npm run seed
+npm run proof
+```
+
+`scripts/workflow-proof.sh` walks the real path: role walls → commentary gate → publish → client portal → comments → amend → lock enforcement → sample upload/gate. It must stay green.
+
+Sample close files live in `samples/`.
+
 **Read `AGENTS.md` before changing anything.**

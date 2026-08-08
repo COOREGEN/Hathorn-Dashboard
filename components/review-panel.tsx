@@ -160,7 +160,11 @@ export default function ReviewPanel({
           <div>
             <div className="wordmark-sub">Call prep · {clientName}</div>
             <div style={{ fontFamily: "var(--display)", fontSize: 19, color: "var(--paper)", marginTop: 2 }}>
-              {status === "PUBLISHED" ? "Published — live in the client portal" : "Draft — not visible to the client"}
+              {status === "PUBLISHED"
+                ? "Published — live in the client portal"
+                : history.some((h) => h.status === "ACTIVE")
+                  ? "Amendment open — prior version still live in the portal"
+                  : "Draft — not visible to the client"}
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">

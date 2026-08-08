@@ -7,9 +7,11 @@ export default function Reports({ searchParams }: { searchParams: Record<string,
       subtitle="Reusable management, budget, lender, and data-quality packs">
       {(ctx) => {
         const { cur, balance, budget, client } = ctx as any;
+        const slug = client.slug || client.id;
         const packs = [
           { t: "Monthly statement", s: `Five-section client deliverable for ${cur.label}`,
-            ready: cur.status === "PUBLISHED", href: `/portal?month=${cur.periodId}`,
+            ready: cur.status === "PUBLISHED",
+            href: `/portal?client=${encodeURIComponent(slug)}&month=${cur.periodId}`,
             blocked: "Publish the period first." },
           { t: "Review sheet", s: "Gate results, story editor, and approval",
             ready: true, href: `/review/${cur.periodId}` },

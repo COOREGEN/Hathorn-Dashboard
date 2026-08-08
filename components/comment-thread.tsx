@@ -10,16 +10,25 @@ export default function CommentThread({ periodId, metricSlot, initialComments, u
   const [open, setOpen] = useState(comments.length > 0);
   const [posting, setPosting] = useState(false);
 
+  const [error, setError] = useState("");
+
   async function post() {
     if (!body.trim()) return;
-    setPosting(true);
+    setPosting(true); setError("");
     const res = await fetch("/api/comments", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ periodId, metricSlot, body }),
     });
-    const { id } = await res.json();
-    setComments([...comments, { id, user_name: "You", user_role: userRole, body, created_at: new Date().toISOString() }]);
-    setBody(""); setPosting(false);
+    const data = await res.json().catch(() => ({}));
+    setPosting(false);
+    if (!res.ok) {
+      setError(data.error || "Could not post that comment.");
+      return;
+    }
+    setComments([...comments, {
+      id: data.id, user_name: "You", user_role: userRole, body, created_at: new Date().toISOString(),
+    }]);
+    setBody("");
   }
 
   const isAdvisor = ["ADMIN", "ADVISOR"].includes(userRole);
@@ -48,6 +57,9 @@ export default function CommentThread({ periodId, metricSlot, initialComments, u
               <div style={{ fontFamily: "var(--editorial)", fontSize: 13.5, lineHeight: 1.6, color: "var(--ink-soft)" }}>{c.body}</div>
             </div>
           ))}
+          {error && (
+            <p className="caption" style={{ padding: "8px 14px 0", color: "var(--accent-deep)" }}>{error}</p>
+          )}
           <div className="flex gap-2" style={{ padding: 10 }}>
             <input className="input" style={{ flex: 1 }} value={body} onChange={(e) => setBody(e.target.value)}
               placeholder={prompt} onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && post()} />
