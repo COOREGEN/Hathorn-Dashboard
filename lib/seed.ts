@@ -57,11 +57,13 @@ db.prepare(`INSERT INTO clients (id,name,slug,template,brand_primary,brand_accen
 
 // ---- users ----
 const hash = (p: string) => bcrypt.hashSync(p, 12);
-const users = [
+const users: [string, string, string, string | null][] = [
   ["regen@hathornadvisorygroup.com", "Regen Hailemariam", "ADMIN", null],
   ["jeremiah@hathornadvisorygroup.com", "Jeremiah Hathorn", "ADVISOR", null],
   ["books@hathornadvisorygroup.com", "Hathorn Bookkeeping", "BOOKKEEPER", null],
-  ];
+  // Example client owner — sees only locked statements for their own company.
+  ["owner@northbridge.example", "Alex Rivera", "CLIENT", clientId],
+];
 for (const [email, name, role, cid] of users)
   db.prepare("INSERT INTO users (id,email,password_hash,name,role,client_id) VALUES (?,?,?,?,?,?)")
     .run(uid(), email, hash("ledger2026"), name, role, cid);

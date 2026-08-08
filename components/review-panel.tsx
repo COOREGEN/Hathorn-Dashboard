@@ -96,7 +96,7 @@ export default function ReviewPanel({
       return;
     }
     setPublishMsg(
-      `Locked as version ${data.version ?? 1} for the advisory call. Changing it means issuing an amendment.`);
+      `Published as version ${data.version ?? 1}. The client can see it in their portal. Changing it means an amendment.`);
     setTimeout(() => router.push("/today"), 1400);
   }
 
@@ -160,7 +160,7 @@ export default function ReviewPanel({
           <div>
             <div className="wordmark-sub">Call prep · {clientName}</div>
             <div style={{ fontFamily: "var(--display)", fontSize: 19, color: "var(--paper)", marginTop: 2 }}>
-              {status === "PUBLISHED" ? "Locked for the advisory call" : "Draft — still open for prep"}
+              {status === "PUBLISHED" ? "Published — live in the client portal" : "Draft — not visible to the client"}
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -203,7 +203,7 @@ export default function ReviewPanel({
             {status !== "PUBLISHED" && (
               <button className="btn" style={{ padding: "9px 18px" }}
                 disabled={!gate.pass || busy || (evaluation ? !evaluation.canPublish : false)} onClick={approve}>
-                {busy ? "Locking…" : `Lock for call${evaluation?.nextVersion ? ` · v${evaluation.nextVersion}` : ""}`}
+                {busy ? "Publishing…" : `Publish to portal${evaluation?.nextVersion ? ` · v${evaluation.nextVersion}` : ""}`}
               </button>
             )}
           </div>

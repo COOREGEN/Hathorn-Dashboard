@@ -1,6 +1,11 @@
 # Hathorn Ledger
 
-Internal advisory dashboard for Hathorn Advisory Group — call prep, portfolio triage, and storytelling for monthly advisory clients.
+Monthly advisory platform for Hathorn Advisory Group.
+
+Two surfaces, one engine:
+
+- **Staff book** (`/today`, `/portfolio`, `/dash`, `/review`) — call prep, triage, storytelling
+- **Client portal** (`/portal`) — the branded monthly statement (published months only)
 
 Stack: Next.js 14 App Router · TypeScript · better-sqlite3 · hand-rolled SVG charts.
 
@@ -13,29 +18,21 @@ npm run seed
 npm run dev
 ```
 
-Open http://localhost:3000. Staff land on `/today`.
+Open http://localhost:3000.
 
 Seeded logins (password `ledger2026`):
 
-| Role | Email |
-|---|---|
-| ADMIN | regen@hathornadvisorygroup.com |
-| ADVISOR | jeremiah@hathornadvisorygroup.com |
-| BOOKKEEPER | books@hathornadvisorygroup.com |
+| Role | Email | Lands on |
+|---|---|---|
+| ADMIN | regen@hathornadvisorygroup.com | `/today` |
+| ADVISOR | jeremiah@hathornadvisorygroup.com | `/today` |
+| BOOKKEEPER | books@hathornadvisorygroup.com | `/upload` |
+| CLIENT | owner@northbridge.example | `/portal` |
 
-Example book after seed: **Northbridge Home Care** (anonymized home-care numbers) plus Lakeside Stays, Bright Path, and Impact 5 vertical demos.
+Example book after seed: **Northbridge Home Care** plus Lakeside Stays, Bright Path, and Impact 5.
 
 ```bash
 npm run seed:book   # add synthetic clients for density testing
 ```
 
 **Read `AGENTS.md` before changing anything.**
-
-## Surfaces
-
-- `/today` — what needs doing before the next calls
-- `/portfolio` — the book, ranked by advisory urgency
-- `/dash/*` — staff walkthrough for one client
-- `/review/[periodId]` — write the story, lock for the call
-- `/engagement` — discovery → cleanup → goals → sessions
-- `/portal?client=` — staff preview of a **locked** statement (snapshot, not live tables)

@@ -36,7 +36,10 @@ export default function Login() {
         </div>
 
         <div style={{ background: "var(--paper)", padding: "32px 30px" }}>
-          <div className="eyebrow" style={{ marginBottom: 20 }}>Advisory book</div>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Sign in</div>
+          <p className="caption" style={{ marginBottom: 20 }}>
+            Clients open their monthly statement. Advisors open the book.
+          </p>
 
           <label className="field-label" htmlFor="email">Email</label>
           <input id="email" className="input" style={{ marginTop: 5, marginBottom: 16 }}
@@ -61,7 +64,7 @@ export default function Login() {
 
         <p style={{ textAlign: "center", marginTop: 22, fontFamily: "var(--utility)",
           fontSize: 9.5, letterSpacing: ".18em", textTransform: "uppercase", color: "#5F5A52" }}>
-          Internal · Call prep & storytelling
+          Confidential · Hathorn Advisory Group
         </p>
       </div>
     </div>

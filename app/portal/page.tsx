@@ -13,10 +13,11 @@ import LogoutButton from "@/components/logout-button";
 export const dynamic = "force-dynamic";
 
 /**
- * Locked-statement preview.
+ * Client portal — the branded monthly statement.
  *
- * Staff use this to see exactly what was locked for a call. Reads active release
- * snapshots only — never live tables — so a statement cannot change underneath the reader.
+ * Clients land here after login and only ever see locked (published) months, read from
+ * release snapshots so a statement they already read cannot change underneath them.
+ * Staff may preview the same surface with ?client=slug.
  */
 export default async function Portal({ searchParams }: { searchParams: { client?: string; month?: string } }) {
   const s = await getSession();
@@ -42,11 +43,15 @@ export default async function Portal({ searchParams }: { searchParams: { client?
   if (!periods.length) {
     return (
       <div style={{ maxWidth: 640, margin: "80px auto", padding: 24 }}>
-        <div className="eyebrow">Locked statements</div>
-        <h1 className="display-m" style={{ marginTop: 8 }}>No locked months yet</h1>
+        <div className="flex items-center justify-between">
+          <div className="eyebrow">Your statement</div>
+          <LogoutButton />
+        </div>
+        <h1 className="display-m" style={{ marginTop: 8 }}>Nothing published yet</h1>
         <p className="caption" style={{ marginTop: 12 }}>
-          Lock a month from Review when the story is ready for the advisory call.
-          Until then, prepare on Today, Portfolio, and Dash.
+          {s.role === "CLIENT"
+            ? "Your advisor will publish this month’s statement when the numbers are ready. You’ll see it here."
+            : "Lock a month from Review when the story is ready. Until then, prepare on Today, Portfolio, and Dash."}
         </p>
       </div>
     );

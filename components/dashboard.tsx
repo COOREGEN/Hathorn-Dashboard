@@ -258,6 +258,10 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
               entities={cur.entities.map((e) => ({ id: e.id, name: e.name }))}
               entityId={entityId} onEntity={setEntityId}
               availableModes={availableModes} />
+            <button type="button" className="tag" style={{ cursor: "pointer" }}
+              onClick={() => window.print()} title="Print or save as PDF">
+              Download PDF
+            </button>
           </div>
         </div>
       </header>
