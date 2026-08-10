@@ -4,19 +4,10 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { readiness, STAGES } from "@/lib/engagement";
 import NewClientButton from "@/components/new-client-button";
-import LogoutButton from "@/components/logout-button";
-import BrandMark from "@/components/brand-mark";
+import StaffHeader from "@/components/staff-header";
 
 /**
- * Clients.
- *
- * This existed only at `/admin`, behind the last item in the rail, and the person who
- * needed it could not find it. Adding and removing a client is the most basic thing a
- * firm does with this software; it belongs at the top level with its own route.
- *
- * It also shows the engagement stage, because "where is this client in our process" is a
- * different question from "how did they do last month", and the platform only ever
- * answered the second.
+ * Clients — the roster. Attention (/portfolio) ranks who needs you.
  */
 export const dynamic = "force-dynamic";
 
@@ -45,16 +36,12 @@ export default async function Clients() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
-      <header className="masthead">
-        <div className="masthead-inner" style={{ maxWidth: 1240 }}>
-          <BrandMark href="/" tone="paper" sub="Ledger · Clients" />
-          <div className="ml-auto flex items-center gap-4">
-            <Link href="/portfolio" className="prepared-by">The book →</Link>
-            <span className="prepared-by">{s.name}</span>
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      <StaffHeader
+        sub="Ledger · Clients"
+        maxWidth={1240}
+        userName={s.name}
+        links={s.role === "ADMIN" ? [{ href: "/admin", label: "Firm" }] : []}
+      />
 
       <main style={{ maxWidth: 1240, margin: "0 auto", padding: "30px 32px 60px" }}>
         <div className="flex items-end justify-between flex-wrap gap-4"
@@ -70,9 +57,8 @@ export default async function Clients() {
           } />
         </div>
 
-        {/* Where the book sits in the process — a different question from performance. */}
         <div className="flex gap-8 flex-wrap" style={{ marginBottom: 24 }}>
-          {byStage.filter((s) => s.key !== "PAUSED" || s.count > 0).map((st) => (
+          {byStage.filter((st) => st.key !== "PAUSED" || st.count > 0).map((st) => (
             <div key={st.key} className="stat">
               <div className="eyebrow" style={{ color: STAGE_COL[st.key] }}>{st.label}</div>
               <div className="stat-v tnum">{st.count}</div>
@@ -80,7 +66,7 @@ export default async function Clients() {
           ))}
         </div>
 
-        <div style={{ border: "1px solid var(--hairline)", background: "#FFFDF8" }}>
+        <div style={{ borderTop: "1px solid var(--hairline)" }}>
           {rows.map((c) => {
             const r = readiness(c.id);
             const stage = c.stage ?? "DISCOVERY";
@@ -113,21 +99,18 @@ export default async function Clients() {
                   )}
                 </div>
 
-                <div className="flex gap-4 justify-end">
+                <div className="flex gap-4 justify-end flex-wrap">
                   <Link href={`/engagement?client=${c.id}`} className="linkish">Engagement</Link>
                   <Link href={`/dash?client=${c.id}`} className="linkish">Dashboard</Link>
-                  <Link href={`/admin/clients/${c.id}`} className="linkish muted">Settings</Link>
+                  <Link href={`/portal?client=${c.slug}`} className="linkish">Portal</Link>
+                  {s.role === "ADMIN" && (
+                    <Link href={`/admin/clients/${c.id}`} className="linkish muted">Manage</Link>
+                  )}
                 </div>
               </div>
             );
           })}
         </div>
-
-        <p className="caption" style={{ marginTop: 18, maxWidth: 720 }}>
-          A client moves Discovery → Cleanup → Alignment → Advisory. The dashboard is the last
-          stage, not the whole service — a client still in cleanup should not be shown a polished
-          statement of numbers nobody has verified yet.
-        </p>
       </main>
     </div>
   );

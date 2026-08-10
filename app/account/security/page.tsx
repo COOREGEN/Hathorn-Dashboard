@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Suspense } from "react";
+import BrandMark from "@/components/brand-mark";
 
 function SecurityInner() {
   const [status, setStatus] = useState<{ enabled: boolean; email?: string; name?: string } | null>(null);
@@ -57,6 +57,16 @@ function SecurityInner() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
+      <header className="masthead">
+        <div className="masthead-inner" style={{ maxWidth: 560 }}>
+          <BrandMark href="/" tone="ink" sub="Ledger · Security" />
+          <nav className="ml-auto flex items-center gap-4">
+            <Link href="/" className="prepared-by" style={{ textDecoration: "none" }}>Today</Link>
+            <Link href="/admin" className="prepared-by" style={{ textDecoration: "none" }}>Firm</Link>
+          </nav>
+        </div>
+      </header>
+
       <main className="sheet" style={{ maxWidth: 560, paddingTop: 48 }}>
         <div className="eyebrow">Account</div>
         <h1 className="display-m" style={{ marginTop: 8 }}>Security</h1>
@@ -116,12 +126,6 @@ function SecurityInner() {
 
         {error && (
           <p className="caption" role="alert" style={{ color: "var(--accent-deep)", marginTop: 16 }}>{error}</p>
-        )}
-
-        {!enroll && (
-          <div style={{ marginTop: 32 }}>
-            <Link href="/" className="caption" style={{ color: "var(--gold-deep)" }}>← Home</Link>
-          </div>
         )}
       </main>
     </div>

@@ -2,16 +2,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { loadPortfolio, type PortfolioRow } from "@/lib/portfolio";
-import LogoutButton from "@/components/logout-button";
-import BrandMark from "@/components/brand-mark";
+import StaffHeader from "@/components/staff-header";
 
 /**
- * The book.
+ * Attention — who needs you this month.
  *
  * Designed as a register, not a feed. A partner with thirty clients should see the whole
  * practice without scrolling, run their eye down one column, and stop at the rows that
- * need them. That means density: one line per client, aligned columns, and detail on
- * demand rather than always expanded.
+ * need them.
  */
 export const dynamic = "force-dynamic";
 
@@ -87,17 +85,12 @@ export default async function Portfolio({ searchParams }: {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
-      <header className="masthead">
-        <div className="masthead-inner" style={{ maxWidth: 1440 }}>
-          <BrandMark href="/" tone="paper" sub="Ledger · The Book" />
-          <div className="ml-auto flex items-center gap-4">
-            <Link href="/" className="prepared-by">← Today</Link>
-            <Link href="/dash" className="prepared-by">Client dashboard →</Link>
-            <span className="prepared-by">{s.name}</span>
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      <StaffHeader
+        sub="Ledger · Attention"
+        maxWidth={1440}
+        userName={s.name}
+        links={[{ href: "/dash", label: "Dashboard" }]}
+      />
 
       <main style={{ maxWidth: 1440, margin: "0 auto", padding: "28px 32px 60px" }}>
         {/* Headline and cohort summary share a line — the summary is context, not content. */}
@@ -105,7 +98,7 @@ export default async function Portfolio({ searchParams }: {
           borderBottom: "1px solid var(--hairline)", paddingBottom: 18, marginBottom: 18 }}>
           <div>
             <h1 style={{ fontFamily: "var(--display)", fontSize: 30, fontWeight: 300, margin: 0 }}>
-              The Book
+              Attention
             </h1>
             <p className="caption" style={{ marginTop: 4 }}>
               {p.cohort.count} client{p.cohort.count === 1 ? "" : "s"}

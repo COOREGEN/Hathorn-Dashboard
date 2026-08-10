@@ -103,6 +103,10 @@ body {
                 text-transform: uppercase; color: var(--gold-label); margin-top: 3px; }
 .prepared-by { font-family: var(--utility); font-size: 8.5px; letter-spacing: .2em;
                text-transform: uppercase; color: #6b655c; }
+/* Masthead is ink — lighten prepared-by so nav is readable. */
+.masthead .prepared-by { color: #A8A196; }
+.masthead a.prepared-by:hover { color: var(--gold-label); }
+.masthead .eyebrow { color: #A8A196; border-color: #3a3530 !important; }
 
 .sheet { max-width: 1080px; margin: 0 auto; padding: 0 28px 72px; }
 

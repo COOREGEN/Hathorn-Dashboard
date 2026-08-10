@@ -264,7 +264,7 @@ export async function POST(req: Request) {
     const gate = runGate(pid);
     if (!gate.pass) d.prepare("UPDATE periods SET status='GATED' WHERE id=?").run(pid);
     audit(s.userId, "CLOSE_UPLOAD", `${clientId} ${year}-${month} gate=${gate.pass ? "PASS" : "FAIL"}`);
-    return NextResponse.json(gate);
+    return NextResponse.json({ ...gate, periodId: pid, year, month });
   } catch (e: any) {
     if (e instanceof AuthError) return NextResponse.json({ pass: false, checks: [], error: e.message }, { status: e.status });
     if (e instanceof ValidationError) return NextResponse.json({ pass: false, checks: [], error: e.message }, { status: 400 });

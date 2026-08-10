@@ -190,10 +190,11 @@ export default async function Today() {
           fontFamily: "var(--utility)", fontSize: 11, fontWeight: 600,
           letterSpacing: ".12em", textTransform: "uppercase",
         }}>
-          <Link href="/portfolio" style={{ color: "var(--ink)", textDecoration: "none" }}>The book</Link>
+          <Link href="/portfolio" style={{ color: "var(--ink)", textDecoration: "none" }}>Attention</Link>
           <Link href="/clients" style={{ color: "var(--ink)", textDecoration: "none" }}>Clients</Link>
           <Link href="/upload" style={{ color: "var(--ink)", textDecoration: "none" }}>Upload</Link>
           <Link href="/dash" style={{ color: "var(--ink)", textDecoration: "none" }}>Dashboard</Link>
+          <Link href="/admin" style={{ color: "var(--ink)", textDecoration: "none" }}>Firm</Link>
           <Link href="/account/security" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>Security</Link>
         </nav>
       </main>

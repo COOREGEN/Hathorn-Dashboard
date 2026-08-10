@@ -5,8 +5,8 @@ import { getSession } from "@/lib/auth";
 import { readiness, findings, cleanupState, goals, painPoints, sessions, STAGES } from "@/lib/engagement";
 import { clientConfig } from "@/lib/kpi-registry";
 import { definition } from "@/lib/kpi-registry";
-import LogoutButton from "@/components/logout-button";
-import BrandMark from "@/components/brand-mark";
+import StaffHeader from "@/components/staff-header";
+import EngagementClientSelect from "@/components/engagement/client-select";
 import {
   StageControl, FindingForm, ResolveFinding, ScopeForm, ScopeStatus,
   CleanupForm, ResolveCleanup, GoalForm, PainForm, SessionPlanner, SessionRecorder,
@@ -67,16 +67,11 @@ export default async function Engagement({ searchParams }: {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
-      <header className="masthead">
-        <div className="masthead-inner" style={{ maxWidth: 1180 }}>
-          <BrandMark href="/" tone="paper" sub="Ledger · Engagement" />
-          <div className="ml-auto flex items-center gap-4">
-            <Link href="/" className="prepared-by">← Today</Link>
-            <Link href="/clients" className="prepared-by">Clients</Link>
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      <StaffHeader
+        sub="Ledger · Engagement"
+        maxWidth={1180}
+        userName={s.name}
+      />
 
       <main style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 32px 70px" }}>
         <div className="flex items-end justify-between flex-wrap gap-4"
@@ -90,22 +85,8 @@ export default async function Engagement({ searchParams }: {
               {" — "}{r.question}
             </p>
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            {clients.length > 1 && (
-              <div className="flex flex-wrap gap-2" style={{ maxWidth: 360 }}>
-                {clients.map((c) => (
-                  <Link key={c.id} href={`/engagement?client=${c.id}`}
-                    className="tag" style={{
-                      textDecoration: "none",
-                      background: c.id === clientId ? "var(--brand-tint)" : "transparent",
-                      borderColor: c.id === clientId ? "var(--brand)" : "var(--hairline)",
-                      color: "var(--ink)",
-                    }}>
-                    {c.name}
-                  </Link>
-                ))}
-              </div>
-            )}
+          <div className="flex items-end gap-3 flex-wrap">
+            <EngagementClientSelect clients={clients} clientId={clientId} tab={tab} />
             <Link href={`/dash?client=${clientId}`} className="btn btn-quiet">Dashboard →</Link>
           </div>
         </div>

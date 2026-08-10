@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import UploadForm from "@/components/upload-form";
-import LogoutButton from "@/components/logout-button";
-import BrandMark from "@/components/brand-mark";
+import StaffHeader from "@/components/staff-header";
 
 export const dynamic = "force-dynamic";
 
@@ -16,15 +15,12 @@ export default async function Upload() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
-      <header className="masthead">
-        <div className="masthead-inner" style={{ maxWidth: 760 }}>
-          <BrandMark href="/" tone="paper" sub="Ledger · Monthly close" />
-          <div className="ml-auto flex items-center gap-4">
-            <span className="prepared-by">{s.name}</span>
-            <LogoutButton />
-          </div>
-        </div>
-      </header>
+      <StaffHeader
+        sub="Ledger · Monthly close"
+        maxWidth={760}
+        userName={s.name}
+        role={s.role}
+      />
       <main className="sheet" style={{ maxWidth: 760, paddingTop: 48 }}>
         <h1 className="display-l">Upload the close</h1>
         <p className="section-q" style={{ marginBottom: 26 }}>
@@ -35,19 +31,6 @@ export default async function Upload() {
           clients={clients.map((c) => ({ id: c.id, name: c.name }))}
           entities={entities.map((e) => ({ id: e.id, clientId: e.client_id, name: e.name }))}
         />
-        <div style={{ marginTop: 34, borderTop: "1px solid var(--hairline)", paddingTop: 20 }}>
-          <div className="eyebrow">What to attach</div>
-          <div className="space-y-2" style={{ marginTop: 12, fontFamily: "var(--utility)", fontSize: 12, color: "var(--ink-soft)" }}>
-            <div><b>P&amp;L</b> — by class/location exports are auto-detected; exact CSV: entity, category, label, amount ($K)</div>
-            <div><b>Payroll</b> — register with wages / taxes / hours; mapping remembered per client</div>
-            <div><b>AR</b> — ageing by payer</div>
-            <div><b>Cash</b> — operating and reserve balances</div>
-            <div><b>Balance / budget</b> — optional</div>
-          </div>
-          <p className="caption" style={{ marginTop: 14 }}>
-            Entity names must match the client&apos;s configured entities. Column mappings are remembered after the first successful close.
-          </p>
-        </div>
       </main>
     </div>
   );

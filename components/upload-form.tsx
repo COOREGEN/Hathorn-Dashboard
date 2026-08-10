@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 
 type GateCheck = { name: string; pass: boolean; detail: string };
 
@@ -11,7 +12,9 @@ export default function UploadForm({ clients, entities }:
   const [files, setFiles] = useState<Record<string, File | null>>({
     pnl: null, payroll: null, ar: null, cash: null, balance: null, budget: null });
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{ pass: boolean; checks: GateCheck[]; error?: string } | null>(null);
+  const [result, setResult] = useState<{
+    pass: boolean; checks: GateCheck[]; error?: string; periodId?: string;
+  } | null>(null);
 
   const slots = [
     ["pnl", "P&L (by class / export)"],
@@ -33,7 +36,6 @@ export default function UploadForm({ clients, entities }:
     setResult(data);
   }
 
-  // Only the four core files are required; the balance sheet and budget are optional.
   const REQUIRED = ["pnl", "payroll", "ar", "cash"];
   const ready = clientId && REQUIRED.every((k) => files[k]);
   const clientEntities = entities.filter((e) => e.clientId === clientId);
@@ -89,8 +91,13 @@ export default function UploadForm({ clients, entities }:
         <div className="mt-4">
           <div style={{ fontFamily: "var(--display)", fontSize: 18, marginBottom: 14, color: result.pass ? "var(--brand)" : "var(--accent-deep)" }}>
             {result.error ? `Upload error: ${result.error}` :
-              result.pass ? "Gate PASSED — period is now In Review for the advisor." : "Gate FAILED — fix the breaks below and re-upload."}
+              result.pass ? "Gate passed — ready for call prep." : "Gate failed — fix the breaks below and re-upload."}
           </div>
+          {result.pass && result.periodId && (
+            <Link href={`/review/${result.periodId}`} className="btn" style={{ display: "inline-block", marginBottom: 18 }}>
+              Open call prep →
+            </Link>
+          )}
           <div className="space-y-1.5">
             {result.checks?.map((c, i) => (
               <div key={i} className="flex gap-2" style={{ fontFamily: "var(--utility)", fontSize: 11, padding: "8px 11px", borderLeft: `2px solid ${c.pass ? "var(--brand)" : "var(--accent-deep)"}`, color: c.pass ? "var(--ink-soft)" : "var(--accent-deep)" }}>
