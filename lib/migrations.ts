@@ -1124,6 +1124,103 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 25,
+    name: "close_automation",
+    up: (db) => {
+      /**
+       * Automated close + exception command center.
+       * Feeds existing release engine — does not replace publish/approve.
+       * Reuses accounting_exceptions; checklist items carry fingerprints for stale review.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS close_policies (
+          id TEXT PRIMARY KEY,
+          client_id TEXT UNIQUE,
+          name TEXT NOT NULL DEFAULT 'Firm default',
+          required_documents_json TEXT NOT NULL DEFAULT '[]',
+          required_reconciliations_json TEXT NOT NULL DEFAULT '[]',
+          check_keys_json TEXT NOT NULL DEFAULT '[]',
+          variance_rules_json TEXT NOT NULL DEFAULT '[]',
+          blocking_rules_json TEXT NOT NULL DEFAULT '{}',
+          review_requirements_json TEXT NOT NULL DEFAULT '{}',
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS close_runs (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          period_id TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'NOT_STARTED',
+          started_by TEXT DEFAULT NULL,
+          started_at TEXT DEFAULT NULL,
+          target_close_date TEXT DEFAULT NULL,
+          completed_at TEXT DEFAULT NULL,
+          approved_by TEXT DEFAULT NULL,
+          approved_at TEXT DEFAULT NULL,
+          release_id TEXT DEFAULT NULL,
+          last_evaluated_at TEXT DEFAULT NULL,
+          summary_json TEXT NOT NULL DEFAULT '{}',
+          reopen_reason TEXT DEFAULT NULL,
+          reopened_by TEXT DEFAULT NULL,
+          reopened_at TEXT DEFAULT NULL,
+          UNIQUE(client_id, period_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_close_runs_period ON close_runs(period_id, status);
+        CREATE INDEX IF NOT EXISTS idx_close_runs_client ON close_runs(client_id, status);
+
+        CREATE TABLE IF NOT EXISTS close_checklist_items (
+          id TEXT PRIMARY KEY,
+          close_run_id TEXT NOT NULL,
+          check_key TEXT NOT NULL,
+          category TEXT NOT NULL,
+          title TEXT NOT NULL,
+          kind TEXT NOT NULL DEFAULT 'AUTOMATED',
+          required INTEGER NOT NULL DEFAULT 1,
+          blocking INTEGER NOT NULL DEFAULT 0,
+          status TEXT NOT NULL DEFAULT 'PENDING',
+          assigned_to TEXT DEFAULT NULL,
+          due_at TEXT DEFAULT NULL,
+          completed_by TEXT DEFAULT NULL,
+          completed_at TEXT DEFAULT NULL,
+          waived_by TEXT DEFAULT NULL,
+          waived_at TEXT DEFAULT NULL,
+          waive_reason TEXT DEFAULT NULL,
+          note TEXT DEFAULT NULL,
+          evidence_json TEXT NOT NULL DEFAULT '{}',
+          input_hash TEXT DEFAULT NULL,
+          reviewed_hash TEXT DEFAULT NULL,
+          reviewed_by TEXT DEFAULT NULL,
+          reviewed_at TEXT DEFAULT NULL,
+          last_evaluated_at TEXT DEFAULT NULL,
+          exception_id TEXT DEFAULT NULL,
+          UNIQUE(close_run_id, check_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_close_items_run ON close_checklist_items(close_run_id, status);
+
+        CREATE TABLE IF NOT EXISTS close_events (
+          id TEXT PRIMARY KEY,
+          close_run_id TEXT NOT NULL,
+          event_type TEXT NOT NULL,
+          detail TEXT NOT NULL DEFAULT '',
+          actor_id TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_close_events_run ON close_events(close_run_id, created_at DESC);
+      `);
+
+      // Extend existing exceptions for close aggregation (TEXT columns — additive).
+      try {
+        db.exec(`ALTER TABLE accounting_exceptions ADD COLUMN close_run_id TEXT`);
+      } catch { /* already present */ }
+      try {
+        db.exec(`ALTER TABLE accounting_exceptions ADD COLUMN blocking INTEGER NOT NULL DEFAULT 0`);
+      } catch { /* already present */ }
+      try {
+        db.exec(`ALTER TABLE accounting_exceptions ADD COLUMN subsystem TEXT DEFAULT NULL`);
+      } catch { /* already present */ }
+    },
+  },
 ];
 
 /**

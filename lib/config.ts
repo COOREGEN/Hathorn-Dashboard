@@ -186,6 +186,16 @@ export const config = {
       String(process.env.INTEGRATION_HUB_ENABLED ?? "1").toLowerCase(),
     ),
   },
+
+  /**
+   * Automated close + exception command center (feeds existing release engine).
+   * Default on; never auto-publishes or posts journals.
+   */
+  closeAutomation: {
+    enabled: !["0", "false", "no", "off", ""].includes(
+      String(process.env.CLOSE_AUTOMATION_ENABLED ?? "1").toLowerCase(),
+    ),
+  },
 };
 
 /** Human-readable startup report — surfaced on the admin page so nothing is a mystery. */
@@ -223,5 +233,7 @@ export function integrationStatus() {
       hint: config.qbo.enabled
         ? "Hub wraps QuickBooks + CSV/Excel + mock. QBO tokens stay encrypted in qbo_connections."
         : "Hub on (file + mock). Set QBO_CLIENT_ID/SECRET to enable QuickBooks OAuth." },
+    { name: "Close Automation", enabled: config.closeAutomation.enabled,
+      hint: "Month-end checklist, exceptions, readiness — feeds review/release; never auto-publishes." },
   ];
 }

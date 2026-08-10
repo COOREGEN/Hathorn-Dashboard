@@ -191,6 +191,10 @@ export const TRANSFER_ORDER = [
   "integration_sync_runs",
   "integration_raw_records",
   "integration_canonical_records",
+  "close_policies",
+  "close_runs",
+  "close_checklist_items",
+  "close_events",
   "audit_logs",
 ] as const;
 

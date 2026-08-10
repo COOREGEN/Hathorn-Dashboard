@@ -768,6 +768,75 @@ CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/books.jar" \
 assert "bookkeeper can view integrations" test "$CODE" = "200"
 
 echo
+echo "16. Close Automation (staff only; feeds release; no auto-publish)"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/close")
+assert "client blocked from /close" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" \
+  -X POST "$BASE/api/close" -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"periodId\":\"$APR_PERIOD\"}")
+assert "client blocked from close API" test "$CODE" = "403" -o "$CODE" = "401"
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" "$BASE/close?year=2026&month=4")
+assert "admin reaches /close" test "$CODE" = "200"
+
+CLOSE_FP_BEFORE=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID'));
+")
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/close" \
+  -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"periodId\":\"$APR_PERIOD\"}")
+echo "$RESP" > "$COOKIE_DIR/close-start.json"
+assert "staff can start close run" grep -q '"ok":true' "$COOKIE_DIR/close-start.json"
+CLOSE_ID=$(python3 -c "import json; print(json.load(open('$COOKIE_DIR/close-start.json'))['run']['id'])")
+assert "close run id returned" test -n "$CLOSE_ID"
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/api/close/$CLOSE_ID")
+echo "$RESP" > "$COOKIE_DIR/close-detail.json"
+assert "close detail ok" grep -q '"ok":true' "$COOKIE_DIR/close-detail.json"
+assert "checklist present" grep -q 'checkKey' "$COOKIE_DIR/close-detail.json"
+assert "whyNotClosed present" grep -q 'whyNotClosed' "$COOKIE_DIR/close-detail.json"
+
+# Waive a missing doc check as advisor
+ITEM=$(python3 -c "
+import json
+d=json.load(open('$COOKIE_DIR/close-detail.json'))
+print(next(i['id'] for i in d['items'] if i['checkKey']=='doc_debt_approved' and i['status']!='WAIVED'))
+")
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/close/$CLOSE_ID" \
+  -H 'content-type: application/json' \
+  -d "{\"action\":\"waive\",\"itemId\":\"$ITEM\",\"reason\":\"Debt schedule N/A for this demo month\"}")
+echo "$RESP" > "$COOKIE_DIR/close-waive.json"
+WAIVED=$(python3 -c "
+import json
+d=json.load(open('$COOKIE_DIR/close-waive.json'))
+print(next(i['status'] for i in d['bundle']['items'] if i['id']=='$ITEM'))
+")
+assert "waiver status is WAIVED not PASS" test "$WAIVED" = "WAIVED"
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/exceptions")
+assert "client blocked from /exceptions" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" "$BASE/api/exceptions")
+assert "admin reaches exceptions API" test "$CODE" = "200"
+
+CLOSE_FP_AFTER=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID'));
+")
+assert "close automation does not mutate releases or ledger" test "$CLOSE_FP_BEFORE" = "$CLOSE_FP_AFTER"
+
+# Portfolio list
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/api/close?year=2026&month=4")
+echo "$RESP" > "$COOKIE_DIR/close-portfolio.json"
+assert "close portfolio ok" grep -q '"ok":true' "$COOKIE_DIR/close-portfolio.json"
+assert "portfolio has counts" grep -q 'readyForReview\|blocked\|inProgress' "$COOKIE_DIR/close-portfolio.json"
+
+echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1

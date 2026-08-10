@@ -300,6 +300,13 @@ export function publish(periodId: string, actorId: string): PublishResult {
   });
 
   tx();
+  // Link close run for evidence trail — never mutates the release snapshot.
+  if (result.ok && result.releaseId) {
+    try {
+      const { linkCloseRunToRelease } = require("./close/model") as typeof import("./close/model");
+      linkCloseRunToRelease(periodId, result.releaseId, actorId);
+    } catch { /* close module optional at boot */ }
+  }
   return result;
 }
 

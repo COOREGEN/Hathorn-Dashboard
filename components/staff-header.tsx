@@ -34,6 +34,8 @@ export default function StaffHeader({
     { href: "/guidance", label: "Guidance" },
     { href: "/reconciliations", label: "Reconciliations" },
     { href: "/integrations", label: "Integrations" },
+    { href: "/close", label: "Close" },
+    { href: "/exceptions", label: "Exceptions" },
     { href: "/upload", label: "Upload" },
     ...(links || []),
   ];

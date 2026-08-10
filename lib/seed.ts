@@ -82,6 +82,10 @@ const WIPE = [
   "integration_sync_runs",
   "integration_credentials",
   "integration_connections",
+  "close_events",
+  "close_checklist_items",
+  "close_runs",
+  "close_policies",
 ];
 for (const t of WIPE) {
   try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }

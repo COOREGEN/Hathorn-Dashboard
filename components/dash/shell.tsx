@@ -47,6 +47,8 @@ const NAV: { group: string; items: { href: string; label: string; icon: string; 
       { href: "/guidance", label: "Guidance", icon: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2zM8 7h8M8 11h8M8 15h5" },
       { href: "/reconciliations", label: "Reconciliations", icon: "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" },
       { href: "/integrations", label: "Integrations", icon: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" },
+      { href: "/close", label: "Close", icon: "M9 11l3 3L22 4M4 20h16" },
+      { href: "/exceptions", label: "Exceptions", icon: "M12 9v4M12 17h.01M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" },
       { href: "/planning", label: "Planning", icon: "M3 3v18h18M7 16l3-3 3 2 5-7" },
       { href: "/engagement", label: "Engagement", icon: "M22 11.1V12a10 10 0 1 1-5.9-9.1M22 4 12 14.0l-3-3" },
       { href: "/admin", label: "Firm", icon: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" },

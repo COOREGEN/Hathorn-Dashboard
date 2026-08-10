@@ -24,6 +24,8 @@ const GUARDS: [string, string[]][] = [
   ["/api/research", ["ADMIN", "ADVISOR"]],
   ["/api/reconciliations", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/api/integrations", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
+  ["/api/close", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
+  ["/api/exceptions", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/api/portal/pdf", ["ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT"]],
   ["/api/auth/mfa/setup", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   // Pages — internal advisory book. Portal is staff preview of a locked statement.
@@ -40,6 +42,8 @@ const GUARDS: [string, string[]][] = [
   ["/guidance", ["ADMIN", "ADVISOR"]],
   ["/reconciliations", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/integrations", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
+  ["/close", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
+  ["/exceptions", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/review", ["ADMIN", "ADVISOR"]],
   ["/upload", ["ADMIN", "BOOKKEEPER", "ADVISOR"]],
   ["/portal", ["ADMIN", "ADVISOR", "CLIENT"]],
@@ -127,13 +131,14 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/admin/:path*", "/account/:path*", "/dash/:path*", "/today/:path*", "/portfolio/:path*",
-    "/clients/:path*", "/engagement/:path*", "/planning/:path*", "/documents/:path*", "/tax/:path*", "/guidance/:path*", "/reconciliations/:path*", "/integrations/:path*", "/review/:path*", "/upload/:path*", "/portal/:path*",
+    "/clients/:path*", "/engagement/:path*", "/planning/:path*", "/documents/:path*", "/tax/:path*", "/guidance/:path*", "/reconciliations/:path*", "/integrations/:path*", "/close/:path*", "/exceptions/:path*", "/review/:path*", "/upload/:path*", "/portal/:path*",
     "/api/admin/:path*", "/api/approve/:path*", "/api/notes/:path*",
     "/api/upload/:path*", "/api/comments/:path*",
     "/api/qbo/:path*", "/api/story/:path*",
     "/api/engagement/:path*", "/api/actions/:path*", "/api/planning/:path*",
     "/api/documents/:path*", "/api/tax/:path*", "/api/research/:path*",
     "/api/reconciliations/:path*", "/api/integrations/:path*",
+    "/api/close/:path*", "/api/exceptions/:path*",
     "/api/portal/:path*", "/api/auth/:path*",
   ],
 };
