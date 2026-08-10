@@ -439,13 +439,17 @@ export function issueBundle(issueId: string) {
   };
 }
 
-function listClientDocs(clientId: string | null) {
+function listClientDocs(clientId: string | null): {
+  id: string; document_type: string; original_filename: string; status: string;
+}[] {
   if (!clientId) return [];
   try {
     return db().prepare(
       `SELECT id, document_type, original_filename, status FROM source_documents
        WHERE client_id=? ORDER BY uploaded_at DESC LIMIT 20`,
-    ).all(clientId);
+    ).all(clientId) as {
+      id: string; document_type: string; original_filename: string; status: string;
+    }[];
   } catch {
     return [];
   }

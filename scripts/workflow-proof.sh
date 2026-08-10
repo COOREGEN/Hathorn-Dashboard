@@ -525,7 +525,8 @@ assert "research requires professional review" grep -q 'requiresProfessionalRevi
 assert "research flags missing facts or needs info" grep -Eq 'NEEDS MORE INFORMATION|missingFacts|economic_life' "$COOKIE_DIR/research-run.json"
 assert "research cites attached/firm source" grep -Eq 'src-firm-lease-checklist|Hathorn Firm Guidance|FIRM_POLICY' "$COOKIE_DIR/research-run.json"
 # Must not invent ASC paragraph citations that were never supplied
-assert "no fabricated ASC paragraph citation" ! grep -qE 'ASC 842-[0-9]+-[0-9]+-[0-9]+' "$COOKIE_DIR/research-run.json"
+ASC_HITS=$(grep -cE 'ASC 842-[0-9]+-[0-9]+-[0-9]+' "$COOKIE_DIR/research-run.json" || true)
+assert "no fabricated ASC paragraph citation" test "${ASC_HITS:-0}" = "0"
 
 # UNKNOWN rights rejected
 RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/research/$RES_ID" \
@@ -533,7 +534,8 @@ RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/research/$RES_ID" \
   -d '{"action":"add_source","title":"Mystery PDF","citation":"unknown","publisher":"x","sourceType":"OTHER_INTERPRETIVE","contentRights":"UNKNOWN","bodyText":"should not index"}')
 echo "$RESP" > "$COOKIE_DIR/research-unknown.json"
 assert "UNKNOWN rights rejected" grep -qiE 'UNKNOWN|error|rights' "$COOKIE_DIR/research-unknown.json"
-assert "UNKNOWN rights not ok:true" ! grep -q '"ok":true' "$COOKIE_DIR/research-unknown.json"
+UNKNOWN_OK=$(grep -c '"ok":true' "$COOKIE_DIR/research-unknown.json" || true)
+assert "UNKNOWN rights not ok:true" test "${UNKNOWN_OK:-0}" = "0"
 
 # Contract fact source may be stored as USER_PROVIDED but is not GAAP authority
 RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/research/$RES_ID" \
