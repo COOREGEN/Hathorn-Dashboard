@@ -165,6 +165,9 @@ export const TRANSFER_ORDER = [
   "assets",
   "qbo_connections",
   "qbo_account_map",
+  "fpa_model_runs",
+  "source_documents",
+  "document_extractions",
   "audit_logs",
 ] as const;
 

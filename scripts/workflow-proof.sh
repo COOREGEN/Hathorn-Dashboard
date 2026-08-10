@@ -296,6 +296,84 @@ assert "staff can generate analysis" grep -q '"ok":true' "$COOKIE_DIR/fpa-analyz
 assert "analysis draft present" grep -qiE 'WHAT CHANGED|KEY DRIVER|assumption' "$COOKIE_DIR/fpa-analyze.json"
 
 echo
+echo "11. Document Intelligence (staff only; drafts never post)"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/documents")
+assert "client blocked from /documents" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" \
+  -X POST "$BASE/api/documents" -F "clientId=$CLIENT_ID" -F "file=@samples/documents/payroll-register.csv")
+assert "client blocked from documents API" test "$CODE" = "403" -o "$CODE" = "401"
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" \
+  "$BASE/documents?client=$CLIENT_ID")
+assert "admin reaches /documents" test "$CODE" = "200"
+
+# Fingerprint before document upload/parse
+DOC_FP_BEFORE=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM payroll_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID');
+")
+
+APR_PERIOD=$(sqlite3 data/ledger.db "SELECT id FROM periods WHERE client_id='$CLIENT_ID' AND year=2026 AND month=4 LIMIT 1")
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/documents" \
+  -F "clientId=$CLIENT_ID" \
+  -F "documentType=PAYROLL_REGISTER" \
+  -F "periodId=$APR_PERIOD" \
+  -F "file=@samples/documents/payroll-register.csv")
+echo "$RESP" > "$COOKIE_DIR/doc-upload.json"
+assert "staff can upload payroll register" grep -q '"ok":true' "$COOKIE_DIR/doc-upload.json"
+DOC_ID=$(python3 -c "import json; print(json.load(open('$COOKIE_DIR/doc-upload.json'))['document']['id'])")
+assert "document id returned" test -n "$DOC_ID"
+assert "extraction produced draft" python3 -c "import json; d=json.load(open('$COOKIE_DIR/doc-upload.json')); assert d.get('extraction') and d['extraction']['status']=='OK'"
+
+DOC_FP_AFTER=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM payroll_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID');
+")
+assert "document parse does not mutate actuals/releases" test "$DOC_FP_BEFORE" = "$DOC_FP_AFTER"
+
+# Reject executable (magic + extension)
+printf 'MZ\x90\x00evil' > "$COOKIE_DIR/evil.exe"
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/documents" \
+  -F "clientId=$CLIENT_ID" \
+  -F "file=@$COOKIE_DIR/evil.exe")
+echo "$RESP" > "$COOKIE_DIR/doc-evil.json"
+assert "rejects disallowed file type" grep -qiE 'not allowed|type|error|"ok":false' "$COOKIE_DIR/doc-evil.json"
+
+# Reprocess creates second extraction
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/documents/$DOC_ID" \
+  -H 'content-type: application/json' -d '{"action":"reprocess"}')
+echo "$RESP" > "$COOKIE_DIR/doc-reprocess.json"
+assert "reprocess ok" grep -q '"ok":true' "$COOKIE_DIR/doc-reprocess.json"
+EXT_COUNT=$(sqlite3 data/ledger.db "SELECT COUNT(*) FROM document_extractions WHERE document_id='$DOC_ID'")
+assert "reprocess appends extraction history" test "${EXT_COUNT:-0}" -ge 2
+
+# Approve preserves raw
+RAW_BEFORE=$(sqlite3 data/ledger.db "SELECT length(raw_result_json) FROM document_extractions WHERE document_id='$DOC_ID' ORDER BY created_at DESC LIMIT 1")
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/documents/$DOC_ID" \
+  -H 'content-type: application/json' -d '{"action":"approve"}')
+echo "$RESP" > "$COOKIE_DIR/doc-approve.json"
+assert "approve extraction" grep -q '"ok":true' "$COOKIE_DIR/doc-approve.json"
+STATUS=$(sqlite3 data/ledger.db "SELECT status FROM source_documents WHERE id='$DOC_ID'")
+assert "document status APPROVED" test "$STATUS" = "APPROVED"
+RAW_AFTER=$(sqlite3 data/ledger.db "SELECT length(raw_result_json) FROM document_extractions WHERE document_id='$DOC_ID' ORDER BY created_at DESC LIMIT 1")
+assert "approve preserves raw extraction" test "$RAW_BEFORE" = "$RAW_AFTER"
+
+# Download does not leak path
+RESP=$(curl -s -D "$COOKIE_DIR/doc-dl.hdr" -o "$COOKIE_DIR/doc-dl.bin" -b "$COOKIE_DIR/admin.jar" \
+  "$BASE/api/documents/$DOC_ID?download=1")
+CODE=$(awk 'NR==1{print $2}' "$COOKIE_DIR/doc-dl.hdr")
+assert "staff can download original" test "$CODE" = "200"
+assert "download has no server path header" ! grep -qiE '^X-File-Path:|/tmp/|/workspace/data/documents' "$COOKIE_DIR/doc-dl.hdr"
+
+echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1

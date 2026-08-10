@@ -14,7 +14,8 @@
     "db:verify": "tsx scripts/verify-postgres.ts",
     "seed:book": "tsx scripts/seed-demo-book.ts",
     "proof": "bash scripts/workflow-proof.sh",
-    "fpa:test": "tsx scripts/fpa-unit.ts"
+    "fpa:test": "tsx scripts/fpa-unit.ts",
+    "documents:test": "tsx scripts/documents-unit.ts"
   },
   "dependencies": {
     "@types/pdfkit": "^0.17.6",

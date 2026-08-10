@@ -129,6 +129,17 @@ export const config = {
     ),
     bin: process.env.FORGE_BIN || "forge",
   },
+
+  /**
+   * Document Intelligence worker (Docling / Python lite). Default off.
+   * Native CSV parsing still works. App never requires Docling to boot.
+   */
+  documentIntelligence: {
+    enabled: !["0", "false", "no", "off", ""].includes(
+      String(process.env.DOCUMENT_INTELLIGENCE_ENABLED ?? "0").toLowerCase(),
+    ),
+    python: process.env.DOCLING_PYTHON || "python3",
+  },
 };
 
 /** Human-readable startup report — surfaced on the admin page so nothing is a mystery. */
@@ -148,5 +159,9 @@ export function integrationStatus() {
       hint: config.forge.enabled
         ? "FORGE_ENABLED=1 — Forge pilot; native engine remains the fallback."
         : "Native 12-month forecast engine (Forge pilot off by default)." },
+    { name: "Document Intelligence", enabled: true,
+      hint: config.documentIntelligence.enabled
+        ? "Worker enabled for PDF/XLSX (Docling optional). Extractions are drafts — never auto-post."
+        : "Uploads + native CSV parse available. Set DOCUMENT_INTELLIGENCE_ENABLED=1 for the Python worker." },
   ];
 }

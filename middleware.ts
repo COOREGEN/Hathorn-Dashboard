@@ -19,6 +19,7 @@ const GUARDS: [string, string[]][] = [
   ["/api/engagement", ["ADMIN", "ADVISOR"]],
   ["/api/actions", ["ADMIN", "ADVISOR"]],
   ["/api/planning", ["ADMIN", "ADVISOR"]],
+  ["/api/documents", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/api/portal/pdf", ["ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT"]],
   ["/api/auth/mfa/setup", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   // Pages — internal advisory book. Portal is staff preview of a locked statement.
@@ -30,6 +31,7 @@ const GUARDS: [string, string[]][] = [
   ["/clients", ["ADMIN", "ADVISOR"]],
   ["/engagement", ["ADMIN", "ADVISOR"]],
   ["/planning", ["ADMIN", "ADVISOR"]],
+  ["/documents", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/review", ["ADMIN", "ADVISOR"]],
   ["/upload", ["ADMIN", "BOOKKEEPER", "ADVISOR"]],
   ["/portal", ["ADMIN", "ADVISOR", "CLIENT"]],
@@ -117,11 +119,12 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/admin/:path*", "/account/:path*", "/dash/:path*", "/today/:path*", "/portfolio/:path*",
-    "/clients/:path*", "/engagement/:path*", "/planning/:path*", "/review/:path*", "/upload/:path*", "/portal/:path*",
+    "/clients/:path*", "/engagement/:path*", "/planning/:path*", "/documents/:path*", "/review/:path*", "/upload/:path*", "/portal/:path*",
     "/api/admin/:path*", "/api/approve/:path*", "/api/notes/:path*",
     "/api/upload/:path*", "/api/comments/:path*",
     "/api/qbo/:path*", "/api/story/:path*",
     "/api/engagement/:path*", "/api/actions/:path*", "/api/planning/:path*",
+    "/api/documents/:path*",
     "/api/portal/:path*", "/api/auth/:path*",
   ],
 };

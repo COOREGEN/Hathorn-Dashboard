@@ -687,6 +687,53 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 20,
+    name: "source_documents",
+    up: (db) => {
+      /**
+       * Document Intelligence — source evidence + extraction history.
+       *
+       * Separate from pl_lines / release_records / import_runs. Approving a document
+       * never posts to the GL. Reprocessing appends a new extraction row.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS source_documents (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          period_id TEXT DEFAULT NULL,
+          document_type TEXT NOT NULL,
+          original_filename TEXT NOT NULL,
+          mime_type TEXT NOT NULL,
+          file_size INTEGER NOT NULL,
+          storage_reference TEXT NOT NULL,
+          sha256 TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'UPLOADED',
+          reviewed_json TEXT DEFAULT NULL,
+          notes TEXT DEFAULT NULL,
+          uploaded_by TEXT NOT NULL,
+          uploaded_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_source_docs_client ON source_documents(client_id, uploaded_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_source_docs_hash ON source_documents(client_id, sha256);
+
+        CREATE TABLE IF NOT EXISTS document_extractions (
+          id TEXT PRIMARY KEY,
+          document_id TEXT NOT NULL,
+          engine TEXT NOT NULL,
+          engine_version TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'PENDING',
+          raw_result_json TEXT DEFAULT NULL,
+          structured_result_json TEXT DEFAULT NULL,
+          confidence_summary TEXT DEFAULT NULL,
+          error_message TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          completed_at TEXT DEFAULT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_doc_extract_doc ON document_extractions(document_id, created_at DESC);
+      `);
+    },
+  },
 ];
 
 /**

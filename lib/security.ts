@@ -132,4 +132,6 @@ export const LIMITS = {
   comment: { max: 60, windowMinutes: 60 },
   fpaRun: { max: 40, windowMinutes: 60 },
   fpaAnalyze: { max: 20, windowMinutes: 60 },
+  documentUpload: { max: 40, windowMinutes: 60 },
+  documentParse: { max: 30, windowMinutes: 60 },
 };

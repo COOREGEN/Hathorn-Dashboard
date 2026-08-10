@@ -28,3 +28,23 @@ uses (deterministic signals → AI explanation → advisor review) and financial
 discipline (actual vs forecast, assumption vs fact).
 
 If material text is later adapted from that repository, preserve Apache-2.0 notices here.
+
+## Docling — MIT
+
+**Not installed as a required runtime dependency.**
+
+A Docling pilot was evaluated for Document Intelligence. The full package pulls a large
+ML stack (PyTorch / CUDA). Hathorn ships:
+
+- Native CSV/TSV parsing in Node (`lib/documents/native-parser.ts`)
+- An optional Python worker (`services/document-intelligence/`) with lite parsers
+  (`openpyxl`, `pypdf`) and a Docling try-import path when operators install it themselves
+
+Configuration: `DOCUMENT_INTELLIGENCE_ENABLED` (default `0`), `DOCLING_PYTHON`.
+
+Upstream: https://github.com/DS4SD/docling
+
+## openpyxl / pypdf (optional worker)
+
+Used only by the optional Python worker for XLSX cell values and PDF text extraction.
+Licenses: MIT (openpyxl), BSD-3-Clause (pypdf). Not required for Hathorn to boot.

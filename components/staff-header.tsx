@@ -29,6 +29,7 @@ export default function StaffHeader({
     { href: "/portfolio", label: "Attention" },
     { href: "/clients", label: "Clients" },
     { href: "/planning", label: "Planning" },
+    { href: "/documents", label: "Documents" },
     { href: "/upload", label: "Upload" },
     ...(links || []),
   ];
