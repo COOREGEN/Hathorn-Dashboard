@@ -9,16 +9,23 @@
     "lint": "next lint",
     "seed": "tsx lib/seed.ts",
     "backup": "tsx scripts/backup.ts",
+    "restore-check": "tsx scripts/restore-check.ts",
     "db:migrate-postgres": "tsx scripts/migrate-to-postgres.ts",
+    "db:verify": "tsx scripts/verify-postgres.ts",
     "seed:book": "tsx scripts/seed-demo-book.ts",
     "proof": "bash scripts/workflow-proof.sh"
   },
   "dependencies": {
+    "@types/pdfkit": "^0.17.6",
+    "@types/qrcode": "^1.5.6",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^13.0.2",
     "jose": "^6.2.4",
     "next": "^14.2.35",
+    "otpauth": "^9.5.1",
+    "pdfkit": "^0.19.1",
     "pg": "^8.22.0",
+    "qrcode": "^1.5.4",
     "react": "^18",
     "react-dom": "^18",
     "resend": "^6.18.1"

@@ -25,6 +25,14 @@ export type ClientMeta = {
   name: string; template: string; brandPrimary: string; brandAccent: string;
   logoText: string; logoSub: string; logoUrl?: string | null;
   targetLaborLo: number; targetLaborHi: number;
+  /** Vertical-specific wording frozen into the portal experience. */
+  language?: {
+    revenueLabel?: string;
+    directCostLabel?: string;
+    laborRatioLabel?: string;
+    laborQuestion?: string;
+    laborGuidance?: string;
+  };
 };
 export type GoalRow = { id: string; title: string; target: string; current: string; progress: number };
 
@@ -259,9 +267,14 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
                 entities={cur.entities.map((e) => ({ id: e.id, name: e.name }))}
                 entityId={entityId} onEntity={setEntityId}
                 availableModes={availableModes} />
-              <button type="button" className="tag" style={{ cursor: "pointer" }}
-                onClick={() => window.print()} title="Print or save as PDF">
+              <a className="tag" style={{ cursor: "pointer", textDecoration: "none" }}
+                href={`/api/portal/pdf?periodId=${encodeURIComponent(periodId)}`}
+                title="Download the published release as PDF">
                 Download PDF
+              </a>
+              <button type="button" className="tag" style={{ cursor: "pointer" }}
+                onClick={() => window.print()} title="Print this page">
+                Print
               </button>
             </div>
           </div>
@@ -312,7 +325,7 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
               detail={[{ label: "Gross profit", value: fmt(view.grossProfit) },
                        { label: "Overhead", value: fmt(view.opex) },
                        { label: "Net", value: fmt(view.netIncome) }]} />
-            <KPI label="Labor ratio" value={pct(view.laborPct)}
+            <KPI label={client.language?.laborRatioLabel || "Labor ratio"} value={pct(view.laborPct)}
               sub={`Healthy band ${client.targetLaborLo}–${client.targetLaborHi}%`}
               // Both sides of the band are wrong. Below it usually means hours were not
               // delivered as billed, or costs are landing in the wrong account.
@@ -320,7 +333,7 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
               detail={[{ label: "Direct labor", value: fmt(view.directCost) },
                        { label: "Revenue", value: fmt(view.revenue) },
                        { label: "Healthy band", value: `${client.targetLaborLo}–${client.targetLaborHi}%` }]} />
-            <KPI label="Revenue" value={fmt(view.revenue)}
+            <KPI label={client.language?.revenueLabel || "Revenue"} value={fmt(view.revenue)}
               sub={revLine ? `${revLine.deltaPct !== null && revLine.deltaPct >= 0 ? "▲" : "▼"} ${
                      revLine.deltaPct === null ? "—" : Math.abs(revLine.deltaPct).toFixed(1) + "%"
                    } vs ${comparison!.basisLabel}`
@@ -493,8 +506,9 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
         )}
 
         {/* ── Payroll & Labor ─────────────────────────────────────────────── */}
-        <Section num={advisory?.budget.available ? "05" : "04"} title="Payroll &amp; Labor"
-          question="You buy hours at one price and sell them at another. How wide is the gap?">
+        <Section num={advisory?.budget.available ? "05" : "04"}
+          title={client.language?.directCostLabel || "Payroll & Labor"}
+          question={client.language?.laborQuestion || "You buy hours at one price and sell them at another. How wide is the gap?"}>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-4">
             <KPI label="Total payroll" value={fmt(cur.totalPayroll)} sub={`${pct(cur.laborPct)} of revenue`} />
             <KPI label="Overtime premium" value={fmt(cur.otPremium)} sub="The quiet leak"

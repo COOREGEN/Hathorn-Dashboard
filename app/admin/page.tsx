@@ -56,6 +56,9 @@ export default async function Admin() {
             <div className="wordmark-sub">Ledger · Client reporting</div>
           </div>
           <div className="ml-auto flex items-center gap-4">
+            <Link href="/account/security" className="prepared-by" style={{ textDecoration: "none" }}>
+              Security
+            </Link>
             <span className="prepared-by">{s.name} · {s.role}</span>
             <LogoutButton />
           </div>

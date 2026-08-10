@@ -628,6 +628,34 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 18,
+    name: "auth_recovery_and_mfa",
+    up: (db) => {
+      /**
+       * Password recovery and staff MFA.
+       *
+       * A login that only knows a shared seed password is fine for a demo book and not
+       * for client financials. Recovery tokens are stored hashed so a DB leak is not a
+       * password-reset forge. MFA secrets are encrypted at rest via lib/security.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          token_hash TEXT NOT NULL UNIQUE,
+          expires_at TEXT NOT NULL,
+          used_at TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_reset_user ON password_reset_tokens(user_id, expires_at);
+      `);
+      addColumn(db, "users", "mfa_secret_enc", "TEXT DEFAULT NULL");
+      addColumn(db, "users", "mfa_enabled", "INTEGER DEFAULT 0");
+      addColumn(db, "users", "mfa_backup_hashes", "TEXT DEFAULT '[]'");
+      addColumn(db, "users", "mfa_enrolled_at", "TEXT DEFAULT NULL");
+    },
+  },
 ];
 
 /**

@@ -45,6 +45,13 @@ login() {
 echo "== Workflow proof against $BASE =="
 echo
 
+echo "0. Host readiness"
+HEALTH=$(curl -s "$BASE/api/health" || true)
+echo "$HEALTH" > "$COOKIE_DIR/health.json"
+assert "health endpoint responds" test -n "$HEALTH"
+assert "schema is current" grep -q '"applied"' "$COOKIE_DIR/health.json"
+
+echo
 echo "1. Auth and role walls"
 assert "client login" login "owner@northbridge.example" "$COOKIE_DIR/client.jar"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/portal")
@@ -54,9 +61,29 @@ assert "client blocked from /today" test "$CODE" = "307" -o "$CODE" = "403"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" -X POST "$BASE/api/upload")
 assert "client blocked from upload API" test "$CODE" = "403"
 
-assert "admin login" login "regen@hathornadvisorygroup.com" "$COOKIE_DIR/admin.jar"
+# Staff MFA is required in production by default. For proof against `npm start`,
+# run the server with REQUIRE_STAFF_MFA=0 (or enroll MFA before proof).
+ADMIN_BODY=$(curl -s -c "$COOKIE_DIR/admin.jar" -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/login" \
+  -H 'content-type: application/json' \
+  -d '{"email":"regen@hathornadvisorygroup.com","password":"ledger2026"}')
+echo "$ADMIN_BODY" > "$COOKIE_DIR/admin-login.json"
+if echo "$ADMIN_BODY" | grep -q 'mfaSetupRequired'; then
+  echo "  ✗ admin login blocked by MFA setup — restart server with REQUIRE_STAFF_MFA=0 for proof"
+  FAIL=$((FAIL + 1))
+elif echo "$ADMIN_BODY" | grep -q 'mfaRequired'; then
+  echo "  ✗ admin login requires TOTP — use REQUIRE_STAFF_MFA=0 on a seeded proof host"
+  FAIL=$((FAIL + 1))
+else
+  assert "admin login" grep -q '"ok":true' "$COOKIE_DIR/admin-login.json"
+fi
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" "$BASE/today")
 assert "admin reaches /today" test "$CODE" = "200"
+
+# Password recovery path (always 200; does not reveal whether email exists)
+RESP=$(curl -s -X POST "$BASE/api/auth/forgot" -H 'content-type: application/json' \
+  -d '{"email":"regen@hathornadvisorygroup.com"}')
+echo "$RESP" > "$COOKIE_DIR/forgot.json"
+assert "forgot-password acknowledges" grep -q '"ok":true' "$COOKIE_DIR/forgot.json"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/api/approve" -H 'content-type: application/json' -d '{}')
 assert "unauthed approve is 401" test "$CODE" = "401"
 assert "bookkeeper login" login "books@hathornadvisorygroup.com" "$COOKIE_DIR/books.jar"
@@ -124,6 +151,14 @@ assert "portal shows statement chrome" grep -qiE 'May|Monthly Statement|Prepared
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" \
   "$BASE/portal?client=northbridge&month=$MAY_ID")
 assert "staff preview with client+month" test "$CODE" = "200"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" \
+  "$BASE/api/portal/pdf?periodId=$MAY_ID")
+assert "client can download release PDF" test "$CODE" = "200"
+curl -s -D "$COOKIE_DIR/pdf.hdr" -o /dev/null -b "$COOKIE_DIR/client.jar" \
+  "$BASE/api/portal/pdf?periodId=$MAY_ID"
+assert "PDF content-type" grep -qi 'application/pdf' "$COOKIE_DIR/pdf.hdr"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/portal/pdf?periodId=$MAY_ID")
+assert "unauthed PDF is 401" test "$CODE" = "401"
 
 echo
 echo "6. Comments"

@@ -53,6 +53,10 @@ const securityHeaders = [
 
 const nextConfig = {
   poweredByHeader: false,
+  // Native / font-heavy packages must not be bundled into the server graph.
+  experimental: {
+    serverComponentsExternalPackages: ["better-sqlite3", "pdfkit", "otpauth"],
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

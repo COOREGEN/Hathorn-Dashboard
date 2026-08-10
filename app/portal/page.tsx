@@ -7,6 +7,7 @@ import { lockedStatements, statementGoals, portalAdvisory } from "@/lib/statemen
 import { activeRelease } from "@/lib/release";
 import { yearOverYear, budgetVariance, balanceSheet, cashOutlook, openActions, closedSince } from "@/lib/advisory";
 import { computePeriods } from "@/lib/metrics";
+import { vertical } from "@/lib/verticals";
 import Dashboard, { type ClientMeta, type GoalRow } from "@/components/dashboard";
 import LogoutButton from "@/components/logout-button";
 
@@ -31,11 +32,13 @@ export default async function Portal({ searchParams }: { searchParams: { client?
   if (!clientId) redirect(s.role === "CLIENT" ? "/login" : "/today");
 
   const c: any = db().prepare("SELECT * FROM clients WHERE id=?").get(clientId);
+  const profile = vertical(c.vertical);
   const client: ClientMeta = {
     name: c.name, template: c.template, brandPrimary: c.brand_primary, brandAccent: c.brand_accent,
     logoText: c.logo_text, logoSub: c.logo_sub,
     logoUrl: c.logo_asset_id ? `/api/assets/${c.logo_asset_id}` : null,
     targetLaborLo: c.target_labor_lo, targetLaborHi: c.target_labor_hi,
+    language: profile.language,
   };
   const goals: GoalRow[] = statementGoals(clientId);
 

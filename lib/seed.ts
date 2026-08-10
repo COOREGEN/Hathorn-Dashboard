@@ -2,6 +2,9 @@
  * Seed: Hathorn advisory book — anonymized example clients for call prep.
  * Numbers are the gate-proven Jan–May 2026 home-care dataset, renamed.
  * Run: npm run seed
+ *
+ * Production refuse: wiping a live book with demo passwords is how real client data
+ * disappears. Set ALLOW_DEMO_SEED=1 only for controlled staging resets.
  */
 import Database from "better-sqlite3";
 import { readFileSync, mkdirSync } from "fs";
@@ -9,6 +12,14 @@ import path from "path";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { runMigrations } from "./migrations";
+
+if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_SEED !== "1") {
+  console.error(
+    "Refusing to seed in production. This wipes the book and installs demo passwords.\n" +
+    "For a staging reset only: ALLOW_DEMO_SEED=1 npm run seed",
+  );
+  process.exit(1);
+}
 
 /**
  * The data directory has to be created before the database is opened — better-sqlite3
@@ -44,6 +55,7 @@ const WIPE = [
   "discovery_findings","cleanup_scope","cleanup_findings","kpi_client_config","kpi_values",
   "kpi_inputs","client_tags","import_mappings","import_runs","volume_lines","passthrough_lines",
   "fee_lines","channel_lines","personal_finance","assets","release_deliveries",
+  "password_reset_tokens",
 ];
 for (const t of WIPE) {
   try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }

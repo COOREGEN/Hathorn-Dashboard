@@ -14,6 +14,8 @@ Stack: Next.js 14 App Router · TypeScript · better-sqlite3 · hand-rolled SVG 
 ```bash
 npm install
 cp .env.example .env.local   # then: openssl rand -base64 48 -> AUTH_SECRET
+# For production, also set NEXT_PUBLIC_BASE_URL, BACKUP_DIR, RESEND_*, REQUIRE_STAFF_MFA=1
+# See PRODUCTION.md
 npm run seed
 npm run dev
 ```
@@ -37,15 +39,26 @@ npm run seed:book   # add synthetic clients for density testing
 
 ## Prove the workflow
 
-With the server running (`npm run start` or `npm run dev`):
-
 ```bash
 npm run seed
+npm run build
+BACKUP_DIR=./data/backups REQUIRE_STAFF_MFA=0 LEDGER_ALLOW_LOCAL_PROD=1 \
+  AUTH_SECRET="$(openssl rand -base64 48)" NEXT_PUBLIC_BASE_URL=http://localhost:3000 \
+  npm run start
+# in another shell:
 npm run proof
 ```
 
-`scripts/workflow-proof.sh` walks the real path: role walls → commentary gate → publish → client portal → comments → amend → lock enforcement → sample upload/gate. It must stay green.
+`scripts/workflow-proof.sh` walks: health → role walls → password recovery ack → commentary gate → publish → portal → release PDF → comments → amend → lock → sample upload/gate.
 
-Sample close files live in `samples/`.
+## Production
+
+Read **`PRODUCTION.md`** before going live. Short version:
+
+1. Real `AUTH_SECRET`, public `NEXT_PUBLIC_BASE_URL`, off-box `BACKUP_DIR`
+2. Staff MFA required (enroll at `/account/security`)
+3. Hourly `npm run backup` + daily `npm run restore-check`
+4. Never `npm run seed` on a live book without `ALLOW_DEMO_SEED=1`
+5. Runtime is SQLite; Postgres migrate/verify scripts exist for a future cutover
 
 **Read `AGENTS.md` before changing anything.**
