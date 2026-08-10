@@ -7,7 +7,7 @@ import { documentIntelligenceStatus } from "@/lib/documents/engine";
 import { DOCUMENT_TYPES, type DocumentType } from "@/lib/documents/types";
 import { db } from "@/lib/db";
 
-const TYPE_SET = new Set(DOCUMENT_TYPES.map((t) => t.value));
+const TYPE_SET: Set<string> = new Set(DOCUMENT_TYPES.map((t) => t.value));
 
 export async function GET(req: Request) {
   try {

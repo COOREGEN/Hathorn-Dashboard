@@ -11,7 +11,7 @@ import { reconcilePayrollRegister } from "@/lib/documents/reconcile-payroll";
 import { draftDocumentSummary } from "@/lib/documents/summary";
 import { DOCUMENT_TYPES, type DocumentType, type StructuredDraft } from "@/lib/documents/types";
 
-const TYPE_SET = new Set(DOCUMENT_TYPES.map((t) => t.value));
+const TYPE_SET: Set<string> = new Set(DOCUMENT_TYPES.map((t) => t.value));
 
 export async function GET(
   req: Request,

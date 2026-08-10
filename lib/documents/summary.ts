@@ -39,7 +39,7 @@ export function draftDocumentSummary(
       if (d) depts.set(d, (depts.get(d) || 0) + g);
     }
     if (depts.size) {
-      const top = [...depts.entries()].sort((a, b) => b[1] - a[1])[0];
+      const top = Array.from(depts.entries()).sort((a, b) => b[1] - a[1])[0];
       if (top) lines.push(`Largest department (by gross): ${top[0]} ($${fmt(top[1])})`);
     }
     lines.push("");
