@@ -694,9 +694,12 @@ assert "hub list ok" grep -q '"ok":true' "$COOKIE_DIR/hub.json"
 assert "hub lists quickbooks provider" grep -q 'quickbooks' "$COOKIE_DIR/hub.json"
 assert "hub lists file provider" grep -q '"file"' "$COOKIE_DIR/hub.json"
 assert "hub lists mock provider" grep -q '"mock"' "$COOKIE_DIR/hub.json"
-assert "hub JSON has no access_token" ! grep -qi 'access_token' "$COOKIE_DIR/hub.json"
-assert "hub JSON has no refresh_token" ! grep -qi 'refresh_token' "$COOKIE_DIR/hub.json"
-assert "hub JSON has no client_secret" ! grep -qi 'client_secret' "$COOKIE_DIR/hub.json"
+SECRET_LEAK=$(python3 -c "
+import json
+s=json.dumps(json.load(open('$COOKIE_DIR/hub.json'))).lower()
+print('leak' if ('access_token' in s or 'refresh_token' in s or 'client_secret' in s) else 'clean')
+")
+assert "hub JSON has no access_token/refresh_token/client_secret" test "$SECRET_LEAK" = "clean"
 
 MOCK_ID=$(python3 -c "
 import json
