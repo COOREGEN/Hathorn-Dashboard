@@ -13,6 +13,9 @@ import crypto from "crypto";
 import { db, uid } from "./db";
 import { config } from "./config";
 import { encrypt, decrypt, fetchWithTimeout } from "./security";
+import { runGate } from "./gate";
+import { assertEditable } from "./release";
+import type { GateResult } from "./gate";
 
 const AUTH_URL = "https://appcenter.intuit.com/connect/oauth2";
 const TOKEN_URL = "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer";
@@ -22,6 +25,8 @@ export type QboConnection = {
   id: string; client_id: string; realm_id: string;
   access_token: string; refresh_token: string;
   access_expires_at: string; refresh_expires_at: string;
+  connected_by: string;
+  connected_at: string;
   last_sync_at: string | null; last_sync_status: string;
 };
 
@@ -263,4 +268,60 @@ export async function syncPeriod(clientId: string, year: number, month: number):
     .run(warnings.length ? `Synced with ${warnings.length} warning(s)` : "Synced cleanly", conn.id);
 
   return { plLines, arBuckets, warnings };
+}
+
+/**
+ * Apply a QBO pull into the working period ledger (P&L + AR only).
+ * Does not touch payroll, cash, or published release snapshots.
+ * Extracted so the Integration Hub and /api/qbo/sync share one write path.
+ */
+export function applySyncToPeriod(
+  clientId: string,
+  year: number,
+  month: number,
+  result: SyncResult,
+): { periodId: string; gate: GateResult } {
+  const d = db();
+
+  const entities: any[] = d.prepare("SELECT * FROM entities WHERE client_id=?").all(clientId);
+  const byName = new Map(entities.map((e) => [e.name.toLowerCase(), e.id]));
+
+  let period: any = d.prepare("SELECT * FROM periods WHERE client_id=? AND year=? AND month=?")
+    .get(clientId, year, month);
+  if (!period) {
+    const pid = uid();
+    d.prepare("INSERT INTO periods (id,client_id,year,month,status) VALUES (?,?,?,?,'AWAITING')")
+      .run(pid, clientId, year, month);
+    period = { id: pid };
+  } else {
+    assertEditable(period.id);
+  }
+  const pid = period.id;
+
+  const write = d.transaction(() => {
+    d.prepare("DELETE FROM pl_lines WHERE period_id=?").run(pid);
+    d.prepare("DELETE FROM ar_buckets WHERE period_id=?").run(pid);
+    for (const l of result.plLines) {
+      const eid = byName.get(l.entityName.toLowerCase());
+      if (!eid) continue;
+      d.prepare("INSERT INTO pl_lines (id,period_id,entity_id,category,label,amount) VALUES (?,?,?,?,?,?)")
+        .run(uid(), pid, eid, l.category, l.label, l.amount);
+    }
+    for (const b of result.arBuckets) {
+      d.prepare("INSERT INTO ar_buckets (id,period_id,payer,b0_30,b31_60,b61_90,b90p) VALUES (?,?,?,?,?,?,?)")
+        .run(uid(), pid, b.payer, b.b0_30, b.b31_60, b.b61_90, b.b90p);
+    }
+  });
+  write();
+
+  const gate = runGate(pid);
+  if (!gate.pass) d.prepare("UPDATE periods SET status='GATED' WHERE id=?").run(pid);
+  return { periodId: pid, gate };
+}
+
+/** Pull from QBO and write into the working period — used by Integration Hub. */
+export async function syncPeriodIntoLedger(clientId: string, year: number, month: number) {
+  const result = await syncPeriod(clientId, year, month);
+  const applied = applySyncToPeriod(clientId, year, month, result);
+  return { ...result, ...applied };
 }

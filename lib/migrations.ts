@@ -1035,6 +1035,95 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 24,
+    name: "integration_hub",
+    up: (db) => {
+      /**
+       * Integration Hub — provider-agnostic connections, sync history, staging.
+       * QuickBooks tokens remain in qbo_connections (not duplicated here).
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS integration_connections (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          provider TEXT NOT NULL,
+          external_account_id TEXT DEFAULT NULL,
+          external_account_name TEXT DEFAULT NULL,
+          status TEXT NOT NULL DEFAULT 'DISCONNECTED',
+          connected_by TEXT DEFAULT NULL,
+          connected_at TEXT DEFAULT NULL,
+          last_successful_sync_at TEXT DEFAULT NULL,
+          last_attempted_sync_at TEXT DEFAULT NULL,
+          last_error_code TEXT DEFAULT NULL,
+          last_error_message TEXT DEFAULT NULL,
+          metadata_json TEXT NOT NULL DEFAULT '{}',
+          UNIQUE(client_id, provider)
+        );
+        CREATE INDEX IF NOT EXISTS idx_integ_conn_client ON integration_connections(client_id, provider);
+
+        CREATE TABLE IF NOT EXISTS integration_credentials (
+          connection_id TEXT PRIMARY KEY,
+          encrypted_payload TEXT NOT NULL,
+          key_version TEXT NOT NULL DEFAULT 'enc:v1',
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS integration_sync_runs (
+          id TEXT PRIMARY KEY,
+          connection_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          provider TEXT NOT NULL,
+          sync_type TEXT NOT NULL,
+          status TEXT NOT NULL,
+          started_at TEXT NOT NULL,
+          completed_at TEXT DEFAULT NULL,
+          records_received INTEGER NOT NULL DEFAULT 0,
+          records_created INTEGER NOT NULL DEFAULT 0,
+          records_updated INTEGER NOT NULL DEFAULT 0,
+          records_skipped INTEGER NOT NULL DEFAULT 0,
+          error_code TEXT DEFAULT NULL,
+          error_message TEXT DEFAULT NULL,
+          cursor_or_checkpoint TEXT DEFAULT NULL,
+          triggered_by TEXT NOT NULL,
+          metadata_json TEXT NOT NULL DEFAULT '{}'
+        );
+        CREATE INDEX IF NOT EXISTS idx_integ_runs_conn ON integration_sync_runs(connection_id, started_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_integ_runs_client ON integration_sync_runs(client_id, started_at DESC);
+
+        CREATE TABLE IF NOT EXISTS integration_raw_records (
+          id TEXT PRIMARY KEY,
+          connection_id TEXT NOT NULL,
+          sync_run_id TEXT NOT NULL,
+          provider TEXT NOT NULL,
+          record_type TEXT NOT NULL,
+          external_record_id TEXT NOT NULL,
+          external_updated_at TEXT DEFAULT NULL,
+          payload_json TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(connection_id, record_type, external_record_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_integ_raw ON integration_raw_records(connection_id, record_type);
+
+        CREATE TABLE IF NOT EXISTS integration_canonical_records (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          connection_id TEXT NOT NULL,
+          sync_run_id TEXT NOT NULL,
+          record_type TEXT NOT NULL,
+          external_record_id TEXT NOT NULL,
+          payload_json TEXT NOT NULL,
+          currency TEXT DEFAULT 'USD',
+          period_key TEXT DEFAULT NULL,
+          source_updated_at TEXT DEFAULT NULL,
+          synced_at TEXT NOT NULL,
+          UNIQUE(client_id, connection_id, record_type, external_record_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_integ_canon ON integration_canonical_records(client_id, record_type, period_key);
+      `);
+    },
+  },
 ];
 
 /**

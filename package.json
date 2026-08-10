@@ -18,7 +18,8 @@
     "documents:test": "tsx scripts/documents-unit.ts",
     "tax:test": "tsx scripts/tax-unit.ts",
     "research:test": "tsx scripts/research-unit.ts",
-    "recon:test": "tsx scripts/recon-unit.ts"
+    "recon:test": "tsx scripts/recon-unit.ts",
+    "integrations:test": "tsx scripts/integrations-unit.ts"
   },
   "dependencies": {
     "@types/pdfkit": "^0.17.6",

@@ -77,6 +77,11 @@ const WIPE = [
   "reconciliation_runs",
   "reconciliations",
   "client_reconciliation_config",
+  "integration_canonical_records",
+  "integration_raw_records",
+  "integration_sync_runs",
+  "integration_credentials",
+  "integration_connections",
 ];
 for (const t of WIPE) {
   try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }

@@ -1,69 +1,44 @@
 import { NextResponse } from "next/server";
 import { requireRole, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
-import { syncPeriod, getConnection, disconnect } from "@/lib/qbo";
-import { db, uid } from "@/lib/db";
-import { runGate } from "@/lib/gate";
-import { assertEditable } from "@/lib/release";
+import { syncPeriod, getConnection, disconnect, applySyncToPeriod } from "@/lib/qbo";
 import { rateLimit, RateLimited, LIMITS, UpstreamTimeout } from "@/lib/security";
+import { recordCompletedQboSync, syncQboHubProjection } from "@/lib/integrations/model";
 
 /**
  * Pulls P&L and AR from QuickBooks into a period, leaving payroll alone.
  * Runs the gate afterward so the bookkeeper immediately sees whether the
  * QuickBooks side ties to the payroll register they uploaded.
+ *
+ * Absolute rule: this route remains the Intuit pull. Hub history is recorded
+ * via recordCompletedQboSync — no second provider call.
  */
 export async function POST(req: Request) {
   try {
     const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
     rateLimit({ action: "qboSync", subject: s.userId, ...LIMITS.qboSync });
     const { clientId, year, month } = await jsonObject(req);
-    const d = db();
-
-    const entities: any[] = d.prepare("SELECT * FROM entities WHERE client_id=?").all(clientId);
-    const byName = new Map(entities.map((e) => [e.name.toLowerCase(), e.id]));
 
     const result = await syncPeriod(clientId, year, month);
+    const applied = applySyncToPeriod(clientId, year, month, result);
 
-    let period: any = d.prepare("SELECT * FROM periods WHERE client_id=? AND year=? AND month=?")
-      .get(clientId, year, month);
-    if (!period) {
-      const pid = uid();
-      d.prepare("INSERT INTO periods (id,client_id,year,month,status) VALUES (?,?,?,?,'AWAITING')")
-        .run(pid, clientId, year, month);
-      period = { id: pid };
-    } else {
-      try { assertEditable(period.id); }
-      catch (e: any) {
-        return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
-      }
-    }
-    const pid = period.id;
-
-    // Replace only what QuickBooks owns. Payroll stays exactly as uploaded.
-    const write = d.transaction(() => {
-      d.prepare("DELETE FROM pl_lines WHERE period_id=?").run(pid);
-      d.prepare("DELETE FROM ar_buckets WHERE period_id=?").run(pid);
-      for (const l of result.plLines) {
-        const eid = byName.get(l.entityName.toLowerCase());
-        if (!eid) continue;
-        d.prepare("INSERT INTO pl_lines (id,period_id,entity_id,category,label,amount) VALUES (?,?,?,?,?,?)")
-          .run(uid(), pid, eid, l.category, l.label, l.amount);
-      }
-      for (const b of result.arBuckets) {
-        d.prepare("INSERT INTO ar_buckets (id,period_id,payer,b0_30,b31_60,b61_90,b90p) VALUES (?,?,?,?,?,?,?)")
-          .run(uid(), pid, b.payer, b.b0_30, b.b31_60, b.b61_90, b.b90p);
-      }
-    });
-    write();
-
-    const gate = runGate(pid);
-    if (!gate.pass) d.prepare("UPDATE periods SET status='GATED' WHERE id=?").run(pid);
     audit(s.userId, "QBO_SYNC", `${clientId} ${year}-${month} lines=${result.plLines.length}`);
+    const syncRunId = recordCompletedQboSync({
+      clientId,
+      triggeredBy: s.userId,
+      plLines: result.plLines.length,
+      arRows: result.arBuckets.length,
+      periodId: applied.periodId,
+      year: Number(year),
+      month: Number(month),
+      warnings: result.warnings,
+    });
 
     return NextResponse.json({
-      ok: true, periodId: pid,
+      ok: true, periodId: applied.periodId,
       pulled: { plLines: result.plLines.length, arRows: result.arBuckets.length },
-      warnings: result.warnings, gate,
+      warnings: result.warnings, gate: applied.gate,
+      syncRunId,
     });
   } catch (e: any) {
     if (e instanceof AuthError) return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
@@ -79,6 +54,7 @@ export async function GET(req: Request) {
     await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
     const clientId = new URL(req.url).searchParams.get("clientId") || "";
     const c = getConnection(clientId);
+    if (clientId) syncQboHubProjection(clientId);
     return NextResponse.json({
       connected: Boolean(c),
       realmId: c?.realm_id ?? null,
@@ -97,7 +73,9 @@ export async function DELETE(req: Request) {
     const s = await requireRole("ADMIN", "ADVISOR");
     const { clientId } = await jsonObject(req);
     disconnect(clientId);
+    syncQboHubProjection(clientId);
     audit(s.userId, "QBO_DISCONNECT", clientId);
+    audit(s.userId, "INTEGRATION_DISCONNECTED", `quickbooks ${clientId}`);
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     if (e instanceof AuthError) return NextResponse.json({ ok: false, error: e.message }, { status: e.status });

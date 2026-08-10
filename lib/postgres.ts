@@ -186,6 +186,11 @@ export const TRANSFER_ORDER = [
   "reconciliations",
   "reconciliation_runs",
   "accounting_exceptions",
+  "integration_connections",
+  "integration_credentials",
+  "integration_sync_runs",
+  "integration_raw_records",
+  "integration_canonical_records",
   "audit_logs",
 ] as const;
 

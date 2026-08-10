@@ -677,6 +677,94 @@ assert "bookkeeper can view reconciliation" test "$CODE" = "200"
 assert "readiness signals present" grep -q 'allRequiredComplete' "$COOKIE_DIR/recon-pack.json"
 
 echo
+echo "15. Integration Hub (staff only; QBO preserved; no release mutation)"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/integrations")
+assert "client blocked from /integrations" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" \
+  "$BASE/api/integrations?clientId=$CLIENT_ID")
+assert "client blocked from integrations API" test "$CODE" = "403" -o "$CODE" = "401"
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" \
+  "$BASE/integrations?client=$CLIENT_ID")
+assert "admin reaches /integrations" test "$CODE" = "200"
+
+HUB=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/api/integrations?clientId=$CLIENT_ID")
+echo "$HUB" > "$COOKIE_DIR/hub.json"
+assert "hub list ok" grep -q '"ok":true' "$COOKIE_DIR/hub.json"
+assert "hub lists quickbooks provider" grep -q 'quickbooks' "$COOKIE_DIR/hub.json"
+assert "hub lists file provider" grep -q '"file"' "$COOKIE_DIR/hub.json"
+assert "hub lists mock provider" grep -q '"mock"' "$COOKIE_DIR/hub.json"
+assert "hub JSON has no access_token" ! grep -qi 'access_token' "$COOKIE_DIR/hub.json"
+assert "hub JSON has no refresh_token" ! grep -qi 'refresh_token' "$COOKIE_DIR/hub.json"
+assert "hub JSON has no client_secret" ! grep -qi 'client_secret' "$COOKIE_DIR/hub.json"
+
+MOCK_ID=$(python3 -c "
+import json
+d=json.load(open('$COOKIE_DIR/hub.json'))
+print(next(c['id'] for c in d['connections'] if c['provider']=='mock'))
+")
+FILE_ID=$(python3 -c "
+import json
+d=json.load(open('$COOKIE_DIR/hub.json'))
+print(next(c['id'] for c in d['connections'] if c['provider']=='file'))
+")
+
+REL_FP_BEFORE=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID'));
+")
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/integrations/$MOCK_ID" \
+  -H 'content-type: application/json' -d '{"action":"sync"}')
+echo "$RESP" > "$COOKIE_DIR/hub-mock-sync.json"
+assert "mock sync ok" grep -q '"ok":true' "$COOKIE_DIR/hub-mock-sync.json"
+assert "mock sync SUCCESS" grep -q 'SUCCESS' "$COOKIE_DIR/hub-mock-sync.json"
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/integrations/$MOCK_ID" \
+  -H 'content-type: application/json' -d '{"action":"sync"}')
+echo "$RESP" > "$COOKIE_DIR/hub-mock-sync2.json"
+assert "mock second sync ok (idempotent)" grep -q '"ok":true' "$COOKIE_DIR/hub-mock-sync2.json"
+SKIP=$(python3 -c "import json; d=json.load(open('$COOKIE_DIR/hub-mock-sync2.json')); print(d['outcome']['run']['recordsSkipped'])")
+assert "mock second sync skips duplicates" test "$SKIP" -gt 0
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/integrations/$FILE_ID" \
+  -H 'content-type: application/json' \
+  -d "{\"action\":\"sync\",\"importPayload\":{\"filename\":\"proof.csv\",\"sha256\":\"proof-hash-$CLIENT_ID\",\"docType\":\"PNL\",\"rowCount\":3}}")
+echo "$RESP" > "$COOKIE_DIR/hub-file-sync.json"
+assert "file provider sync ok" grep -q '"ok":true' "$COOKIE_DIR/hub-file-sync.json"
+
+DETAIL=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/api/integrations/$MOCK_ID")
+echo "$DETAIL" > "$COOKIE_DIR/hub-detail.json"
+assert "connection detail has sync history" python3 -c "
+import json
+d=json.load(open('$COOKIE_DIR/hub-detail.json'))
+assert d['ok'] and len(d['runs'])>=1
+assert 'access_token' not in json.dumps(d).lower()
+"
+
+REL_FP_AFTER=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID'));
+")
+assert "hub sync does not mutate releases or ledger pl_lines" test "$REL_FP_BEFORE" = "$REL_FP_AFTER"
+
+# Auth failure path on mock
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/integrations/$MOCK_ID" \
+  -H 'content-type: application/json' \
+  -d '{"action":"sync","importPayload":{"filename":"x","sha256":"x","docType":"FORCE_AUTH_FAIL","force":"auth"}}')
+echo "$RESP" > "$COOKIE_DIR/hub-auth-fail.json"
+STATUS=$(python3 -c "import json; print(json.load(open('$COOKIE_DIR/hub-auth-fail.json'))['connection']['status'])")
+assert "auth failure → RECONNECT_REQUIRED" test "$STATUS" = "RECONNECT_REQUIRED"
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/books.jar" \
+  "$BASE/api/integrations?clientId=$CLIENT_ID")
+assert "bookkeeper can view integrations" test "$CODE" = "200"
+
+echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1

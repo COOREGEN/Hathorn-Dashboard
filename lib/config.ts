@@ -176,6 +176,16 @@ export const config = {
       String(process.env.RECONCILIATION_ENABLED ?? "1").toLowerCase(),
     ),
   },
+
+  /**
+   * Integration Hub — provider registry, sync history, readiness.
+   * QuickBooks OAuth/tokens remain in qbo_connections regardless of this flag.
+   */
+  integrationHub: {
+    enabled: !["0", "false", "no", "off", ""].includes(
+      String(process.env.INTEGRATION_HUB_ENABLED ?? "1").toLowerCase(),
+    ),
+  },
 };
 
 /** Human-readable startup report — surfaced on the admin page so nothing is a mystery. */
@@ -209,5 +219,9 @@ export function integrationStatus() {
         : "Native source-backed technical research (leases pilot). RAGFlow deferred. No unauthorized ASC corpus." },
     { name: "Reconciliations", enabled: config.reconciliation.enabled,
       hint: "Deterministic payroll / AR / debt tie-outs with exceptions. Readiness signals only — publish gate unchanged." },
+    { name: "Integration Hub", enabled: config.integrationHub.enabled,
+      hint: config.qbo.enabled
+        ? "Hub wraps QuickBooks + CSV/Excel + mock. QBO tokens stay encrypted in qbo_connections."
+        : "Hub on (file + mock). Set QBO_CLIENT_ID/SECRET to enable QuickBooks OAuth." },
   ];
 }

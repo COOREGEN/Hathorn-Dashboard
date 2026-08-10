@@ -142,4 +142,5 @@ export const LIMITS = {
   researchAnalyze: { max: 20, windowMinutes: 60 },
   reconRun: { max: 60, windowMinutes: 60 },
   reconAnalyze: { max: 20, windowMinutes: 60 },
+  integrationSync: { max: 40, windowMinutes: 60 },
 };

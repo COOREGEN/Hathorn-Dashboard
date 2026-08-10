@@ -24,6 +24,7 @@ const money = (n: number) => {
 
 export default function PlanningWorkspace({
   clients, initialClientId, baseline, history, defaultAssumptions, recentRuns,
+  sourceFreshness,
 }: {
   clients: { id: string; name: string }[];
   initialClientId: string;
@@ -31,6 +32,12 @@ export default function PlanningWorkspace({
   history: ActualPoint[];
   defaultAssumptions: Assumptions;
   recentRuns: ModelRunRecord[];
+  /** Integration Hub readiness — warn on stale actuals; never blocks modeling. */
+  sourceFreshness?: {
+    pnlReadiness: string;
+    qboLastSyncAt: string | null;
+    qboHealth: string;
+  };
 }) {
   const [clientId, setClientId] = useState(initialClientId);
   const [scenario, setScenario] = useState<ScenarioKey>("BASE");
@@ -146,6 +153,17 @@ export default function PlanningWorkspace({
           {/* Baseline actuals */}
           <section style={{ marginBottom: 36 }}>
             <div className="eyebrow" style={{ marginBottom: 10 }}>Historical baseline · ACTUAL</div>
+            {sourceFreshness && (
+              <p className="caption" style={{ marginBottom: 10 }}>
+                Source readiness — P&amp;L: {sourceFreshness.pnlReadiness.replace(/_/g, " ")}
+                {sourceFreshness.qboLastSyncAt
+                  ? ` · QBO last synced ${sourceFreshness.qboLastSyncAt}`
+                  : " · QBO not synced"}
+                {(sourceFreshness.pnlReadiness === "STALE" || sourceFreshness.qboHealth === "STALE") && (
+                  <span> — source data may be stale; forecasts still run.</span>
+                )}
+              </p>
+            )}
             <p className="caption" style={{ marginBottom: 16 }}>
               Actuals through {baseline.label}
               {run?.sourceReleaseId ? " · tied to an active release snapshot" : " · working papers (no active release)"}

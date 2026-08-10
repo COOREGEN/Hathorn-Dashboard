@@ -7,6 +7,7 @@ import {
   loadBaseline, defaultAssumptionsFromBaseline, listModelRuns,
 } from "@/lib/fpa/model";
 import { DEFAULT_ASSUMPTIONS } from "@/lib/fpa/types";
+import { capabilityReadiness, listConnections } from "@/lib/integrations/model";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ export default async function PlanningPage({
     ? defaultAssumptionsFromBaseline(base.baseline)
     : DEFAULT_ASSUMPTIONS;
   const recent = listModelRuns(clientId, 5);
+  const readiness = capabilityReadiness(clientId);
+  const qbo = listConnections(clientId).find((c) => c.provider === "quickbooks");
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
@@ -47,6 +50,11 @@ export default async function PlanningPage({
           history={base?.history ?? []}
           defaultAssumptions={defaults}
           recentRuns={recent}
+          sourceFreshness={{
+            pnlReadiness: readiness.PROFIT_AND_LOSS || "NOT_AVAILABLE",
+            qboLastSyncAt: qbo?.lastSuccessfulSyncAt || null,
+            qboHealth: qbo?.health || "DISCONNECTED",
+          }}
         />
       </main>
     </div>

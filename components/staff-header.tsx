@@ -33,6 +33,7 @@ export default function StaffHeader({
     { href: "/tax", label: "Tax" },
     { href: "/guidance", label: "Guidance" },
     { href: "/reconciliations", label: "Reconciliations" },
+    { href: "/integrations", label: "Integrations" },
     { href: "/upload", label: "Upload" },
     ...(links || []),
   ];

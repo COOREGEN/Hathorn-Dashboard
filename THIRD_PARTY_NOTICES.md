@@ -77,6 +77,28 @@ hook `RAGFLOW_ENABLED` defaults to `0`. Do not claim RAGFlow is integrated.
 
 Upstream: https://github.com/infiniflow/ragflow
 
+## dlt (data load tool) — Apache-2.0
+
+**Not incorporated into this repository and not a runtime dependency.**
+
+Evaluated for Integration Hub ETL (incremental load / staging). Status: **DEFERRED**.
+Hathorn ships native TypeScript provider adapters (`lib/integrations/`) for QuickBooks,
+file import, and a mock provider. Revisit dlt when multi-provider Postgres staging is
+the operational bottleneck.
+
+Upstream: https://github.com/dlt-hub/dlt
+
+## Nango — evaluated as external service (not vendored)
+
+**Not incorporated into this repository and not a runtime dependency.**
+
+Evaluated only as optional managed OAuth / integration infrastructure. Status:
+**EVALUATED ONLY / DEFERRED**. Hathorn keeps first-party OAuth and encrypted token
+storage for QuickBooks (`lib/qbo.ts`, `qbo_connections`). Do not treat Nango as a
+code donor; review current product terms before any future service integration.
+
+Upstream: https://nango.dev / https://github.com/NangoHQ/nango
+
 ## FASB Accounting Standards Codification
 
 **No unauthorized ASC corpus was ingested.** Hathorn does not scrape, bulk-copy, or
