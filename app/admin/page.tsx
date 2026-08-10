@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { db, monthShort } from "@/lib/db";
 import LogoutButton from "@/components/logout-button";
 import NewClientButton from "@/components/new-client-button";
+import BrandMark from "@/components/brand-mark";
 import { integrationStatus } from "@/lib/config";
 import { backupStatus } from "@/lib/backup";
 import BackupPanel from "@/components/backup-panel";
@@ -51,10 +52,7 @@ export default async function Admin() {
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <header className="masthead">
         <div className="masthead-inner" style={{ maxWidth: 980 }}>
-          <div>
-            <div className="wordmark">HATHORN</div>
-            <div className="wordmark-sub">Ledger · Client reporting</div>
-          </div>
+          <BrandMark href="/" tone="paper" sub="Ledger · Client reporting" />
           <div className="ml-auto flex items-center gap-4">
             <Link href="/account/security" className="prepared-by" style={{ textDecoration: "none" }}>
               Security

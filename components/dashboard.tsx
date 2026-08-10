@@ -10,6 +10,7 @@
  * the explanation is the product. Anyone can draw the chart.
  */
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import type { PeriodMetrics } from "@/lib/metrics";
 import { LineChart, GroupedBars, StackedH, BulletBar } from "./charts";
 import CommentThread from "./comment-thread";
@@ -238,7 +239,8 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
       {/* ── Masthead: client's mark, Hathorn's craft ─────────────────────── */}
       <header className="masthead">
         <div className="masthead-inner">
-          <div className="flex items-center gap-4">
+          <Link href={userRole === "CLIENT" ? "/portal" : "/"} aria-label="Home"
+            className="flex items-center gap-4" style={{ textDecoration: "none", color: "inherit" }}>
             {client.logoUrl ? (
               <img src={client.logoUrl} alt="" width={150} height={38}
                 style={{ height: 38, maxWidth: 150, objectFit: "contain" }} />
@@ -253,7 +255,7 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
               <div className="wordmark" style={{ color: markColor }}>{client.logoText}</div>
               {client.logoSub && <div className="wordmark-sub">{client.logoSub}</div>}
             </div>
-          </div>
+          </Link>
 
           <div className="ml-auto flex items-center gap-3 flex-wrap">
             <div className="prepared-by hidden xl:block">

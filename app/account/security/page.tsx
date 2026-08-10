@@ -120,7 +120,7 @@ function SecurityInner() {
 
         {!enroll && (
           <div style={{ marginTop: 32 }}>
-            <Link href="/today" className="caption" style={{ color: "var(--gold-deep)" }}>← Back to the book</Link>
+            <Link href="/" className="caption" style={{ color: "var(--gold-deep)" }}>← Home</Link>
           </div>
         )}
       </main>

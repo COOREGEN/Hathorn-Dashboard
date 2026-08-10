@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import UploadForm from "@/components/upload-form";
 import LogoutButton from "@/components/logout-button";
+import BrandMark from "@/components/brand-mark";
 
 export const dynamic = "force-dynamic";
 
@@ -17,10 +18,7 @@ export default async function Upload() {
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <header className="masthead">
         <div className="masthead-inner" style={{ maxWidth: 760 }}>
-          <div>
-            <div className="wordmark">HATHORN</div>
-            <div className="wordmark-sub">Ledger · Monthly close</div>
-          </div>
+          <BrandMark href="/" tone="paper" sub="Ledger · Monthly close" />
           <div className="ml-auto flex items-center gap-4">
             <span className="prepared-by">{s.name}</span>
             <LogoutButton />

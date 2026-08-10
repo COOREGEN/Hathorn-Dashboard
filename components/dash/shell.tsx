@@ -104,13 +104,14 @@ export default function Shell(p: ShellProps) {
     <div className="app">
       <aside className={`rail${railOpen ? " open" : ""}`}>
         <div className="rail-brand">
-          <div className="rail-mark">
+          <Link href="/" className="rail-mark" aria-label="Hathorn Ledger home"
+            style={{ textDecoration: "none", color: "inherit" }}>
             <div className="rail-badge">H</div>
             <div>
               <div className="rail-name">HATHORN</div>
               <div className="rail-sub">Ledger</div>
             </div>
-          </div>
+          </Link>
         </div>
 
         {NAV.map((g) => (

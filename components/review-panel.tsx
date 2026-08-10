@@ -5,6 +5,7 @@
  */
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type Note = { id: string; slot: string; tone: string; heading: string; body: string };
 type Gate = { pass: boolean; checks: { name: string; pass: boolean; detail: string }[] };
@@ -158,7 +159,10 @@ export default function ReviewPanel({
       <div style={{ maxWidth: 1080, margin: "0 auto", padding: "14px 28px" }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="wordmark-sub">Call prep · {clientName}</div>
+            <Link href="/" style={{ textDecoration: "none" }}>
+              <div className="wordmark" style={{ color: "var(--paper)", fontSize: 18 }}>HATHORN</div>
+            </Link>
+            <div className="wordmark-sub" style={{ marginTop: 4 }}>Call prep · {clientName}</div>
             <div style={{ fontFamily: "var(--display)", fontSize: 19, color: "var(--paper)", marginTop: 2 }}>
               {status === "PUBLISHED"
                 ? "Published — live in the client portal"

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { loadPortfolio, type PortfolioRow } from "@/lib/portfolio";
 import LogoutButton from "@/components/logout-button";
+import BrandMark from "@/components/brand-mark";
 
 /**
  * The book.
@@ -88,12 +89,9 @@ export default async function Portfolio({ searchParams }: {
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <header className="masthead">
         <div className="masthead-inner" style={{ maxWidth: 1440 }}>
-          <div>
-            <div className="wordmark">HATHORN</div>
-            <div className="wordmark-sub">Ledger · The Book</div>
-          </div>
+          <BrandMark href="/" tone="paper" sub="Ledger · The Book" />
           <div className="ml-auto flex items-center gap-4">
-            <Link href="/today" className="prepared-by">← Today</Link>
+            <Link href="/" className="prepared-by">← Today</Link>
             <Link href="/dash" className="prepared-by">Client dashboard →</Link>
             <span className="prepared-by">{s.name}</span>
             <LogoutButton />

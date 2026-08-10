@@ -1,29 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 import { loadPortfolio } from "@/lib/portfolio";
 import { readiness } from "@/lib/engagement";
+import BrandMark from "@/components/brand-mark";
 import LogoutButton from "@/components/logout-button";
 
 /**
- * The arrival.
+ * The arrival — a briefing, not a register.
  *
- * The front door used to be a filtered register — four rows of chips above a table,
- * answering "who needs attention" without ever answering "what do I do right now". A
- * partner opening this on a Tuesday morning wants one clear next action, then the option
- * to look wider.
- *
- * So this page is a briefing, not a dashboard. One line of state, then the two or three
- * things that actually need doing, each with the button that does it. Everything else is
- * a link away.
+ * One next action. A short queue beneath it. Quiet destinations at the bottom.
+ * Logo always returns here.
  */
 export const dynamic = "force-dynamic";
-
-const money = (n: number) => {
-  const v = Math.abs(n);
-  return v >= 1000 ? `$${(v / 1000).toFixed(1)}M` : `$${v.toFixed(0)}K`;
-};
 
 function greeting() {
   const h = new Date().getHours();
@@ -45,25 +34,17 @@ export default async function Today() {
   const p = loadPortfolio();
   const firstName = s.name.split(" ")[0];
 
-  /**
-   * The work, in the order it should be done.
-   *
-   * Deliberately capped and deliberately opinionated — a list of everything is the same
-   * problem as no list. What matters is the next two or three things, each with the
-   * action attached so nobody has to work out where to go.
-   */
   const tasks: Task[] = [];
 
   for (const r of p.rows) {
     const eng = readiness(r.clientId);
 
-    // A close that has not happened outranks everything: advice cannot run ahead of books.
     if (r.monthsBehind >= 1) {
       tasks.push({
         urgency: r.monthsBehind >= 2 ? "now" : "soon",
         client: r.name, clientId: r.clientId,
         headline: `${r.monthsBehind} month${r.monthsBehind > 1 ? "s" : ""} behind on the close`,
-        detail: `Latest figures are ${r.periodLabel}. Nothing downstream moves until this does.`,
+        detail: `Latest figures are ${r.periodLabel}.`,
         action: "Upload the close", href: `/upload?client=${r.clientId}`,
       });
     }
@@ -71,7 +52,7 @@ export default async function Today() {
       tasks.push({
         urgency: "now", client: r.name, clientId: r.clientId,
         headline: "The close does not tie",
-        detail: "The gate is blocking publication. The numbers are not trustworthy yet.",
+        detail: "The gate is blocking publication.",
         action: "Review the breaks", href: `/review/${r.periodId}`,
       });
     }
@@ -79,11 +60,10 @@ export default async function Today() {
       tasks.push({
         urgency: "soon", client: r.name, clientId: r.clientId,
         headline: `${r.periodLabel} is ready to publish`,
-        detail: "It ties. It needs the commentary written and your approval.",
+        detail: "It ties. Write the commentary and approve.",
         action: "Write and approve", href: `/review/${r.periodId}`,
       });
     }
-    // The engagement's own next step, when the client is not yet in advisory.
     if (eng.stage !== "ADVISORY" && eng.nextAction) {
       const firstOpen = eng.checks.find((c) => !c.done);
       if (firstOpen?.href) {
@@ -98,17 +78,19 @@ export default async function Today() {
     if (r.oldestCommitmentMonths >= 3) {
       tasks.push({
         urgency: "soon", client: r.name, clientId: r.clientId,
-        headline: `A commitment has been open ${r.oldestCommitmentMonths} months`,
-        detail: "Follow-through is the advisory product. This one has stalled.",
-        action: "Open the dashboard", href: `/dash/alerts?client=${r.clientId}`,
+        headline: `Commitment open ${r.oldestCommitmentMonths} months`,
+        detail: "Follow-through has stalled.",
+        action: "Open alerts", href: `/dash/alerts?client=${r.clientId}`,
       });
     }
   }
 
   const rank = { now: 0, soon: 1, later: 2 };
   tasks.sort((a, b) => rank[a.urgency] - rank[b.urgency]);
-  const top = tasks.slice(0, 5);
-  const rest = tasks.length - top.length;
+  const primary = tasks[0] ?? null;
+  const queue = tasks.slice(1, 4);
+  const more = Math.max(0, tasks.length - 1 - queue.length);
+  const urgentCount = tasks.filter((t) => t.urgency === "now").length;
 
   const URG = {
     now: { col: "#9E401D", label: "Now" },
@@ -118,16 +100,10 @@ export default async function Today() {
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
-      {/* The brand moment. Ink, gold hairline, nothing else competing. */}
       <header style={{ background: "var(--ink)", padding: "0 0 1px" }}>
-        <div style={{ maxWidth: 1080, margin: "0 auto", padding: "26px 32px 30px",
+        <div style={{ maxWidth: 880, margin: "0 auto", padding: "26px 32px 28px",
           display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontFamily: "var(--display)", fontSize: 27, letterSpacing: ".18em",
-              color: "var(--paper)", lineHeight: 1 }}>HATHORN</div>
-            <div style={{ fontFamily: "var(--utility)", fontSize: 8.5, fontWeight: 500,
-              letterSpacing: ".3em", color: "var(--gold)", marginTop: 7 }}>ADVISORY GROUP</div>
-          </div>
+          <BrandMark href="/" tone="ink" size="lg" />
           <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 18 }}>
             <span className="prepared-by">{s.name}</span>
             <LogoutButton />
@@ -136,66 +112,90 @@ export default async function Today() {
         <div style={{ height: 1, background: "linear-gradient(90deg, transparent, var(--gold), transparent)" }} />
       </header>
 
-      <main style={{ maxWidth: 1080, margin: "0 auto", padding: "52px 32px 80px" }}>
-        {/* One sentence of state. Not six statistics. */}
-        <h1 style={{ fontFamily: "var(--display)", fontSize: 38, fontWeight: 300,
-          letterSpacing: "-.015em", margin: 0, lineHeight: 1.1 }}>
+      <main style={{ maxWidth: 880, margin: "0 auto", padding: "56px 32px 88px" }}>
+        <p className="eyebrow" style={{ marginBottom: 14 }}>Today</p>
+        <h1 style={{ fontFamily: "var(--display)", fontSize: 40, fontWeight: 300,
+          letterSpacing: "-.015em", margin: 0, lineHeight: 1.08 }}>
           {greeting()}, {firstName}.
         </h1>
-        <p style={{ fontFamily: "var(--editorial)", fontSize: 17, color: "var(--ink-soft)",
-          marginTop: 12, maxWidth: 560, lineHeight: 1.55 }}>
+        <p style={{ fontFamily: "var(--editorial)", fontSize: 18, color: "var(--ink-soft)",
+          marginTop: 14, maxWidth: 480, lineHeight: 1.55 }}>
           {tasks.length === 0
-            ? `All ${p.cohort.count} clients are current and nothing is outstanding. A rare morning.`
-            : tasks.filter((t) => t.urgency === "now").length > 0
-              ? `${tasks.filter((t) => t.urgency === "now").length} thing${tasks.filter((t) => t.urgency === "now").length > 1 ? "s need" : " needs"} you today, across ${p.cohort.count} clients.`
-              : `Nothing urgent. ${tasks.length} item${tasks.length > 1 ? "s" : ""} to work through when you can.`}
+            ? `All ${p.cohort.count} clients are current. Nothing outstanding.`
+            : urgentCount > 0
+              ? `${urgentCount} need${urgentCount === 1 ? "s" : ""} you today.`
+              : `${tasks.length} item${tasks.length === 1 ? "" : "s"} when you have a moment.`}
         </p>
 
-        {/* The work. Each row carries the button that does it. */}
-        <div style={{ marginTop: 40 }}>
-          {top.length === 0 ? (
-            <div className="today-empty">
-              <div style={{ fontFamily: "var(--display)", fontSize: 22 }}>Nothing outstanding</div>
-              <p className="caption" style={{ marginTop: 8, maxWidth: 400 }}>
-                Every close is current, everything ties, and no commitment has stalled.
+        {/* Single next move — not a register. */}
+        <section style={{ marginTop: 48 }}>
+          {!primary ? (
+            <div style={{ padding: "36px 0", borderTop: "1px solid var(--hairline)" }}>
+              <div style={{ fontFamily: "var(--display)", fontSize: 24, fontWeight: 300 }}>
+                Nothing waiting
+              </div>
+              <p className="caption" style={{ marginTop: 8, maxWidth: 380 }}>
+                Every close is current and no commitment has stalled.
               </p>
             </div>
-          ) : top.map((t, i) => (
-            <div key={i} className="today-row">
-              <div style={{ width: 3, background: URG[t.urgency].col, alignSelf: "stretch" }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="today-when" style={{ color: URG[t.urgency].col }}>{URG[t.urgency].label}</div>
-                <div className="today-head">{t.headline}</div>
-                <div className="today-client">{t.client}</div>
-                <p className="today-detail">{t.detail}</p>
+          ) : (
+            <div style={{ borderTop: "1px solid var(--ink)", paddingTop: 28 }}>
+              <div className="eyebrow" style={{ color: URG[primary.urgency].col, marginBottom: 10 }}>
+                Next · {URG[primary.urgency].label}
               </div>
-              <Link href={t.href} className="btn today-btn">{t.action}</Link>
+              <div style={{ fontFamily: "var(--display)", fontSize: 28, fontWeight: 300,
+                lineHeight: 1.2, maxWidth: 560 }}>
+                {primary.headline}
+              </div>
+              <div style={{ fontFamily: "var(--utility)", fontSize: 11, letterSpacing: ".08em",
+                textTransform: "uppercase", color: "var(--ink-mute)", marginTop: 10 }}>
+                {primary.client}
+              </div>
+              <p style={{ fontFamily: "var(--editorial)", fontSize: 16, color: "var(--ink-soft)",
+                marginTop: 12, maxWidth: 480, lineHeight: 1.5 }}>
+                {primary.detail}
+              </p>
+              <Link href={primary.href} className="btn" style={{ marginTop: 22, display: "inline-block" }}>
+                {primary.action}
+              </Link>
             </div>
-          ))}
-          {rest > 0 && (
-            <Link href="/portfolio" className="linkish" style={{ display: "inline-block", marginTop: 16 }}>
-              {rest} more across the book →
-            </Link>
           )}
-        </div>
+        </section>
 
-        {/* Everywhere else. Named plainly, not hidden behind icons. */}
-        <div style={{ marginTop: 56, paddingTop: 26, borderTop: "1px solid var(--hairline)" }}>
-          <div className="eyebrow" style={{ marginBottom: 16 }}>Go to</div>
-          <div className="today-links">
-            {[
-              ["The book", "/portfolio", `All ${p.cohort.count} clients ranked by urgency`],
-              ["Clients", "/clients", "Add, remove, and set up a client"],
-              ["Upload a close", "/upload", "Bring in this month's documents"],
-              ["Client dashboard", "/dash", "Walk a single client's month"],
-            ].map(([label, href, sub]) => (
-              <Link key={href} href={href} className="today-link">
-                <div className="today-link-t">{label}</div>
-                <div className="caption">{sub}</div>
+        {queue.length > 0 && (
+          <section style={{ marginTop: 44 }}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>Also</div>
+            {queue.map((t, i) => (
+              <Link key={i} href={t.href} className="home-queue-row">
+                <span className="home-queue-when" style={{ color: URG[t.urgency].col }}>
+                  {URG[t.urgency].label}
+                </span>
+                <span className="home-queue-head">{t.headline}</span>
+                <span className="home-queue-client">{t.client}</span>
+                <span className="home-queue-go">→</span>
               </Link>
             ))}
-          </div>
-        </div>
+            {more > 0 && (
+              <Link href="/portfolio" className="linkish" style={{ display: "inline-block", marginTop: 14 }}>
+                {more} more in the book →
+              </Link>
+            )}
+          </section>
+        )}
+
+        {/* Destinations as a quiet line — not a card grid. */}
+        <nav aria-label="Practice" style={{
+          marginTop: 64, paddingTop: 22, borderTop: "1px solid var(--hairline)",
+          display: "flex", flexWrap: "wrap", gap: "10px 28px",
+          fontFamily: "var(--utility)", fontSize: 11, fontWeight: 600,
+          letterSpacing: ".12em", textTransform: "uppercase",
+        }}>
+          <Link href="/portfolio" style={{ color: "var(--ink)", textDecoration: "none" }}>The book</Link>
+          <Link href="/clients" style={{ color: "var(--ink)", textDecoration: "none" }}>Clients</Link>
+          <Link href="/upload" style={{ color: "var(--ink)", textDecoration: "none" }}>Upload</Link>
+          <Link href="/dash" style={{ color: "var(--ink)", textDecoration: "none" }}>Dashboard</Link>
+          <Link href="/account/security" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>Security</Link>
+        </nav>
       </main>
     </div>
   );

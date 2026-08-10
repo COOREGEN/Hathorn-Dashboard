@@ -6,6 +6,7 @@ import { readiness, findings, cleanupState, goals, painPoints, sessions, STAGES 
 import { clientConfig } from "@/lib/kpi-registry";
 import { definition } from "@/lib/kpi-registry";
 import LogoutButton from "@/components/logout-button";
+import BrandMark from "@/components/brand-mark";
 import {
   StageControl, FindingForm, ResolveFinding, ScopeForm, ScopeStatus,
   CleanupForm, ResolveCleanup, GoalForm, PainForm, SessionPlanner, SessionRecorder,
@@ -68,12 +69,9 @@ export default async function Engagement({ searchParams }: {
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <header className="masthead">
         <div className="masthead-inner" style={{ maxWidth: 1180 }}>
-          <div>
-            <div className="wordmark">HATHORN</div>
-            <div className="wordmark-sub">Ledger · Engagement</div>
-          </div>
+          <BrandMark href="/" tone="paper" sub="Ledger · Engagement" />
           <div className="ml-auto flex items-center gap-4">
-            <Link href="/today" className="prepared-by">← Today</Link>
+            <Link href="/" className="prepared-by">← Today</Link>
             <Link href="/clients" className="prepared-by">Clients</Link>
             <LogoutButton />
           </div>
