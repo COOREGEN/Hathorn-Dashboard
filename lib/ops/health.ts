@@ -9,7 +9,7 @@ import { db } from "../db";
 import { schemaVersion, MIGRATIONS } from "../migrations";
 import { config, DEFAULT_AUTH_SECRET } from "../config";
 import { backupStatus } from "../backup";
-import { resolveAppEnv, appVersionInfo, isProductionLike } from "./env";
+import { appVersionInfo, isProductionLike } from "./env";
 import { jobCounts } from "./jobs";
 
 export type DepStatus = "ok" | "degraded" | "down" | "disabled";
