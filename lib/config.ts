@@ -130,10 +130,11 @@ export const config = {
 
   /**
    * AI kill switch — when off, Copilot / story drafts degrade without taking down financials.
-   * Default: on when a key is present; explicit AI_PROVIDER_ENABLED=0 always wins.
+   * Default ON: without ANTHROPIC_API_KEY the product still answers from tools/signals.
+   * Explicit AI_PROVIDER_ENABLED=0 disables model calls and Copilot entry.
    */
   ai: {
-    enabled: truthy(process.env.AI_PROVIDER_ENABLED, Boolean(process.env.ANTHROPIC_API_KEY)),
+    enabled: truthy(process.env.AI_PROVIDER_ENABLED, true),
     copilotEnabled: truthy(process.env.COPILOT_ENABLED, true),
     maxContextChars: Number(process.env.AI_MAX_CONTEXT_CHARS || 120_000),
     maxToolCalls: Number(process.env.AI_MAX_TOOL_CALLS || 12),

@@ -1001,8 +1001,8 @@ RESP=$(curl -s "$BASE/api/health")
 echo "$RESP" > "$COOKIE_DIR/health.json"
 assert "health has dependencies or status" grep -Eq '"status"|"dependencies"' "$COOKIE_DIR/health.json"
 assert "health has appEnv or schema" grep -Eq '"appEnv"|"schema"' "$COOKIE_DIR/health.json"
-# Correlation id on health
-HDR=$(curl -sI "$BASE/api/health/live")
+# Correlation id on health (GET — HEAD is not implemented on the route)
+HDR=$(curl -sD - -o /dev/null "$BASE/api/health/live")
 echo "$HDR" > "$COOKIE_DIR/health-headers.txt"
 assert "health returns x-request-id" grep -qi 'x-request-id' "$COOKIE_DIR/health-headers.txt"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/api/ops/jobs")
