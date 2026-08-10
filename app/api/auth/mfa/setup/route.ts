@@ -7,10 +7,15 @@ import {
   disableMfa, isStaffRole, userMfaStatus,
 } from "@/lib/mfa";
 
-/** Who may enroll: signed-in staff, or a user mid forced-setup. */
+/** Who may enroll: signed-in staff, or a staff user mid forced-setup. Clients never enroll. */
 async function actor(): Promise<{ userId: string; email: string; name: string } | null> {
   const setup = await getMfaSetupUser();
-  if (setup) return setup;
+  if (setup) {
+    const u: any = (await import("@/lib/db")).db()
+      .prepare("SELECT role FROM users WHERE id=?").get(setup.userId);
+    if (!u || !isStaffRole(u.role)) return null;
+    return setup;
+  }
   const s = await getSession();
   if (s && isStaffRole(s.role)) return { userId: s.userId, email: s.email, name: s.name };
   return null;
