@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth"
+import { listClientsForFirm, resolveActiveFirmId } from "@/lib/tenancy";
 import { db } from "@/lib/db";
 import StaffHeader from "@/components/staff-header";
 import TaxWorkspace from "@/components/tax/tax-workspace";
@@ -20,7 +21,8 @@ export default async function TaxPage({
   if (!["ADMIN", "ADVISOR"].includes(s.role)) redirect("/");
 
   ensureSeedAuthorities();
-  const clients: any[] = db().prepare("SELECT id, name FROM clients ORDER BY name").all();
+  const firmId = resolveActiveFirmId(s);
+  const clients: any[] = firmId ? listClientsForFirm(firmId) : [];
   if (!clients.length) redirect("/clients");
 
   const clientId = searchParams.client && clients.some((c) => c.id === searchParams.client)

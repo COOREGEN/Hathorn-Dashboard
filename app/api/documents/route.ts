@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError } from "@/lib/validate";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import { listDocuments, uploadDocument } from "@/lib/documents/model";
@@ -11,12 +11,10 @@ const TYPE_SET: Set<string> = new Set(DOCUMENT_TYPES.map((t) => t.value));
 
 export async function GET(req: Request) {
   try {
-    await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
     const url = new URL(req.url);
     const clientId = url.searchParams.get("clientId") || "";
     if (!clientId) return NextResponse.json({ ok: false, error: "clientId required." }, { status: 400 });
-    const client = db().prepare("SELECT id FROM clients WHERE id=?").get(clientId);
-    if (!client) return NextResponse.json({ ok: false, error: "Client not found." }, { status: 404 });
+    await requireClientAccess(clientId);
     return NextResponse.json({
       ok: true,
       documents: listDocuments(clientId),
@@ -41,6 +39,7 @@ export async function POST(req: Request) {
     const file = fd.get("file");
 
     if (!clientId) throw new ValidationError("clientId is required.");
+    await requireClientAccess(clientId);
     if (!(file instanceof File)) throw new ValidationError("file is required.");
     if (!TYPE_SET.has(documentTypeRaw)) throw new ValidationError("Invalid document type.");
 

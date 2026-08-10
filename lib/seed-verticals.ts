@@ -11,14 +11,16 @@ import { runGate } from "./gate";
 
 export function seedVerticals(clientIdSeed?: string) {
   const d = db();
+  const firmId = (d.prepare("SELECT id FROM firms WHERE slug='hathorn-advisory'").get() as any)?.id
+    || (d.prepare("SELECT id FROM firms LIMIT 1").get() as any)?.id;
 
   /* ---------------- Short-term rental ---------------- */
   const rentalId = uid();
   d.prepare(`INSERT INTO clients
-    (id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,
+    (id,firm_id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,
      target_labor_lo,target_labor_hi,vertical,currency,accounting_basis)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(rentalId, "Lakeside Stays LLC", "lakeside-stays", "modern",
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(rentalId, firmId, "Lakeside Stays LLC", "lakeside-stays", "modern",
       "#2F5D7C", "#C9743A", "LAKESIDE", "Short-Term Rentals", 0, 0,
       "short_term_rental", "USD", "ACCRUAL");
 
@@ -81,10 +83,10 @@ export function seedVerticals(clientIdSeed?: string) {
   /* ---------------- Childcare ---------------- */
   const careId = uid();
   d.prepare(`INSERT INTO clients
-    (id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,
+    (id,firm_id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,
      target_labor_lo,target_labor_hi,vertical,currency,accounting_basis)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(careId, "Bright Path Early Learning", "bright-path", "editorial",
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(careId, firmId, "Bright Path Early Learning", "bright-path", "editorial",
       "#3D6B4A", "#D08A2C", "BRIGHT PATH", "Early Learning Center", 45, 55,
       "childcare", "USD", "ACCRUAL");
 

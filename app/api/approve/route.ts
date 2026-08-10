@@ -37,10 +37,13 @@ export async function POST(req: Request) {
     const period: any = db().prepare("SELECT * FROM periods WHERE id=?").get(periodId);
     const client: any = db().prepare("SELECT * FROM clients WHERE id=?").get(period?.client_id);
     if (client?.notify_email) {
+      const { brandingForClient } = await import("@/lib/tenancy");
+      const brand = brandingForClient(period.client_id);
       await sendPeriodPublished({
         clientName: client.name, clientEmail: client.notify_email,
         year: period.year, month: period.month,
         portalUrl: `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/portal`,
+        firmName: brand.firmName,
       });
     }
     return NextResponse.json({

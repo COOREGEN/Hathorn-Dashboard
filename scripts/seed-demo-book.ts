@@ -19,13 +19,16 @@ const NAMES = ["Ridgeline", "Fairmount", "Oakbrook", "Silverton", "Kestrel", "Br
   "Marlowe", "Cardinal", "Alderman", "Winsome", "Thornbury", "Greystone", "Halloway",
   "Pemberton", "Wexford", "Ashcombe", "Lindenwood", "Barrow", "Copperfield", "Hartfield"];
 
+const firmId = (db().prepare("SELECT id FROM firms WHERE slug='hathorn-advisory'").get() as any)?.id
+  || (db().prepare("SELECT id FROM firms LIMIT 1").get() as any)?.id;
+
 NAMES.forEach((n, i) => {
   const cid = uid();
   const vert = VERTICALS[i % VERTICALS.length];
   db().prepare(`INSERT INTO clients
-    (id,name,slug,logo_text,vertical,target_labor_lo,target_labor_hi,currency,accounting_basis)
-    VALUES (?,?,?,?,?,?,?,'USD','ACCRUAL')`)
-    .run(cid, `${n} Group`, `demo-${i}`, n.toUpperCase(), vert, 60, 75);
+    (id,firm_id,name,slug,logo_text,vertical,target_labor_lo,target_labor_hi,currency,accounting_basis)
+    VALUES (?,?,?,?,?,?,?,?,'USD','ACCRUAL')`)
+    .run(cid, firmId, `${n} Group`, `demo-${i}`, n.toUpperCase(), vert, 60, 75);
 
   const eid = uid();
   db().prepare("INSERT INTO entities (id,client_id,name,status) VALUES (?,?,?,?)")

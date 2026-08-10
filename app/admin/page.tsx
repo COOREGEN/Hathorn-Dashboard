@@ -25,15 +25,21 @@ export default async function Admin() {
         maxWidth={880}
         userName={s.name}
         role={s.role}
-        links={[{ href: "/account/security", label: "Security" }]}
+        links={[
+          { href: "/firm", label: "Firm settings" },
+          { href: "/account/security", label: "Security" },
+          ...(s.isPlatformAdmin ? [{ href: "/platform", label: "Platform" }] : []),
+        ]}
       />
 
       <main className="sheet" style={{ maxWidth: 880, paddingTop: 48 }}>
-        <h1 className="display-l">Firm</h1>
+        <h1 className="display-l">Ops</h1>
         <p className="section-q" style={{ marginBottom: 12 }}>
-          Storage, integrations, and account security. Clients live under Clients and Attention.
+          Storage, integrations, and account security. Firm profile and branding live under Firm.
         </p>
         <p className="caption" style={{ marginBottom: 40 }}>
+          <Link href="/firm" style={{ color: "var(--gold-deep)" }}>Firm settings →</Link>
+          {" · "}
           <Link href="/clients" style={{ color: "var(--gold-deep)" }}>Open clients →</Link>
           {" · "}
           <Link href="/portfolio" style={{ color: "var(--gold-deep)" }}>Who needs attention →</Link>

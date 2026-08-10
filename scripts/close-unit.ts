@@ -28,6 +28,16 @@ async function check(name: string, fn: () => void | Promise<void>) {
   }
 }
 
+
+function ensureTestFirm() {
+  const existing: any = db().prepare("SELECT id FROM firms WHERE slug='test-firm'").get();
+  if (existing) return existing.id as string;
+  const id = uid();
+  db().prepare(`INSERT INTO firms (id, name, slug, status, brand_primary, brand_accent, logo_text, report_footer)
+    VALUES (?,?,?,'ACTIVE',?,?,?,?)`).run(id, "Test Firm", "test-firm", "#2C504D", "#DB5928", "TEST", "Prepared by Test Firm");
+  return id;
+}
+
 function withTempDb(fn: () => Promise<void>) {
   const prev = process.env.DATA_DIR;
   const tmp = path.join(process.cwd(), "data", `_close_unit_${process.pid}_${Date.now()}`);
@@ -44,10 +54,11 @@ function withTempDb(fn: () => Promise<void>) {
 function seedMinimal() {
   const clientId = uid();
   const periodId = uid();
+  const firmId = ensureTestFirm();
   db().prepare(`
-    INSERT INTO clients (id, name, slug, template, brand_primary, brand_accent, logo_text)
-    VALUES (?,?,?,?,?,?,?)
-  `).run(clientId, "Close Test Co", `close-${clientId.slice(0, 8)}`, "editorial", "#2C504D", "#DB5928", "CLOSE");
+    INSERT INTO clients (id, firm_id, name, slug, template, brand_primary, brand_accent, logo_text)
+    VALUES (?,?,?,?,?,?,?,?)
+  `).run(clientId, firmId, "Close Test Co", `close-${clientId.slice(0, 8)}`, "editorial", "#2C504D", "#DB5928", "CLOSE");
   const entityId = uid();
   db().prepare(`INSERT INTO entities (id, client_id, name) VALUES (?,?,?)`)
     .run(entityId, clientId, "Ops");

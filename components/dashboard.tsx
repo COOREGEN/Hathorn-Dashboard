@@ -26,6 +26,10 @@ export type ClientMeta = {
   name: string; template: string; brandPrimary: string; brandAccent: string;
   logoText: string; logoSub: string; logoUrl?: string | null;
   targetLaborLo: number; targetLaborHi: number;
+  /** Accounting firm that prepares the statement (tenant branding). */
+  firmName?: string;
+  reportFooter?: string;
+  showPlatformMark?: boolean;
   /** Vertical-specific wording frozen into the portal experience. */
   language?: {
     revenueLabel?: string;
@@ -259,7 +263,7 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
 
           <div className="ml-auto flex items-center gap-3 flex-wrap">
             <div className="prepared-by hidden xl:block">
-              Prepared by Hathorn Advisory Group
+              {client.reportFooter || `Prepared by ${client.firmName || "your advisory firm"}`}
             </div>
             <div className="no-print flex items-center gap-3 flex-wrap">
               <ConfidenceBadge confidence={confidence} onOpen={() => setShowConfidence((v) => !v)} />
@@ -755,15 +759,18 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
 
         <footer style={{ marginTop: 72, paddingTop: 22, borderTop: "1px solid var(--hairline)" }}>
           <div className="flex justify-between items-baseline flex-wrap gap-3" style={{ marginBottom: 16 }}>
-            <span className="eyebrow">Hathorn Advisory Group</span>
+            <span className="eyebrow">{client.firmName || "Advisory firm"}</span>
             <span className="caption">{client.name} · {cur.label}</span>
           </div>
           <p className="caption" style={{ maxWidth: 640, lineHeight: 1.6 }}>
             Prepared from records provided by management. These statements are management-prepared
-            and have not been audited, reviewed or compiled by Hathorn Advisory Group, and no
+            and have not been audited, reviewed or compiled by {client.firmName || "your advisory firm"}, and no
             assurance is expressed on them. Figures are stated in thousands unless noted.
             The thirteen-week cash outlook is a projection based on stated assumptions and
             actual results will differ.
+            {client.showPlatformMark !== false && (
+              <> Powered by Hathorn Dashboard.</>
+            )}
           </p>
         </footer>
       </main>

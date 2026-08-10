@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, uid } from "@/lib/db";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { sendCommentReply } from "@/lib/email";
 import { config } from "@/lib/config";
@@ -21,10 +21,11 @@ import { activeRelease } from "@/lib/release";
 async function authorizePeriod(periodId: string) {
   const session = await requireRole("ADMIN", "ADVISOR", "CLIENT");
   const period: any = db().prepare("SELECT id, client_id, status FROM periods WHERE id=?").get(periodId);
-  if (!period) throw new AuthError(403);
+  if (!period) throw new AuthError(403, "Resource not found.");
+  // Firm staff must belong to the client's firm — role alone is not enough.
+  await requireClientAccess(period.client_id);
   if (session.role === "CLIENT") {
-    if (session.clientId !== period.client_id) throw new AuthError(403);
-    if (!activeRelease(periodId)) throw new AuthError(403);
+    if (!activeRelease(periodId)) throw new AuthError(403, "Resource not found.");
   }
   return { session, period };
 }
@@ -70,10 +71,13 @@ export async function POST(req: Request) {
     if (["ADMIN", "ADVISOR"].includes(session.role)) {
       const client: any = db().prepare("SELECT * FROM clients WHERE id=?").get(period.client_id);
       if (client?.notify_email) {
+        const { brandingForClient } = await import("@/lib/tenancy");
+        const brand = brandingForClient(period.client_id);
         await sendCommentReply({
           clientEmail: client.notify_email, clientName: client.name,
           advisorName: session.name, metric: metricSlot, body,
           portalUrl: `${config.baseUrl}/portal`,
+          firmName: brand.firmName,
         });
       }
     }

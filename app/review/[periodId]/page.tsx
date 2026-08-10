@@ -26,11 +26,17 @@ export default async function Review({ params }: { params: { periodId: string } 
   const evaluation = evaluate(params.periodId);
   const history = releaseHistory(params.periodId);
 
+  const { activeMembership, brandingForClient } = await import("@/lib/tenancy");
+  if (!c?.firm_id || !activeMembership(s.userId, c.firm_id)) redirect("/today");
+  const brand = brandingForClient(c.id);
   const client: ClientMeta = {
     name: c.name, template: c.template, brandPrimary: c.brand_primary, brandAccent: c.brand_accent,
     logoText: c.logo_text, logoSub: c.logo_sub,
     logoUrl: c.logo_asset_id ? `/api/assets/${c.logo_asset_id}` : null,
     targetLaborLo: c.target_labor_lo, targetLaborHi: c.target_labor_hi,
+    firmName: brand.firmName,
+    reportFooter: brand.reportFooter,
+    showPlatformMark: brand.showPlatformMark,
   };
   const goals = statementGoals(c.id);
 

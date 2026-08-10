@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import {
@@ -15,14 +15,12 @@ export async function GET(req: Request) {
     await ensurePilotCorpus();
     const url = new URL(req.url);
     const clientId = url.searchParams.get("clientId") || undefined;
-    if (clientId) {
-      const c = db().prepare("SELECT id FROM clients WHERE id=?").get(clientId);
-      if (!c) return NextResponse.json({ ok: false, error: "Client not found." }, { status: 404 });
-    }
+    if (clientId) await requireClientAccess(clientId);
     return NextResponse.json({
       ok: true,
       enabled: accountingGuidanceEnabled(),
-      issues: listIssues(clientId || null),
+      // Without a client, return firm-library sources only — never another firm's issues.
+      issues: clientId ? listIssues(clientId) : [],
       sources: listSources({ clientId: clientId || null }),
       categories: RESEARCH_CATEGORIES,
       ragflow: ragflowStatus(),
@@ -45,6 +43,7 @@ export async function POST(req: Request) {
     const title = String(body.title || "").trim();
     if (!title) throw new ValidationError("title is required.");
     const clientId = body.clientId ? String(body.clientId) : null;
+    if (clientId) await requireClientAccess(clientId);
     const issue = createIssue({
       clientId,
       title,

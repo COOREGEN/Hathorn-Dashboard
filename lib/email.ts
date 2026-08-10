@@ -52,16 +52,19 @@ function send(to: string, subject: string, html: string) {
 
 export function sendPeriodPublished(opts: {
   clientName: string; clientEmail: string; year: number; month: number; portalUrl: string;
+  /** Display name only — From address stays on the verified platform sender. */
+  firmName?: string;
 }) {
   const period = `${monthName(opts.month)} ${opts.year}`;
   const name = escapeHtml(opts.clientName);
+  const firm = escapeHtml(opts.firmName || "Your advisory firm");
   const url = escapeHtml(opts.portalUrl);
   send(
     opts.clientEmail,
     `Your ${period} statement is ready — ${opts.clientName}`,
     `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#232323">
       <div style="background:#0C0B0A;padding:28px 32px;border-radius:8px 8px 0 0">
-        <div style="font-size:13px;font-weight:700;letter-spacing:.2em;color:#D3AF37">HATHORN ADVISORY GROUP</div>
+        <div style="font-size:13px;font-weight:700;letter-spacing:.2em;color:#D3AF37">${firm.toUpperCase()}</div>
       </div>
       <div style="background:#fff;padding:32px;border:1px solid #e8e5e0;border-top:none;border-radius:0 0 8px 8px">
         <p style="margin:0 0 8px;font-size:18px;font-weight:700">${escapeHtml(period)} is ready.</p>
@@ -74,7 +77,7 @@ export function sendPeriodPublished(opts: {
           View my dashboard →
         </a>
         <p style="color:#9a9490;font-size:11px;margin:24px 0 0;line-height:1.6">
-          Hathorn Advisory Group &nbsp;·&nbsp; ${name}
+          ${firm} &nbsp;·&nbsp; ${name}
         </p>
       </div>
     </div>`,
@@ -84,14 +87,16 @@ export function sendPeriodPublished(opts: {
 export function sendCommentReply(opts: {
   clientEmail: string; clientName: string; advisorName: string;
   metric: string; body: string; portalUrl: string;
+  firmName?: string;
 }) {
   const url = escapeHtml(opts.portalUrl);
+  const firm = escapeHtml(opts.firmName || "Your advisory firm");
   send(
     opts.clientEmail,
     `${opts.advisorName} replied to your question — ${opts.clientName}`,
     `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#232323">
       <div style="background:#0C0B0A;padding:28px 32px;border-radius:8px 8px 0 0">
-        <div style="font-size:13px;font-weight:700;letter-spacing:.2em;color:#D3AF37">HATHORN ADVISORY GROUP</div>
+        <div style="font-size:13px;font-weight:700;letter-spacing:.2em;color:#D3AF37">${firm.toUpperCase()}</div>
       </div>
       <div style="background:#fff;padding:32px;border:1px solid #e8e5e0;border-top:none;border-radius:0 0 8px 8px">
         <p style="margin:0 0 4px;font-size:13px;color:#9a9490;text-transform:uppercase;letter-spacing:.06em">${escapeHtml(opts.metric)}</p>

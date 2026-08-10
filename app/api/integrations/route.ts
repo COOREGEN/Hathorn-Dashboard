@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, AuthError } from "@/lib/auth";
+import { requireClientAccess, AuthError } from "@/lib/auth";
 import { ValidationError } from "@/lib/validate";
 import { db } from "@/lib/db";
 import {
@@ -10,11 +10,11 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
     const clientId = new URL(req.url).searchParams.get("clientId") || "";
     if (!clientId) throw new ValidationError("clientId is required.");
+    await requireClientAccess(clientId);
     const c = db().prepare("SELECT id, name FROM clients WHERE id=?").get(clientId) as any;
-    if (!c) return NextResponse.json({ ok: false, error: "Client not found." }, { status: 404 });
+    if (!c) return NextResponse.json({ ok: false, error: "Resource not found." }, { status: 404 });
 
     const dash = hubDashboard(clientId);
     return NextResponse.json({

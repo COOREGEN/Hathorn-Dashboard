@@ -274,8 +274,10 @@ export type Portfolio = {
   allVerticals: { key: string; label: string }[];
 };
 
-export function loadPortfolio(filter: PortfolioFilter = {}, asOf = new Date()): Portfolio {
-  const clients: any[] = db().prepare("SELECT id FROM clients ORDER BY name").all();
+export function loadPortfolio(filter: PortfolioFilter = {}, asOf = new Date(), firmId?: string | null): Portfolio {
+  const clients: any[] = firmId
+    ? db().prepare("SELECT id FROM clients WHERE firm_id=? ORDER BY name").all(firmId)
+    : db().prepare("SELECT id FROM clients ORDER BY name").all();
   let rows = clients
     .map((c) => assessClient(c.id, asOf))
     .filter((r): r is PortfolioRow => r !== null);

@@ -125,8 +125,10 @@ export const EPHEMERAL_TABLES = ["oauth_states", "login_attempts", "rate_events"
 /** Order matters: parents before children, so foreign keys are satisfiable. */
 export const TRANSFER_ORDER = [
   "schema_migrations",
+  "firms",
   "clients",
   "users",
+  "firm_memberships",
   "entities",
   "goals",
   "periods",

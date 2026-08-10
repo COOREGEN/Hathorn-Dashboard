@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { syncPeriod, getConnection, disconnect, applySyncToPeriod } from "@/lib/qbo";
 import { rateLimit, RateLimited, LIMITS, UpstreamTimeout } from "@/lib/security";
@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
     rateLimit({ action: "qboSync", subject: s.userId, ...LIMITS.qboSync });
     const { clientId, year, month } = await jsonObject(req);
+    await requireClientAccess(String(clientId || ""));
 
     const result = await syncPeriod(clientId, year, month);
     const applied = applySyncToPeriod(clientId, year, month, result);
@@ -53,6 +54,7 @@ export async function GET(req: Request) {
   try {
     await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
     const clientId = new URL(req.url).searchParams.get("clientId") || "";
+    if (clientId) await requireClientAccess(clientId);
     const c = getConnection(clientId);
     if (clientId) syncQboHubProjection(clientId);
     return NextResponse.json({
@@ -72,6 +74,7 @@ export async function DELETE(req: Request) {
   try {
     const s = await requireRole("ADMIN", "ADVISOR");
     const { clientId } = await jsonObject(req);
+    await requireClientAccess(String(clientId || ""));
     disconnect(clientId);
     syncQboHubProjection(clientId);
     audit(s.userId, "QBO_DISCONNECT", clientId);

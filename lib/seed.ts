@@ -86,29 +86,53 @@ const WIPE = [
   "close_checklist_items",
   "close_runs",
   "close_policies",
+  "firm_memberships",
+  "firms",
 ];
 for (const t of WIPE) {
   try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }
 }
 
+// ---- firm (Hathorn is tenant #1, not a hard-coded platform assumption) ----
+const hathornFirmId = "firm_hathorn_advisory";
+db.prepare(`
+  INSERT INTO firms
+    (id, name, slug, status, support_email, primary_contact,
+     brand_primary, brand_accent, logo_text, report_footer, client_portal_name)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?)
+`).run(
+  hathornFirmId, "Hathorn Advisory Group", "hathorn-advisory", "ACTIVE",
+  "noreply@hathornadvisorygroup.com", "Jeremiah Hathorn",
+  "#2C504D", "#DB5928", "HATHORN",
+  "Prepared by Hathorn Advisory Group", "Client Portal",
+);
+
 // ---- client ----
 const clientId = uid();
-db.prepare(`INSERT INTO clients (id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,target_labor_lo,target_labor_hi)
-  VALUES (?,?,?,?,?,?,?,?,?,?)`)
-  .run(clientId, "Northbridge Home Care", "northbridge", "editorial", "#2C504D", "#DB5928", "NORTHBRIDGE", "HOME CARE", null, null);
+db.prepare(`INSERT INTO clients (id,firm_id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,target_labor_lo,target_labor_hi)
+  VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+  .run(clientId, hathornFirmId, "Northbridge Home Care", "northbridge", "editorial", "#2C504D", "#DB5928", "NORTHBRIDGE", "HOME CARE", null, null);
 
 // ---- users ----
 const hash = (p: string) => bcrypt.hashSync(p, 12);
-const users: [string, string, string, string | null][] = [
-  ["regen@hathornadvisorygroup.com", "Regen Hailemariam", "ADMIN", null],
-  ["jeremiah@hathornadvisorygroup.com", "Jeremiah Hathorn", "ADVISOR", null],
-  ["books@hathornadvisorygroup.com", "Hathorn Bookkeeping", "BOOKKEEPER", null],
+const users: [string, string, string, string | null, number][] = [
+  ["regen@hathornadvisorygroup.com", "Regen Hailemariam", "ADMIN", null, 1],
+  ["jeremiah@hathornadvisorygroup.com", "Jeremiah Hathorn", "ADVISOR", null, 0],
+  ["books@hathornadvisorygroup.com", "Hathorn Bookkeeping", "BOOKKEEPER", null, 0],
   // Example client owner — sees only locked statements for their own company.
-  ["owner@northbridge.example", "Alex Rivera", "CLIENT", clientId],
+  ["owner@northbridge.example", "Alex Rivera", "CLIENT", clientId, 0],
 ];
-for (const [email, name, role, cid] of users)
-  db.prepare("INSERT INTO users (id,email,password_hash,name,role,client_id) VALUES (?,?,?,?,?,?)")
-    .run(uid(), email, hash("ledger2026"), name, role, cid);
+const userIds: Record<string, string> = {};
+for (const [email, name, role, cid, platform] of users) {
+  const id = uid();
+  userIds[email] = id;
+  db.prepare("INSERT INTO users (id,email,password_hash,name,role,client_id,is_platform_admin) VALUES (?,?,?,?,?,?,?)")
+    .run(id, email, hash("ledger2026"), name, role, cid, platform);
+  db.prepare(`
+    INSERT INTO firm_memberships (id, firm_id, user_id, role, status)
+    VALUES (?, ?, ?, ?, 'ACTIVE')
+  `).run(uid(), hathornFirmId, id, role);
+}
 
 // ---- entities ----
 const eIHH = uid(), eCDS = uid(), eDZ = uid();
@@ -407,6 +431,59 @@ db.prepare("UPDATE clients SET currency='USD', accounting_basis='ACCRUAL', verti
   }
 }
 
+// ---- Second synthetic firm (isolation fixture — never real outside data) ----
+{
+  const exampleFirmId = uid();
+  db.prepare(`
+    INSERT INTO firms
+      (id, name, slug, status, support_email, primary_contact,
+       brand_primary, brand_accent, logo_text, report_footer, client_portal_name, show_platform_mark)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+  `).run(
+    exampleFirmId, "Example CPA Firm", "example-cpa", "ACTIVE",
+    "ops@example-cpa.test", "Casey Example",
+    "#1B4F72", "#B9770E", "EXAMPLE CPA",
+    "Prepared by Example CPA Firm", "Example Client Portal", 0,
+  );
+
+  const exClientId = uid();
+  db.prepare(`INSERT INTO clients
+    (id,firm_id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,vertical,currency,accounting_basis)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(exClientId, exampleFirmId, "Harbor Dental Group", "harbor-dental", "modern",
+      "#1B4F72", "#B9770E", "HARBOR", "Dental", "professional_services", "USD", "ACCRUAL");
+
+  const exEntity = uid();
+  db.prepare("INSERT INTO entities (id,client_id,name,status) VALUES (?,?,?,?)")
+    .run(exEntity, exClientId, "Harbor Main", "ACTIVE");
+
+  const exPeriod = uid();
+  db.prepare(`INSERT INTO periods
+    (id,client_id,year,month,status,published_at,days_covered,accounting_basis,currency,reconciled,gate_pass)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(exPeriod, exClientId, 2026, 4, "PUBLISHED", "2026-05-10 10:00:00", 30, "ACCRUAL", "USD", 1, 1);
+  db.prepare(`INSERT INTO pl_lines (id,period_id,entity_id,category,label,amount) VALUES (?,?,?,?,?,?)`)
+    .run(uid(), exPeriod, exEntity, "REVENUE", "Patient services", 42.5);
+  db.prepare(`INSERT INTO cash_balances (id,period_id,operating,reserve) VALUES (?,?,?,?)`)
+    .run(uid(), exPeriod, 18, 5);
+
+  const exAdminId = uid();
+  db.prepare("INSERT INTO users (id,email,password_hash,name,role,client_id,is_platform_admin) VALUES (?,?,?,?,?,?,?)")
+    .run(exAdminId, "admin@example-cpa.test", hash("ledger2026"), "Casey Example", "ADMIN", null, 0);
+  db.prepare(`INSERT INTO firm_memberships (id, firm_id, user_id, role, status) VALUES (?,?,?,?, 'ACTIVE')`)
+    .run(uid(), exampleFirmId, exAdminId, "ADMIN");
+
+  const exClientUser = uid();
+  db.prepare("INSERT INTO users (id,email,password_hash,name,role,client_id,is_platform_admin) VALUES (?,?,?,?,?,?,?)")
+    .run(exClientUser, "owner@harbor-dental.test", hash("ledger2026"), "Sam Harbor", "CLIENT", exClientId, 0);
+  db.prepare(`INSERT INTO firm_memberships (id, firm_id, user_id, role, status) VALUES (?,?,?,?, 'ACTIVE')`)
+    .run(uid(), exampleFirmId, exClientUser, "CLIENT");
+
+}
+
 console.log("Seeded Hathorn advisory book: Northbridge Home Care + vertical examples.");
+console.log("Firms: Hathorn Advisory Group + Example CPA Firm (isolation fixture).");
 console.log("Logins (password: ledger2026):");
 for (const [email, , role] of users) console.log(`  ${String(role).padEnd(10)} ${email}`);
+console.log("  ADMIN      admin@example-cpa.test  (Example CPA Firm)");
+console.log("  CLIENT     owner@harbor-dental.test");

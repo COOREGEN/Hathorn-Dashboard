@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth"
+import { listClientsForFirm, resolveActiveFirmId } from "@/lib/tenancy";
 import { readiness, findings, cleanupState, goals, painPoints, sessions, STAGES } from "@/lib/engagement";
 import { clientConfig } from "@/lib/kpi-registry";
 import { definition } from "@/lib/kpi-registry";
@@ -44,7 +45,8 @@ export default async function Engagement({ searchParams }: {
   if (!s) redirect("/login");
   if (s.role === "CLIENT") redirect("/portal");
 
-  const clients: any[] = db().prepare("SELECT id, name, stage FROM clients ORDER BY name").all();
+  const firmId = resolveActiveFirmId(s);
+  const clients: any[] = firmId ? listClientsForFirm(firmId) : [];
   if (!clients.length) redirect("/clients");
 
   const clientId = searchParams.client && clients.some((c) => c.id === searchParams.client)

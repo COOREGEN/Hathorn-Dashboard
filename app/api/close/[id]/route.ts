@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, AuthError, audit } from "@/lib/auth";
+import { requireRole, requireClientAccess, AuthError, audit } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import {
   closeAutomationEnabled, closeBundle, completeManualCheck, generateCloseSummary,
@@ -8,14 +8,20 @@ import {
 
 export const dynamic = "force-dynamic";
 
+async function authorizeClose(id: string) {
+  const bundle = closeBundle(id);
+  if (!bundle) throw new AuthError(403, "Resource not found.");
+  await requireClientAccess(bundle.run.clientId);
+  return bundle;
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: { id: string } },
 ) {
   try {
     await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
-    const bundle = closeBundle(params.id);
-    if (!bundle) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    const bundle = await authorizeClose(params.id);
     return NextResponse.json({ ok: true, ...bundle });
   } catch (e: any) {
     if (e instanceof AuthError) return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
@@ -29,6 +35,7 @@ export async function POST(
 ) {
   try {
     const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
+    await authorizeClose(params.id);
     if (!closeAutomationEnabled()) {
       return NextResponse.json({ ok: false, error: "Close automation is disabled." }, { status: 503 });
     }

@@ -20,7 +20,8 @@
     "research:test": "tsx scripts/research-unit.ts",
     "recon:test": "tsx scripts/recon-unit.ts",
     "integrations:test": "tsx scripts/integrations-unit.ts",
-    "close:test": "tsx scripts/close-unit.ts"
+    "close:test": "tsx scripts/close-unit.ts",
+    "tenancy:test": "tsx scripts/tenancy-unit.ts"
   },
   "dependencies": {
     "@types/pdfkit": "^0.17.6",

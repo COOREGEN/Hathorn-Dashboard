@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { resolveActiveFirmId } from "@/lib/tenancy";
 import { loadPortfolio, type PortfolioRow } from "@/lib/portfolio";
 import StaffHeader from "@/components/staff-header";
 
@@ -65,7 +66,7 @@ export default async function Portfolio({ searchParams }: {
   const p = loadPortfolio({
     tag: searchParams.tag, vertical: searchParams.vertical,
     band: searchParams.band, sort: searchParams.sort,
-  });
+  }, new Date(), resolveActiveFirmId(s));
   const expanded = searchParams.open;
 
   const qs = (patch: Record<string, string | undefined>) => {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { resolveActiveFirmId } from "@/lib/tenancy";
 import { loadPortfolio } from "@/lib/portfolio";
 import { readiness } from "@/lib/engagement";
 import BrandMark from "@/components/brand-mark";
@@ -31,7 +32,7 @@ export default async function Today() {
   if (!s) redirect("/login");
   if (s.role === "CLIENT") redirect("/portal");
 
-  const p = loadPortfolio();
+  const p = loadPortfolio({}, new Date(), resolveActiveFirmId(s));
   const firstName = s.name.split(" ")[0];
 
   const tasks: Task[] = [];

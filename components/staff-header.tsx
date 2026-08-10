@@ -8,7 +8,7 @@ import Link from "next/link";
  * Naming (deliberate — these used to collide as "The Book"):
  *   Attention → /portfolio (who needs you)
  *   Clients   → /clients
- *   Firm      → /admin (storage, integrations, ops)
+ *   Firm      → /firm (profile, branding, team) · Ops → /admin
  */
 export default function StaffHeader({
   sub,
@@ -37,6 +37,7 @@ export default function StaffHeader({
     { href: "/close", label: "Close" },
     { href: "/exceptions", label: "Exceptions" },
     { href: "/upload", label: "Upload" },
+    { href: "/firm", label: "Firm" },
     ...(links || []),
   ];
 

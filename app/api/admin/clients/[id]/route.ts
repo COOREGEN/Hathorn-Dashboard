@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject, hexColour, uniqueSlug } from "@/lib/validate";
 
 /** Maps the JSON body's camelCase keys to their snake_case columns. */
@@ -21,6 +21,7 @@ function fail(e: any) {
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const s = await requireRole("ADMIN", "ADVISOR");
+    await requireClientAccess(params.id);
     const body = await jsonObject(req);
 
     // Colours are validated here rather than only sanitised at render time — invalid
@@ -55,6 +56,8 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
   try {
     const s = await requireRole("ADMIN");
     const id = params.id;
+    await requireClientAccess(id);
+    // Prefer archival in multi-tenant ops; hard delete remains admin-only for throwaway demos.
     // Remove the client and everything hanging off it, in one transaction.
     const purge = db().transaction(() => {
       const periods: any[] = db().prepare("SELECT id FROM periods WHERE client_id=?").all(id);

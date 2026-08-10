@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import {
@@ -25,6 +25,7 @@ export async function GET(
     await requireRole("ADMIN", "ADVISOR");
     const bundle = issueBundle(params.id);
     if (!bundle) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    if (bundle.issue.clientId) await requireClientAccess(bundle.issue.clientId);
     return NextResponse.json({ ok: true, ...bundle });
   } catch (e: any) {
     if (e instanceof AuthError) return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
@@ -43,6 +44,7 @@ export async function POST(
     }
     const issue = getIssue(params.id);
     if (!issue) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    if (issue.clientId) await requireClientAccess(issue.clientId);
 
     const body = await jsonObject(req);
     const action = String(body.action || "").toLowerCase();

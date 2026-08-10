@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { resolveActiveFirmId } from "@/lib/tenancy";
 import { readiness, STAGES } from "@/lib/engagement";
 import NewClientButton from "@/components/new-client-button";
 import StaffHeader from "@/components/staff-header";
@@ -22,13 +23,14 @@ export default async function Clients() {
   if (s.role === "CLIENT") redirect("/portal");
   if (s.role === "BOOKKEEPER") redirect("/upload");
 
-  const rows: any[] = db().prepare(`
+  const firmId = resolveActiveFirmId(s);
+  const rows: any[] = firmId ? db().prepare(`
     SELECT c.*,
       (SELECT COUNT(*) FROM periods p WHERE p.client_id=c.id AND p.status='PUBLISHED') published,
       (SELECT COUNT(*) FROM entities e WHERE e.client_id=c.id) entities
-    FROM clients c ORDER BY
+    FROM clients c WHERE c.firm_id=? ORDER BY
       CASE c.stage WHEN 'ADVISORY' THEN 0 WHEN 'ALIGNMENT' THEN 1
-                   WHEN 'CLEANUP' THEN 2 WHEN 'DISCOVERY' THEN 3 ELSE 4 END, c.name`).all();
+                   WHEN 'CLEANUP' THEN 2 WHEN 'DISCOVERY' THEN 3 ELSE 4 END, c.name`).all(firmId) : [];
 
   const byStage = STAGES.map((st) => ({
     ...st, count: rows.filter((r) => (r.stage ?? "DISCOVERY") === st.key).length,

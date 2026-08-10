@@ -16,6 +16,7 @@ import { getSession } from "./auth";
 import { vertical, bandsFor } from "./verticals";
 import { clientConfig } from "./kpi-registry";
 import { managementBasis, feeRecovery, channelMix } from "./management-basis";
+import { firmIdForClient, listClientsForFirm, resolveActiveFirmId } from "./tenancy";
 
 /**
  * Labor band only when the client has a provenanced target (AGREED / DERIVED / BENCHMARK).
@@ -47,13 +48,16 @@ export async function loadDashboard(params: {
    * rather than whichever sorts first alphabetically. The book an advisor wants on
    * opening the dashboard is the one that just closed.
    */
+  const firmId = resolveActiveFirmId(session);
   const defaultClient = () => {
+    if (!firmId) return null;
     const row: any = db().prepare(
       `SELECT c.id FROM clients c
          LEFT JOIN periods p ON p.client_id = c.id AND p.status = 'PUBLISHED'
+        WHERE c.firm_id = ?
         GROUP BY c.id
         ORDER BY MAX(COALESCE(p.year, 0)) DESC, MAX(COALESCE(p.month, 0)) DESC, c.name
-        LIMIT 1`).get();
+        LIMIT 1`).get(firmId);
     return row?.id;
   };
   const clientId = session.role === "CLIENT" ? session.clientId! : params.client || defaultClient();
@@ -61,6 +65,12 @@ export async function loadDashboard(params: {
 
   const client: any = db().prepare("SELECT * FROM clients WHERE id=?").get(clientId);
   if (!client) return null;
+  // Staff may only open clients inside their active firm.
+  if (session.role !== "CLIENT") {
+    if (!firmId || client.firm_id !== firmId) return null;
+  } else if (session.clientId !== clientId) {
+    return null;
+  }
 
   // Staff see drafts; clients only ever see published months.
   const publishedOnly = session.role === "CLIENT";
@@ -165,9 +175,11 @@ export function volumeFor(periodId: string) {
   };
 }
 
-function allClients(session: { role: string }) {
+function allClients(session: { role: string; userId: string; clientId: string | null; firmId?: string | null }) {
   if (session.role === "CLIENT") return [];
-  return db().prepare("SELECT id, name FROM clients ORDER BY name").all() as { id: string; name: string }[];
+  const firmId = resolveActiveFirmId(session as any);
+  if (!firmId) return [];
+  return listClientsForFirm(firmId).map((c) => ({ id: c.id, name: c.name }));
 }
 
 /** Narrows a period to one business without recomputing anything. */

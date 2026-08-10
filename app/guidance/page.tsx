@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth"
+import { listClientsForFirm, resolveActiveFirmId } from "@/lib/tenancy";
 import { db } from "@/lib/db";
 import StaffHeader from "@/components/staff-header";
 import GuidanceWorkspace from "@/components/guidance/guidance-workspace";
@@ -19,7 +20,8 @@ export default async function GuidancePage({
   if (!["ADMIN", "ADVISOR"].includes(s.role)) redirect("/");
 
   await ensurePilotCorpus();
-  const clients: any[] = db().prepare("SELECT id, name FROM clients ORDER BY name").all();
+  const firmId = resolveActiveFirmId(s);
+  const clients: any[] = firmId ? listClientsForFirm(firmId) : [];
   if (!clients.length) redirect("/clients");
 
   const clientId = searchParams.client && clients.some((c) => c.id === searchParams.client)

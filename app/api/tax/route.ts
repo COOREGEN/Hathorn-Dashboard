@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import {
@@ -16,14 +16,11 @@ export async function GET(req: Request) {
     ensureSeedAuthorities();
     const url = new URL(req.url);
     const clientId = url.searchParams.get("clientId") || undefined;
-    if (clientId) {
-      const c = db().prepare("SELECT id FROM clients WHERE id=?").get(clientId);
-      if (!c) return NextResponse.json({ ok: false, error: "Client not found." }, { status: 404 });
-    }
+    if (clientId) await requireClientAccess(clientId);
     return NextResponse.json({
       ok: true,
       enabled: taxIntelligenceEnabled(),
-      issues: listIssues(clientId),
+      issues: clientId ? listIssues(clientId) : [],
       authorities: listAuthorities(),
       rules: TAX_RULES,
       entityTypes: ENTITY_TYPES,
@@ -49,6 +46,7 @@ export async function POST(req: Request) {
     if (!clientId) throw new ValidationError("clientId is required.");
     if (!title) throw new ValidationError("title is required.");
     if (!Number.isInteger(taxYear)) throw new ValidationError("taxYear is required.");
+    await requireClientAccess(clientId);
 
     const issue = createIssue({
       clientId,

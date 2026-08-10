@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import {
@@ -20,14 +20,11 @@ export async function GET(req: Request) {
     if (runId) {
       const run = getModelRun(runId);
       if (!run) return NextResponse.json({ ok: false, error: "Run not found." }, { status: 404 });
-      if (run.clientId !== clientId && clientId) {
-        /* still allow by id for staff */
-      }
+      await requireClientAccess(run.clientId);
       return NextResponse.json({ ok: true, run, forge: forgeStatus() });
     }
     if (!clientId) return NextResponse.json({ ok: false, error: "clientId required." }, { status: 400 });
-    const client = db().prepare("SELECT id FROM clients WHERE id=?").get(clientId);
-    if (!client) return NextResponse.json({ ok: false, error: "Client not found." }, { status: 404 });
+    await requireClientAccess(clientId);
     const base = loadBaseline(clientId);
     return NextResponse.json({
       ok: true,
@@ -52,9 +49,7 @@ export async function POST(req: Request) {
     const scenario = String(body.scenario || "BASE").toUpperCase() as ScenarioKey;
     if (!clientId) throw new ValidationError("clientId is required.");
     if (!SCENARIOS.has(scenario)) throw new ValidationError("Invalid scenario.");
-
-    const client = db().prepare("SELECT id FROM clients WHERE id=?").get(clientId);
-    if (!client) throw new ValidationError("Client not found.");
+    await requireClientAccess(clientId);
 
     const a = body.assumptions || {};
     const assumptions: Assumptions = {

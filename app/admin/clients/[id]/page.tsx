@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { activeMembership, firmIdForClient } from "@/lib/tenancy";
 import ClientManage from "@/components/client-manage";
 import StaffHeader from "@/components/staff-header";
 import { config } from "@/lib/config";
@@ -13,7 +14,8 @@ export default async function ManageClient({ params }: { params: { id: string } 
   if (!s || !["ADMIN", "ADVISOR"].includes(s.role)) redirect("/login");
 
   const c: any = db().prepare("SELECT * FROM clients WHERE id=?").get(params.id);
-  if (!c) redirect("/clients");
+  const ownerFirm = firmIdForClient(params.id);
+  if (!c || !ownerFirm || !activeMembership(s.userId, ownerFirm)) redirect("/clients");
 
   const entities: any[] = db().prepare("SELECT * FROM entities WHERE client_id=? ORDER BY rowid").all(params.id);
   const users: any[] = db().prepare("SELECT id,email,name,role FROM users WHERE client_id=? ORDER BY name").all(params.id);

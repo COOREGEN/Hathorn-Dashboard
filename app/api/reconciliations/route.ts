@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import { db } from "@/lib/db";
@@ -19,8 +19,7 @@ export async function GET(req: Request) {
     const clientId = url.searchParams.get("clientId") || "";
     const periodId = url.searchParams.get("periodId") || "";
     if (!clientId) throw new ValidationError("clientId is required.");
-    const c = db().prepare("SELECT id FROM clients WHERE id=?").get(clientId);
-    if (!c) return NextResponse.json({ ok: false, error: "Client not found." }, { status: 404 });
+    await requireClientAccess(clientId);
 
     ensureClientConfig(clientId);
     const periods = db().prepare(
@@ -64,8 +63,7 @@ export async function POST(req: Request) {
     const clientId = String(body.clientId || "");
     const periodId = String(body.periodId || "");
     if (!clientId || !periodId) throw new ValidationError("clientId and periodId are required.");
-    const c = db().prepare("SELECT id FROM clients WHERE id=?").get(clientId);
-    if (!c) return NextResponse.json({ ok: false, error: "Client not found." }, { status: 404 });
+    await requireClientAccess(clientId);
 
     const type = body.type ? String(body.type) as ReconciliationType : null;
     if (type && !RECONCILIATION_TYPES.includes(type)) {

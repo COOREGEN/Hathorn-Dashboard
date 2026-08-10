@@ -1221,6 +1221,127 @@ export const MIGRATIONS: Migration[] = [
       } catch { /* already present */ }
     },
   },
+  {
+    id: 26,
+    name: "multi_tenant_firms",
+    up: (db) => {
+      /**
+       * Platform → Firm → Client ownership.
+       *
+       * Hathorn Advisory Group becomes the first firm tenant. Existing clients and
+       * staff are assigned to it. Platform admin is a separate flag from firm ADMIN —
+       * firm admins never receive cross-firm visibility by role alone.
+       *
+       * Client slug uniqueness stays platform-wide for URL stability on SQLite; see
+       * docs/TENANCY.md. Postgres cutover can tighten to UNIQUE(firm_id, slug).
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS firms (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          slug TEXT UNIQUE NOT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          support_email TEXT DEFAULT NULL,
+          primary_contact TEXT DEFAULT NULL,
+          brand_primary TEXT DEFAULT '#2C504D',
+          brand_accent TEXT DEFAULT '#DB5928',
+          logo_text TEXT DEFAULT NULL,
+          logo_data TEXT DEFAULT NULL,
+          report_footer TEXT DEFAULT NULL,
+          client_portal_name TEXT DEFAULT NULL,
+          show_platform_mark INTEGER NOT NULL DEFAULT 1,
+          feature_flags TEXT NOT NULL DEFAULT '{}',
+          custom_domain TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_firms_status ON firms(status);
+
+        CREATE TABLE IF NOT EXISTS firm_memberships (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          role TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          created_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(firm_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_firm_memberships_user ON firm_memberships(user_id, status);
+        CREATE INDEX IF NOT EXISTS idx_firm_memberships_firm ON firm_memberships(firm_id, status);
+      `);
+
+      addColumn(db, "clients", "firm_id", "TEXT DEFAULT NULL");
+      addColumn(db, "users", "is_platform_admin", "INTEGER NOT NULL DEFAULT 0");
+      addColumn(db, "audit_logs", "firm_id", "TEXT DEFAULT NULL");
+      addColumn(db, "audit_logs", "client_id", "TEXT DEFAULT NULL");
+
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_clients_firm ON clients(firm_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_audit_firm ON audit_logs(firm_id, created_at)`);
+
+      // Controlled backfill: one Hathorn firm owns every existing client and staff user.
+      let hathorn: any = db.prepare("SELECT id FROM firms WHERE slug=?").get("hathorn-advisory");
+      if (!hathorn) {
+        const id = "firm_hathorn_advisory";
+        db.prepare(`
+          INSERT INTO firms
+            (id, name, slug, status, support_email, primary_contact,
+             brand_primary, brand_accent, logo_text, report_footer, client_portal_name)
+          VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        `).run(
+          id,
+          "Hathorn Advisory Group",
+          "hathorn-advisory",
+          "ACTIVE",
+          "noreply@hathornadvisorygroup.com",
+          "Jeremiah Hathorn",
+          "#2C504D",
+          "#DB5928",
+          "HATHORN",
+          "Prepared by Hathorn Advisory Group",
+          "Client Portal",
+        );
+        hathorn = { id };
+      }
+
+      db.prepare("UPDATE clients SET firm_id=? WHERE firm_id IS NULL").run(hathorn.id);
+
+      const staff: any[] = db.prepare(
+        "SELECT id, role FROM users WHERE role IN ('ADMIN','ADVISOR','BOOKKEEPER')",
+      ).all();
+      const insMem = db.prepare(`
+        INSERT OR IGNORE INTO firm_memberships (id, firm_id, user_id, role, status)
+        VALUES (?, ?, ?, ?, 'ACTIVE')
+      `);
+      for (const u of staff) {
+        const memId = `fm_${u.id}_${hathorn.id}`.slice(0, 48);
+        insMem.run(memId, hathorn.id, u.id, u.role);
+      }
+
+      // Client users inherit firm scope through clients.firm_id; membership optional.
+      const clientsUsers: any[] = db.prepare(
+        "SELECT id, client_id, role FROM users WHERE role='CLIENT' AND client_id IS NOT NULL",
+      ).all();
+      for (const u of clientsUsers) {
+        const cl: any = db.prepare("SELECT firm_id FROM clients WHERE id=?").get(u.client_id);
+        if (!cl?.firm_id) continue;
+        const memId = `fm_${u.id}_${cl.firm_id}`.slice(0, 48);
+        insMem.run(memId, cl.firm_id, u.id, "CLIENT");
+      }
+
+      // Platform operator: first ADMIN user (Regen in seed), only if none flagged yet.
+      const anyPlatform: any = db.prepare(
+        "SELECT id FROM users WHERE is_platform_admin=1 LIMIT 1",
+      ).get();
+      if (!anyPlatform) {
+        const firstAdmin: any = db.prepare(
+          "SELECT id FROM users WHERE role='ADMIN' ORDER BY email LIMIT 1",
+        ).get();
+        if (firstAdmin) {
+          db.prepare("UPDATE users SET is_platform_admin=1 WHERE id=?").run(firstAdmin.id);
+        }
+      }
+    },
+  },
 ];
 
 /**

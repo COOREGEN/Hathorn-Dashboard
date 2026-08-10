@@ -32,13 +32,24 @@ export default async function Portal({ searchParams }: { searchParams: { client?
   if (!clientId) redirect(s.role === "CLIENT" ? "/login" : "/today");
 
   const c: any = db().prepare("SELECT * FROM clients WHERE id=?").get(clientId);
+  if (!c) redirect(s.role === "CLIENT" ? "/login" : "/today");
+  // Staff must belong to the client's firm — URL slug alone is not authorization.
+  if (s.role !== "CLIENT") {
+    const { activeMembership } = await import("@/lib/tenancy");
+    if (!c.firm_id || !activeMembership(s.userId, c.firm_id)) redirect("/today");
+  }
   const profile = vertical(c.vertical);
+  const { brandingForClient } = await import("@/lib/tenancy");
+  const brand = brandingForClient(clientId);
   const client: ClientMeta = {
     name: c.name, template: c.template, brandPrimary: c.brand_primary, brandAccent: c.brand_accent,
     logoText: c.logo_text, logoSub: c.logo_sub,
     logoUrl: c.logo_asset_id ? `/api/assets/${c.logo_asset_id}` : null,
     targetLaborLo: c.target_labor_lo, targetLaborHi: c.target_labor_hi,
     language: profile.language,
+    firmName: brand.firmName,
+    reportFooter: brand.reportFooter,
+    showPlatformMark: brand.showPlatformMark,
   };
   const goals: GoalRow[] = statementGoals(clientId);
 

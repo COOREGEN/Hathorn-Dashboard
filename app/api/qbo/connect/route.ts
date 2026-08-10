@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, AuthError } from "@/lib/auth";
 import { buildAuthUrl } from "@/lib/qbo";
 import { config } from "@/lib/config";
 
@@ -13,6 +13,7 @@ export async function GET(req: Request) {
     }
     const clientId = new URL(req.url).searchParams.get("clientId");
     if (!clientId) return NextResponse.json({ ok: false, error: "clientId required" }, { status: 400 });
+    await requireClientAccess(clientId);
     return NextResponse.redirect(buildAuthUrl(clientId, s.userId));
   } catch (e: any) {
     if (e instanceof AuthError) return NextResponse.json({ ok: false, error: e.message }, { status: e.status });

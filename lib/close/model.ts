@@ -431,13 +431,20 @@ export function listCloseEvents(closeRunId: string, limit = 40) {
   }));
 }
 
-export function firmClosePortfolio(year: number, month: number) {
-  const periods: any[] = db().prepare(`
-    SELECT p.id period_id, p.client_id, p.year, p.month, p.status period_status, c.name client_name
-    FROM periods p JOIN clients c ON c.id=p.client_id
-    WHERE p.year=? AND p.month=?
-    ORDER BY c.name
-  `).all(year, month);
+export function firmClosePortfolio(year: number, month: number, firmId?: string | null) {
+  const periods: any[] = firmId
+    ? db().prepare(`
+        SELECT p.id period_id, p.client_id, p.year, p.month, p.status period_status, c.name client_name
+        FROM periods p JOIN clients c ON c.id=p.client_id
+        WHERE p.year=? AND p.month=? AND c.firm_id=?
+        ORDER BY c.name
+      `).all(year, month, firmId)
+    : db().prepare(`
+        SELECT p.id period_id, p.client_id, p.year, p.month, p.status period_status, c.name client_name
+        FROM periods p JOIN clients c ON c.id=p.client_id
+        WHERE p.year=? AND p.month=?
+        ORDER BY c.name
+      `).all(year, month);
 
   const rows = periods.map((p) => {
     const run = getCloseRunForPeriod(p.client_id, p.period_id);
@@ -475,6 +482,7 @@ export function firmClosePortfolio(year: number, month: number) {
 }
 
 export function listFirmExceptions(opts: {
+  firmId?: string | null;
   clientId?: string;
   periodId?: string;
   severity?: string;
@@ -490,6 +498,7 @@ export function listFirmExceptions(opts: {
     LEFT JOIN periods p ON p.id=e.period_id
     WHERE 1=1`;
   const params: any[] = [];
+  if (opts.firmId) { sql += ` AND c.firm_id=?`; params.push(opts.firmId); }
   if (opts.clientId) { sql += ` AND e.client_id=?`; params.push(opts.clientId); }
   if (opts.periodId) { sql += ` AND e.period_id=?`; params.push(opts.periodId); }
   if (opts.severity) { sql += ` AND e.severity=?`; params.push(opts.severity); }

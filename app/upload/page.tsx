@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth"
+import { listClientsForFirm, resolveActiveFirmId } from "@/lib/tenancy";
 import { db } from "@/lib/db";
 import UploadForm from "@/components/upload-form";
 import StaffHeader from "@/components/staff-header";
@@ -10,8 +11,15 @@ export default async function Upload() {
   const s = await getSession();
   if (!s || !["ADMIN", "BOOKKEEPER", "ADVISOR"].includes(s.role)) redirect("/login");
 
-  const clients: any[] = db().prepare("SELECT id, name, slug FROM clients ORDER BY name").all();
-  const entities: any[] = db().prepare("SELECT id, client_id, name FROM entities ORDER BY rowid").all();
+  const firmId = resolveActiveFirmId(s);
+  const clients: any[] = firmId ? listClientsForFirm(firmId) : [];
+  const entities: any[] = firmId
+    ? db().prepare(
+      `SELECT e.id, e.client_id, e.name FROM entities e
+         JOIN clients c ON c.id = e.client_id
+        WHERE c.firm_id=? ORDER BY e.rowid`,
+    ).all(firmId)
+    : [];
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>

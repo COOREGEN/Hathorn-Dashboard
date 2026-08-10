@@ -219,10 +219,16 @@ export function buildSnapshot(periodId: string) {
     confidence: assessConfidence(m, client.id),
     // The language the statement was published under, frozen with it.
     language: profile.language,
-    disclosure:
-      "Prepared from records provided by management. These statements are management-prepared " +
-      "and have not been audited, reviewed or compiled by Hathorn Advisory Group, and no assurance " +
-      "is expressed on them.",
+    disclosure: (() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const { brandingForClient } = require("./tenancy") as typeof import("./tenancy");
+      const brand = brandingForClient(client.id);
+      return (
+        "Prepared from records provided by management. These statements are management-prepared " +
+        `and have not been audited, reviewed or compiled by ${brand.firmName}, and no assurance ` +
+        "is expressed on them."
+      );
+    })(),
   };
 }
 

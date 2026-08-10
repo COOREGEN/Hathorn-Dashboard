@@ -13,6 +13,10 @@ const SETUP_COOKIE = "ledger_mfa_setup";
 export type Role = "ADMIN" | "ADVISOR" | "BOOKKEEPER" | "CLIENT";
 export type Session = {
   userId: string; email: string; name: string; role: Role; clientId: string | null;
+  /** Active firm workspace — revalidated against memberships on every request. */
+  firmId: string | null;
+  /** Platform operator — not the same as firm ADMIN. Never implies client access. */
+  isPlatformAdmin: boolean;
   /** Bumped on password change so existing tokens stop verifying. */
   tv: number;
 };
@@ -94,11 +98,22 @@ async function issueSessionCookie(session: Session) {
   });
 }
 
-function sessionFromUser(u: any): Session {
-  return {
-    userId: u.id, email: u.email, name: u.name, role: u.role, clientId: u.client_id,
+function sessionFromUser(u: any, preferredFirmId?: string | null): Session {
+  // Lazy import avoids auth ↔ tenancy cycle at load time.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const tenancy = require("./tenancy") as typeof import("./tenancy");
+  const base = {
+    userId: u.id as string,
+    email: u.email as string,
+    name: u.name as string,
+    role: u.role as Role,
+    clientId: (u.client_id ?? null) as string | null,
+    firmId: (preferredFirmId ?? null) as string | null,
+    isPlatformAdmin: Boolean(u.is_platform_admin),
     tv: u.token_version ?? 1,
   };
+  const firmId = tenancy.resolveActiveFirmId(base);
+  return { ...base, firmId };
 }
 
 async function issueChallenge(userId: string, purpose: "mfa" | "mfa_setup"): Promise<string> {
@@ -236,13 +251,44 @@ export async function getSession(): Promise<Session | null> {
   try {
     const { payload } = await jwtVerify(token, SECRET);
     const session = payload as unknown as Session;
-    const row: any = db().prepare("SELECT token_version FROM users WHERE id=?").get(session.userId);
+    const row: any = db().prepare(
+      "SELECT token_version, is_platform_admin, role, client_id, email, name FROM users WHERE id=?",
+    ).get(session.userId);
     if (!row) return null;
     if ((row.token_version ?? 1) !== (session.tv ?? 1)) return null;
-    return session;
+    // Re-resolve firm membership every request — a removed membership must fail closed.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const tenancy = require("./tenancy") as typeof import("./tenancy");
+    const enriched: Session = {
+      userId: session.userId,
+      email: row.email,
+      name: row.name,
+      role: row.role,
+      clientId: row.client_id ?? null,
+      firmId: session.firmId ?? null,
+      isPlatformAdmin: Boolean(row.is_platform_admin),
+      tv: session.tv,
+    };
+    enriched.firmId = tenancy.resolveActiveFirmId(enriched);
+    return enriched;
   } catch {
     return null;
   }
+}
+
+/** Switch active firm workspace after membership check; re-issues the session cookie. */
+export async function switchActiveFirm(firmId: string): Promise<Session> {
+  const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const tenancy = require("./tenancy") as typeof import("./tenancy");
+  if (!tenancy.activeMembership(s.userId, firmId)) throw new AuthError(403, "Resource not found.");
+  const firm = tenancy.getFirm(firmId);
+  if (!firm || firm.status !== "ACTIVE") throw new AuthError(403, "Resource not found.");
+  const u: any = db().prepare("SELECT * FROM users WHERE id=?").get(s.userId);
+  const next = sessionFromUser(u, firmId);
+  await issueSessionCookie(next);
+  audit(s.userId, "FIRM_SWITCH", firmId);
+  return next;
 }
 
 /** Ends every live session for a user. Called on password change and on demand. */
@@ -263,17 +309,38 @@ export async function requireRole(...roles: Role[] | string[]): Promise<Session>
 
 /**
  * Confirms the signed-in user may act on this client's data.
- * Staff can act on any client; a CLIENT user only on their own.
+ *
+ * - CLIENT: only their own client_id.
+ * - Staff: ACTIVE membership in the client's firm (firm-wide client access policy).
+ * - Platform admin alone is not enough — no silent cross-tenant browse.
  */
 export async function requireClientAccess(clientId: string): Promise<Session> {
+  if (!clientId) throw new AuthError(403, "Resource not found.");
   const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT");
-  if (s.role === "CLIENT" && s.clientId !== clientId) throw new AuthError(403);
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const tenancy = require("./tenancy") as typeof import("./tenancy");
+  const ownerFirm = tenancy.firmIdForClient(clientId);
+  if (!ownerFirm) throw new AuthError(403, "Resource not found.");
+
+  if (s.role === "CLIENT") {
+    if (s.clientId !== clientId) throw new AuthError(403, "Resource not found.");
+    return s;
+  }
+  if (!tenancy.activeMembership(s.userId, ownerFirm)) {
+    throw new AuthError(403, "Resource not found.");
+  }
   return s;
 }
 
-export function audit(userId: string, action: string, detail = "") {
-  db().prepare("INSERT INTO audit_logs (id, user_id, action, detail) VALUES (?, ?, ?, ?)")
-    .run(crypto.randomUUID(), userId, action, detail);
+export function audit(userId: string, action: string, detail = "", opts?: {
+  firmId?: string | null; clientId?: string | null;
+}) {
+  db().prepare(
+    "INSERT INTO audit_logs (id, user_id, action, detail, firm_id, client_id) VALUES (?, ?, ?, ?, ?, ?)",
+  ).run(
+    crypto.randomUUID(), userId, action, detail,
+    opts?.firmId ?? null, opts?.clientId ?? null,
+  );
 }
 
 /* ------------------------------------------------------------------ */

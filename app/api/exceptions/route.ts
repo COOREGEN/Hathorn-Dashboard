@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { requireRole, AuthError, audit } from "@/lib/auth";
+import { requireRole, requireClientAccess, AuthError, audit } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { listFirmExceptions } from "@/lib/close";
 import { assignException, resolveException } from "@/lib/reconciliation/model";
 import type { ResolutionCategory } from "@/lib/reconciliation/types";
+import { resolveActiveFirmId } from "@/lib/tenancy";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +14,13 @@ export async function GET(req: Request) {
     const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
     const url = new URL(req.url);
     const mine = url.searchParams.get("mine") === "1";
+    const firmId = resolveActiveFirmId(s);
+    if (!firmId) throw new AuthError(403, "Resource not found.");
+    const clientId = url.searchParams.get("clientId") || undefined;
+    if (clientId) await requireClientAccess(clientId);
     const rows = listFirmExceptions({
-      clientId: url.searchParams.get("clientId") || undefined,
+      firmId,
+      clientId,
       periodId: url.searchParams.get("periodId") || undefined,
       severity: url.searchParams.get("severity") || undefined,
       status: url.searchParams.get("status") || undefined,

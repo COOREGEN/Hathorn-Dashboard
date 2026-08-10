@@ -13,11 +13,13 @@ export function seedManagement() {
   const d = db();
   const clientId = uid();
 
+  const firmId = (d.prepare("SELECT id FROM firms WHERE slug='hathorn-advisory'").get() as any)?.id
+    || (d.prepare("SELECT id FROM firms LIMIT 1").get() as any)?.id;
   d.prepare(`INSERT INTO clients
-    (id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,
+    (id,firm_id,name,slug,template,brand_primary,brand_accent,logo_text,logo_sub,
      target_labor_lo,target_labor_hi,vertical,currency,accounting_basis)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(clientId, "Impact 5 Property Management", "impact-5", "modern",
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(clientId, firmId, "Impact 5 Property Management", "impact-5", "modern",
       "#4A7C36", "#6FBF3F", "IMPACT 5", "Property Management", 0, 0,
       "property_management", "USD", "ACCRUAL");
 

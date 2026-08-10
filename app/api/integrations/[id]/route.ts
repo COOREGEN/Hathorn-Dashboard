@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientAccess, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import {
@@ -18,6 +18,7 @@ export async function GET(
     await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
     const connection = getHubConnection(params.id);
     if (!connection) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    await requireClientAccess(connection.clientId);
     const runs = listSyncRuns({ clientId: connection.clientId, connectionId: connection.id, limit: 40 });
     return NextResponse.json({
       ok: true,
@@ -46,6 +47,7 @@ export async function POST(
     }
     const connection = getHubConnection(params.id);
     if (!connection) return NextResponse.json({ ok: false, error: "Not found." }, { status: 404 });
+    await requireClientAccess(connection.clientId);
 
     const body = await jsonObject(req);
     const action = String(body.action || "sync").toLowerCase();

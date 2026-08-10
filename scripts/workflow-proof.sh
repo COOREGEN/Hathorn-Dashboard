@@ -837,6 +837,57 @@ assert "close portfolio ok" grep -q '"ok":true' "$COOKIE_DIR/close-portfolio.jso
 assert "portfolio has counts" grep -q 'readyForReview\|blocked\|inProgress' "$COOKIE_DIR/close-portfolio.json"
 
 echo
+echo "17. Multi-tenant firm isolation (Firm A ≠ Firm B)"
+HATHORN_FIRM=$(sqlite3 data/ledger.db "SELECT id FROM firms WHERE slug='hathorn-advisory'")
+EXAMPLE_FIRM=$(sqlite3 data/ledger.db "SELECT id FROM firms WHERE slug='example-cpa'")
+EXAMPLE_CLIENT=$(sqlite3 data/ledger.db "SELECT id FROM clients WHERE slug='harbor-dental'")
+assert "Hathorn firm exists" test -n "$HATHORN_FIRM"
+assert "Example CPA firm exists" test -n "$EXAMPLE_FIRM"
+assert "Example client exists" test -n "$EXAMPLE_CLIENT"
+ORPHANS=$(sqlite3 data/ledger.db "SELECT COUNT(*) FROM clients WHERE firm_id IS NULL OR firm_id=''")
+assert "no client orphans without firm" test "$ORPHANS" = "0"
+NORTH_FIRM=$(sqlite3 data/ledger.db "SELECT firm_id FROM clients WHERE slug='northbridge'")
+assert "northbridge assigned to Hathorn" test "$NORTH_FIRM" = "$HATHORN_FIRM"
+
+assert "example firm admin login" login "admin@example-cpa.test" "$COOKIE_DIR/exadmin.jar"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" \
+  "$BASE/api/planning?clientId=$CLIENT_ID")
+assert "Firm B blocked from Firm A planning" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" \
+  "$BASE/api/documents?clientId=$CLIENT_ID")
+assert "Firm B blocked from Firm A documents" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" \
+  "$BASE/api/integrations?clientId=$CLIENT_ID")
+assert "Firm B blocked from Firm A integrations" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" \
+  "$BASE/api/close?year=2026&month=4")
+assert "Firm B close portfolio reachable" test "$CODE" = "200"
+RESP=$(curl -s -b "$COOKIE_DIR/exadmin.jar" "$BASE/api/close?year=2026&month=4")
+echo "$RESP" > "$COOKIE_DIR/ex-close.json"
+assert "Firm B close portfolio omits northbridge" \
+  ! grep -q "Northbridge" "$COOKIE_DIR/ex-close.json"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" \
+  "$BASE/api/admin/clients/$CLIENT_ID" -X PATCH -H 'content-type: application/json' -d '{}')
+assert "Firm B cannot patch Firm A client" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" \
+  "$BASE/api/planning?clientId=$EXAMPLE_CLIENT")
+assert "Firm A blocked from Firm B planning" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" \
+  "$BASE/api/planning?clientId=$EXAMPLE_CLIENT")
+assert "Hathorn client blocked from Firm B planning" test "$CODE" = "403" -o "$CODE" = "401"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" "$BASE/firm")
+assert "Hathorn admin reaches /firm" test "$CODE" = "200"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" "$BASE/platform")
+assert "Firm admin blocked from /platform" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" "$BASE/platform")
+assert "Platform admin reaches /platform" test "$CODE" = "200"
+RESP=$(curl -s -b "$COOKIE_DIR/exadmin.jar" "$BASE/api/firm")
+echo "$RESP" > "$COOKIE_DIR/ex-firm.json"
+assert "Example firm API returns Example CPA" grep -q "Example CPA Firm" "$COOKIE_DIR/ex-firm.json"
+assert "Example firm API omits Hathorn Advisory name in firm.name" \
+  ! python3 -c "import json; d=json.load(open('$COOKIE_DIR/ex-firm.json')); assert d['firm']['name']!='Hathorn Advisory Group'"
+
+echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1

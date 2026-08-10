@@ -27,6 +27,16 @@ async function check(name: string, fn: () => void | Promise<void>) {
   }
 }
 
+
+function ensureTestFirm() {
+  const existing: any = db().prepare("SELECT id FROM firms WHERE slug='test-firm'").get();
+  if (existing) return existing.id as string;
+  const id = uid();
+  db().prepare(`INSERT INTO firms (id, name, slug, status, brand_primary, brand_accent, logo_text, report_footer)
+    VALUES (?,?,?,'ACTIVE',?,?,?,?)`).run(id, "Test Firm", "test-firm", "#2C504D", "#DB5928", "TEST", "Prepared by Test Firm");
+  return id;
+}
+
 function withTempDb(fn: () => Promise<void>) {
   const prev = process.env.DATA_DIR;
   const tmp = path.join(process.cwd(), "data", `_integ_unit_${process.pid}_${Date.now()}`);
@@ -40,12 +50,22 @@ function withTempDb(fn: () => Promise<void>) {
   });
 }
 
+function ensureTestFirm(): string {
+  const existing: any = db().prepare("SELECT id FROM firms WHERE slug='test-firm'").get();
+  if (existing) return existing.id as string;
+  const fid = uid();
+  db().prepare(`INSERT INTO firms (id, name, slug, status, brand_primary, brand_accent, logo_text, report_footer)
+    VALUES (?,?,?,'ACTIVE',?,?,?,?)`).run(fid, "Test Firm", "test-firm", "#2C504D", "#DB5928", "TEST", "Prepared by Test Firm");
+  return fid;
+}
+
 function seedClient(): string {
   const id = uid();
+  const firmId = ensureTestFirm();
   db().prepare(`
-    INSERT INTO clients (id, name, slug, template, brand_primary, brand_accent, logo_text)
-    VALUES (?,?,?,?,?,?,?)
-  `).run(id, "Integ Test Co", `integ-${id.slice(0, 8)}`, "editorial", "#2C504D", "#DB5928", "INTEG");
+    INSERT INTO clients (id, firm_id, name, slug, template, brand_primary, brand_accent, logo_text)
+    VALUES (?,?,?,?,?,?,?,?)
+  `).run(id, firmId, "Integ Test Co", `integ-${id.slice(0, 8)}`, "editorial", "#2C504D", "#DB5928", "INTEG");
   return id;
 }
 
