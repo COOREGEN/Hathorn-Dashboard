@@ -48,3 +48,20 @@ Upstream: https://github.com/DS4SD/docling
 
 Used only by the optional Python worker for XLSX cell values and PDF text extraction.
 Licenses: MIT (openpyxl), BSD-3-Clause (pypdf). Not required for Hathorn to boot.
+
+## IRS Fact Graph — CC0 1.0 / U.S. Government work
+
+**Not incorporated as a runtime dependency in this phase.**
+
+Inspected upstream license (`LICENSE.md` in https://github.com/IRS-Public/fact-graph):
+work of the United States Government / CC0 1.0 Universal dedication — commercial use
+permitted. **No IRS endorsement** of Hathorn Dashboard is claimed or implied.
+
+Pilot status: **BLOCKED** for default deploys (Scala.js / sbt toolchain; no prebuilt npm
+artifact wired). Hathorn ships a native §179 TY2025 deterministic rule instead.
+Configuration hooks: `IRS_FACT_GRAPH_ENABLED` (default `0`), `IRS_FACT_GRAPH_MODULE`.
+
+## IRS Direct File
+
+**Not a runtime dependency.** Studied only as architectural reference (interview /
+incomplete-information patterns). No Direct File source was vendored.

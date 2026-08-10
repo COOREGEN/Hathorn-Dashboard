@@ -378,6 +378,99 @@ else
 fi
 
 echo
+echo "12. Tax Intelligence (staff only; no accounting mutation)"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/tax")
+assert "client blocked from /tax" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" \
+  -X POST "$BASE/api/tax" -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"title\":\"x\",\"taxYear\":2025}")
+assert "client blocked from tax API" test "$CODE" = "403" -o "$CODE" = "401"
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" \
+  "$BASE/tax?client=$CLIENT_ID")
+assert "admin reaches /tax" test "$CODE" = "200"
+
+TAX_FP_BEFORE=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM fpa_model_runs WHERE client_id='$CLIENT_ID');
+")
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/tax" \
+  -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"title\":\"§179 equipment pilot\",\"description\":\"Phase 3 proof\",\"taxYear\":2025,\"entityType\":\"S_CORP\"}")
+echo "$RESP" > "$COOKIE_DIR/tax-issue.json"
+assert "staff can create tax issue" grep -q '"ok":true' "$COOKIE_DIR/tax-issue.json"
+TAX_ID=$(python3 -c "import json; print(json.load(open('$COOKIE_DIR/tax-issue.json'))['issue']['id'])")
+
+# Missing facts path
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/tax/$TAX_ID" \
+  -H 'content-type: application/json' \
+  -d '{"action":"run_rule","ruleKey":"sec179_expense_limit"}')
+echo "$RESP" > "$COOKIE_DIR/tax-rule-missing.json"
+assert "rule needs information without facts" grep -q 'NEEDS_INFORMATION' "$COOKIE_DIR/tax-rule-missing.json"
+
+for pair in "equipment_cost:150000:currency" "placed_in_service:true:boolean" "business_use_pct:100:percent"; do
+  KEY=$(echo "$pair" | cut -d: -f1)
+  VAL=$(echo "$pair" | cut -d: -f2)
+  TYP=$(echo "$pair" | cut -d: -f3)
+  curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/tax/$TAX_ID" \
+    -H 'content-type: application/json' \
+    -d "{\"action\":\"add_fact\",\"factKey\":\"$KEY\",\"factValue\":\"$VAL\",\"factType\":\"$TYP\"}" >/dev/null
+done
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/tax/$TAX_ID" \
+  -H 'content-type: application/json' \
+  -d '{"action":"run_rule","ruleKey":"sec179_expense_limit"}')
+echo "$RESP" > "$COOKIE_DIR/tax-rule-ok.json"
+assert "§179 rule eligible" grep -q '"status":"ELIGIBLE"' "$COOKIE_DIR/tax-rule-ok.json"
+assert "§179 cites IRC" grep -q 'IRC' "$COOKIE_DIR/tax-rule-ok.json"
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/tax/$TAX_ID" \
+  -H 'content-type: application/json' \
+  -d '{"action":"create_scenario","name":"Lower use","facts":{"business_use_pct":"40"}}')
+echo "$RESP" > "$COOKIE_DIR/tax-scenario.json"
+assert "scenario created" grep -q '"ok":true' "$COOKIE_DIR/tax-scenario.json"
+SCEN_ID=$(python3 -c "import json; print(json.load(open('$COOKIE_DIR/tax-scenario.json'))['scenario']['id'])")
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/tax/$TAX_ID" \
+  -H 'content-type: application/json' \
+  -d "{\"action\":\"run_scenario\",\"scenarioId\":\"$SCEN_ID\",\"ruleKey\":\"sec179_expense_limit\"}")
+echo "$RESP" > "$COOKIE_DIR/tax-scenario-run.json"
+assert "scenario not eligible at 40% use" grep -q 'NOT_ELIGIBLE' "$COOKIE_DIR/tax-scenario-run.json"
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/tax/$TAX_ID" \
+  -H 'content-type: application/json' -d '{"action":"analyze"}')
+echo "$RESP" > "$COOKIE_DIR/tax-analyze.json"
+assert "analysis generated" grep -q '"ok":true' "$COOKIE_DIR/tax-analyze.json"
+assert "analysis requires professional review" grep -q 'requiresProfessionalReview' "$COOKIE_DIR/tax-analyze.json"
+
+TAX_FP_AFTER=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM fpa_model_runs WHERE client_id='$CLIENT_ID');
+")
+assert "tax workflow does not mutate actuals/releases/fpa" test "$TAX_FP_BEFORE" = "$TAX_FP_AFTER"
+
+# Cross-client: create issue on another client id should 400/404 if forged — try wrong issue
+OTHER=$(sqlite3 data/ledger.db "SELECT id FROM clients WHERE id!='$CLIENT_ID' LIMIT 1")
+if [ -n "$OTHER" ]; then
+  RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/tax" \
+    -H 'content-type: application/json' \
+    -d "{\"clientId\":\"$OTHER\",\"title\":\"Other client issue\",\"taxYear\":2025}")
+  OTHER_ISSUE=$(python3 -c "import json; print(json.load(open('/dev/stdin'))['issue']['id'])" <<<"$RESP" 2>/dev/null || true)
+  # Bookkeeper cannot access tax
+  CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/books.jar" "$BASE/api/tax/$TAX_ID")
+  assert "bookkeeper blocked from tax issue API" test "$CODE" = "403"
+fi
+
+echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1

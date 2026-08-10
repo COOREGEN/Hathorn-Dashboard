@@ -59,6 +59,14 @@ const WIPE = [
   "fpa_model_runs",
   "document_extractions",
   "source_documents",
+  "tax_scenario_runs",
+  "tax_scenarios",
+  "tax_rule_runs",
+  "tax_issue_authorities",
+  "tax_issue_facts",
+  "tax_issues",
+  "tax_source_snapshots",
+  "tax_authorities",
 ];
 for (const t of WIPE) {
   try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }

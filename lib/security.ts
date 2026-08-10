@@ -134,4 +134,8 @@ export const LIMITS = {
   fpaAnalyze: { max: 20, windowMinutes: 60 },
   documentUpload: { max: 40, windowMinutes: 60 },
   documentParse: { max: 30, windowMinutes: 60 },
+  taxIssue: { max: 60, windowMinutes: 60 },
+  taxRule: { max: 60, windowMinutes: 60 },
+  taxAnalyze: { max: 20, windowMinutes: 60 },
+  taxFetch: { max: 20, windowMinutes: 60 },
 };

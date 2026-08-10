@@ -168,6 +168,14 @@ export const TRANSFER_ORDER = [
   "fpa_model_runs",
   "source_documents",
   "document_extractions",
+  "tax_authorities",
+  "tax_source_snapshots",
+  "tax_issues",
+  "tax_issue_facts",
+  "tax_issue_authorities",
+  "tax_rule_runs",
+  "tax_scenarios",
+  "tax_scenario_runs",
   "audit_logs",
 ] as const;
 

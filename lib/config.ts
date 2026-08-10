@@ -140,6 +140,19 @@ export const config = {
     ),
     python: process.env.DOCLING_PYTHON || "python3",
   },
+
+  /**
+   * Tax Intelligence (native). Fact Graph is separately gated and currently BLOCKED.
+   * Default on for the Hathorn-native research workspace; set TAX_INTELLIGENCE_ENABLED=0 to hide writes.
+   */
+  taxIntelligence: {
+    enabled: !["0", "false", "no", "off", ""].includes(
+      String(process.env.TAX_INTELLIGENCE_ENABLED ?? "1").toLowerCase(),
+    ),
+    factGraphEnabled: !["0", "false", "no", "off", ""].includes(
+      String(process.env.IRS_FACT_GRAPH_ENABLED ?? "0").toLowerCase(),
+    ),
+  },
 };
 
 /** Human-readable startup report — surfaced on the admin page so nothing is a mystery. */
@@ -163,5 +176,9 @@ export function integrationStatus() {
       hint: config.documentIntelligence.enabled
         ? "Worker enabled for PDF/XLSX (Docling optional). Extractions are drafts — never auto-post."
         : "Uploads + native CSV parse available. Set DOCUMENT_INTELLIGENCE_ENABLED=1 for the Python worker." },
+    { name: "Tax Intelligence", enabled: config.taxIntelligence.enabled,
+      hint: config.taxIntelligence.factGraphEnabled
+        ? "IRS Fact Graph flag on — native §179 rules remain the supported path until an artifact is wired."
+        : "Native §179 TY2025 pilot + source-backed research. Fact Graph pilot blocked/off. Not IRS-endorsed." },
   ];
 }

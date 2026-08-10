@@ -734,6 +734,118 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 21,
+    name: "tax_intelligence",
+    up: (db) => {
+      /**
+       * Tax Intelligence — research issues, facts, authorities, rule/scenario runs.
+       * Strictly advisory. Never files returns or mutates accounting actuals.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tax_authorities (
+          id TEXT PRIMARY KEY,
+          source_type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          citation TEXT NOT NULL,
+          url TEXT DEFAULT NULL,
+          tax_year INTEGER DEFAULT NULL,
+          effective_date TEXT DEFAULT NULL,
+          published_date TEXT DEFAULT NULL,
+          retrieved_at TEXT DEFAULT NULL,
+          content_hash TEXT DEFAULT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE'
+        );
+        CREATE INDEX IF NOT EXISTS idx_tax_auth_type ON tax_authorities(source_type, citation);
+
+        CREATE TABLE IF NOT EXISTS tax_source_snapshots (
+          id TEXT PRIMARY KEY,
+          authority_id TEXT NOT NULL,
+          retrieved_at TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          content_text TEXT NOT NULL,
+          metadata_json TEXT DEFAULT '{}'
+        );
+        CREATE INDEX IF NOT EXISTS idx_tax_snap_auth ON tax_source_snapshots(authority_id, retrieved_at DESC);
+
+        CREATE TABLE IF NOT EXISTS tax_issues (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          description TEXT DEFAULT '',
+          tax_year INTEGER NOT NULL,
+          entity_type TEXT NOT NULL DEFAULT 'OTHER',
+          status TEXT NOT NULL DEFAULT 'OPEN',
+          created_by TEXT NOT NULL,
+          assigned_to TEXT DEFAULT NULL,
+          analysis_json TEXT DEFAULT NULL,
+          reviewed_by TEXT DEFAULT NULL,
+          reviewed_at TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_tax_issues_client ON tax_issues(client_id, updated_at DESC);
+
+        CREATE TABLE IF NOT EXISTS tax_issue_facts (
+          id TEXT PRIMARY KEY,
+          tax_issue_id TEXT NOT NULL,
+          fact_key TEXT NOT NULL,
+          fact_value TEXT NOT NULL,
+          fact_type TEXT NOT NULL,
+          provenance TEXT NOT NULL,
+          source_document_id TEXT DEFAULT NULL,
+          verified INTEGER DEFAULT 0,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(tax_issue_id, fact_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_tax_facts_issue ON tax_issue_facts(tax_issue_id);
+
+        CREATE TABLE IF NOT EXISTS tax_issue_authorities (
+          id TEXT PRIMARY KEY,
+          tax_issue_id TEXT NOT NULL,
+          authority_id TEXT NOT NULL,
+          UNIQUE(tax_issue_id, authority_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS tax_rule_runs (
+          id TEXT PRIMARY KEY,
+          tax_issue_id TEXT NOT NULL,
+          rule_key TEXT NOT NULL,
+          rule_version TEXT NOT NULL,
+          tax_year INTEGER NOT NULL,
+          inputs_json TEXT NOT NULL,
+          result_json TEXT NOT NULL,
+          authority_refs_json TEXT NOT NULL,
+          engine TEXT NOT NULL,
+          engine_version TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_tax_rule_runs ON tax_rule_runs(tax_issue_id, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS tax_scenarios (
+          id TEXT PRIMARY KEY,
+          tax_issue_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          tax_year INTEGER NOT NULL,
+          facts_json TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS tax_scenario_runs (
+          id TEXT PRIMARY KEY,
+          scenario_id TEXT NOT NULL,
+          engine TEXT NOT NULL,
+          rule_versions TEXT NOT NULL,
+          result_json TEXT NOT NULL,
+          authority_refs_json TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+      `);
+    },
+  },
 ];
 
 /**
