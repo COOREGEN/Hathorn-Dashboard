@@ -11,14 +11,8 @@
  */
 
 import { db, uid } from "./db";
-import { AuthError, type Role, type Session } from "./auth";
+import { AuthError, getSession, requireRole, type Role, type Session } from "./auth";
 import { hexColour, text, uniqueSlug, ValidationError } from "./validate";
-
-/** Lazy auth import — avoids auth ↔ tenancy cycle at module load. */
-function auth() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  return require("./auth") as typeof import("./auth");
-}
 
 export type FirmStatus = "ACTIVE" | "SUSPENDED" | "ARCHIVED";
 export type MembershipStatus = "ACTIVE" | "INVITED" | "DISABLED";
@@ -155,7 +149,7 @@ export function resolveActiveFirmId(session: {
  * Staff + firm-admin path. Throws 403 with a generic message (no cross-tenant leakage).
  */
 export async function requireFirmContext(preferredFirmId?: string | null): Promise<FirmContext> {
-  const session = await auth().requireRole("ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT");
+  const session = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT");
   let firmId = preferredFirmId || session.firmId;
   if (session.role === "CLIENT") {
     firmId = session.clientId ? firmIdForClient(session.clientId) : null;
@@ -175,7 +169,7 @@ export async function requireFirmContext(preferredFirmId?: string | null): Promi
 }
 
 export async function requirePlatformAdmin(): Promise<Session> {
-  const session = await auth().getSession();
+  const session = await getSession();
   if (!session) throw new AuthError(401);
   if (!session.isPlatformAdmin) throw new AuthError(403, "Resource not found.");
   return session;
@@ -210,7 +204,7 @@ export async function requireClientInFirm(clientId: string): Promise<FirmContext
   const ownerFirm = firmIdForClient(clientId);
   if (!ownerFirm) throw new AuthError(403, "Resource not found.");
 
-  const session = await auth().requireRole("ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT");
+  const session = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT");
   if (session.role === "CLIENT") {
     if (session.clientId !== clientId) throw new AuthError(403, "Resource not found.");
     const firm = getFirm(ownerFirm);
@@ -263,6 +257,7 @@ export function orphanReport(): {
   const staffWithoutMembership = (db().prepare(
     `SELECT COUNT(*) n FROM users u
       WHERE u.role IN ('ADMIN','ADVISOR','BOOKKEEPER')
+        AND COALESCE(u.is_platform_admin,0)=0
         AND NOT EXISTS (
           SELECT 1 FROM firm_memberships m
            WHERE m.user_id=u.id AND m.status='ACTIVE'

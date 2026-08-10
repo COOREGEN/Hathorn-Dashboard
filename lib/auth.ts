@@ -98,10 +98,25 @@ async function issueSessionCookie(session: Session) {
   });
 }
 
+/** Resolve active firm without importing tenancy (Next prod cannot cycle-require). */
+function resolveSessionFirmId(session: {
+  userId: string; role: Role; clientId: string | null; firmId?: string | null;
+}): string | null {
+  if (session.role === "CLIENT" && session.clientId) {
+    const row: any = db().prepare("SELECT firm_id FROM clients WHERE id=?").get(session.clientId);
+    return row?.firm_id ?? null;
+  }
+  const memberships: any[] = db().prepare(
+    `SELECT firm_id FROM firm_memberships WHERE user_id=? AND status='ACTIVE' ORDER BY created_at`,
+  ).all(session.userId);
+  if (!memberships.length) return null;
+  if (session.firmId && memberships.some((m) => m.firm_id === session.firmId)) {
+    return session.firmId;
+  }
+  return memberships[0].firm_id;
+}
+
 function sessionFromUser(u: any, preferredFirmId?: string | null): Session {
-  // Lazy import avoids auth ↔ tenancy cycle at load time.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const tenancy = require("./tenancy") as typeof import("./tenancy");
   const base = {
     userId: u.id as string,
     email: u.email as string,
@@ -112,8 +127,7 @@ function sessionFromUser(u: any, preferredFirmId?: string | null): Session {
     isPlatformAdmin: Boolean(u.is_platform_admin),
     tv: u.token_version ?? 1,
   };
-  const firmId = tenancy.resolveActiveFirmId(base);
-  return { ...base, firmId };
+  return { ...base, firmId: resolveSessionFirmId(base) };
 }
 
 async function issueChallenge(userId: string, purpose: "mfa" | "mfa_setup"): Promise<string> {
@@ -257,8 +271,6 @@ export async function getSession(): Promise<Session | null> {
     if (!row) return null;
     if ((row.token_version ?? 1) !== (session.tv ?? 1)) return null;
     // Re-resolve firm membership every request — a removed membership must fail closed.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const tenancy = require("./tenancy") as typeof import("./tenancy");
     const enriched: Session = {
       userId: session.userId,
       email: row.email,
@@ -269,7 +281,7 @@ export async function getSession(): Promise<Session | null> {
       isPlatformAdmin: Boolean(row.is_platform_admin),
       tv: session.tv,
     };
-    enriched.firmId = tenancy.resolveActiveFirmId(enriched);
+    enriched.firmId = resolveSessionFirmId(enriched);
     return enriched;
   } catch {
     return null;
@@ -279,10 +291,11 @@ export async function getSession(): Promise<Session | null> {
 /** Switch active firm workspace after membership check; re-issues the session cookie. */
 export async function switchActiveFirm(firmId: string): Promise<Session> {
   const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const tenancy = require("./tenancy") as typeof import("./tenancy");
-  if (!tenancy.activeMembership(s.userId, firmId)) throw new AuthError(403, "Resource not found.");
-  const firm = tenancy.getFirm(firmId);
+  const membership: any = db().prepare(
+    `SELECT 1 FROM firm_memberships WHERE user_id=? AND firm_id=? AND status='ACTIVE'`,
+  ).get(s.userId, firmId);
+  if (!membership) throw new AuthError(403, "Resource not found.");
+  const firm: any = db().prepare("SELECT id, status FROM firms WHERE id=?").get(firmId);
   if (!firm || firm.status !== "ACTIVE") throw new AuthError(403, "Resource not found.");
   const u: any = db().prepare("SELECT * FROM users WHERE id=?").get(s.userId);
   const next = sessionFromUser(u, firmId);
@@ -317,18 +330,17 @@ export async function requireRole(...roles: Role[] | string[]): Promise<Session>
 export async function requireClientAccess(clientId: string): Promise<Session> {
   if (!clientId) throw new AuthError(403, "Resource not found.");
   const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT");
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const tenancy = require("./tenancy") as typeof import("./tenancy");
-  const ownerFirm = tenancy.firmIdForClient(clientId);
-  if (!ownerFirm) throw new AuthError(403, "Resource not found.");
+  const owner: any = db().prepare("SELECT firm_id FROM clients WHERE id=?").get(clientId);
+  if (!owner?.firm_id) throw new AuthError(403, "Resource not found.");
 
   if (s.role === "CLIENT") {
     if (s.clientId !== clientId) throw new AuthError(403, "Resource not found.");
     return s;
   }
-  if (!tenancy.activeMembership(s.userId, ownerFirm)) {
-    throw new AuthError(403, "Resource not found.");
-  }
+  const membership: any = db().prepare(
+    `SELECT 1 FROM firm_memberships WHERE user_id=? AND firm_id=? AND status='ACTIVE'`,
+  ).get(s.userId, owner.firm_id);
+  if (!membership) throw new AuthError(403, "Resource not found.");
   return s;
 }
 

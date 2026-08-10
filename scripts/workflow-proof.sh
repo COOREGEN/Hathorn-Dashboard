@@ -884,8 +884,10 @@ assert "Platform admin reaches /platform" test "$CODE" = "200"
 RESP=$(curl -s -b "$COOKIE_DIR/exadmin.jar" "$BASE/api/firm")
 echo "$RESP" > "$COOKIE_DIR/ex-firm.json"
 assert "Example firm API returns Example CPA" grep -q "Example CPA Firm" "$COOKIE_DIR/ex-firm.json"
-assert "Example firm API omits Hathorn Advisory name in firm.name" \
-  ! python3 -c "import json; d=json.load(open('$COOKIE_DIR/ex-firm.json')); assert d['firm']['name']!='Hathorn Advisory Group'"
+EX_FIRM_NAME=$(python3 -c "import json; print(json.load(open('$COOKIE_DIR/ex-firm.json'))['firm']['name'])")
+assert "Example active firm is not Hathorn" test "$EX_FIRM_NAME" = "Example CPA Firm"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" "$BASE/api/platform/firms")
+assert "Firm admin blocked from platform firms API" test "$CODE" = "403"
 
 echo
 echo "Result: $PASS passed, $FAIL failed"

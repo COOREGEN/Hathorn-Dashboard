@@ -28,6 +28,7 @@ import { db, uid } from "./db";
 import { runGate } from "./gate";
 import { computePeriod } from "./metrics";
 import { assessConfidence } from "./confidence";
+import { brandingForClient } from "./tenancy";
 import { balanceSheet, cashOutlook, openActions } from "./advisory";
 import { computeKpis } from "./kpi-registry";
 import { vertical } from "./verticals";
@@ -220,8 +221,6 @@ export function buildSnapshot(periodId: string) {
     // The language the statement was published under, frozen with it.
     language: profile.language,
     disclosure: (() => {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { brandingForClient } = require("./tenancy") as typeof import("./tenancy");
       const brand = brandingForClient(client.id);
       return (
         "Prepared from records provided by management. These statements are management-prepared " +
