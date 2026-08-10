@@ -864,8 +864,11 @@ CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" \
 assert "Firm B close portfolio reachable" test "$CODE" = "200"
 RESP=$(curl -s -b "$COOKIE_DIR/exadmin.jar" "$BASE/api/close?year=2026&month=4")
 echo "$RESP" > "$COOKIE_DIR/ex-close.json"
-assert "Firm B close portfolio omits northbridge" \
-  ! grep -q "Northbridge" "$COOKIE_DIR/ex-close.json"
+if grep -q "Northbridge" "$COOKIE_DIR/ex-close.json"; then
+  assert "Firm B close portfolio omits northbridge" false
+else
+  assert "Firm B close portfolio omits northbridge" true
+fi
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" \
   "$BASE/api/admin/clients/$CLIENT_ID" -X PATCH -H 'content-type: application/json' -d '{}')
 assert "Firm B cannot patch Firm A client" test "$CODE" = "403"

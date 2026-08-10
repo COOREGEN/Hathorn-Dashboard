@@ -88,6 +88,8 @@ const WIPE = [
   "close_policies",
   "firm_memberships",
   "firms",
+  "login_attempts",
+  "rate_events",
 ];
 for (const t of WIPE) {
   try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }
