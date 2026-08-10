@@ -1477,6 +1477,187 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 29,
+    name: "client_experience",
+    up: (db) => {
+      /**
+       * Client Experience + white-label presentation.
+       * Visibility is EXPLICIT — clients never infer access from ownership alone.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS client_portal_config (
+          client_id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          show_planning INTEGER NOT NULL DEFAULT 1,
+          show_documents INTEGER NOT NULL DEFAULT 1,
+          show_insights INTEGER NOT NULL DEFAULT 1,
+          show_copilot INTEGER NOT NULL DEFAULT 1,
+          show_financial_statements INTEGER NOT NULL DEFAULT 1,
+          show_reports INTEGER NOT NULL DEFAULT 1,
+          updated_at TEXT DEFAULT (datetime('now')),
+          updated_by TEXT DEFAULT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS client_portal_metric_config (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          metric_key TEXT NOT NULL,
+          display_order INTEGER NOT NULL DEFAULT 0,
+          visible INTEGER NOT NULL DEFAULT 1,
+          comparison_mode TEXT NOT NULL DEFAULT 'YoY',
+          UNIQUE(client_id, metric_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_portal_metrics_client
+          ON client_portal_metric_config(client_id, display_order);
+
+        CREATE TABLE IF NOT EXISTS client_insights (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          period_id TEXT DEFAULT NULL,
+          release_id TEXT DEFAULT NULL,
+          title TEXT NOT NULL,
+          section TEXT NOT NULL DEFAULT 'PERFORMANCE',
+          body TEXT NOT NULL,
+          source_refs_json TEXT NOT NULL DEFAULT '[]',
+          status TEXT NOT NULL DEFAULT 'DRAFT',
+          version INTEGER NOT NULL DEFAULT 1,
+          supersedes_id TEXT DEFAULT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          published_by TEXT DEFAULT NULL,
+          published_at TEXT DEFAULT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_client_insights_client
+          ON client_insights(client_id, status, published_at DESC);
+
+        CREATE TABLE IF NOT EXISTS client_management_questions (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          period_id TEXT DEFAULT NULL,
+          release_id TEXT DEFAULT NULL,
+          insight_id TEXT DEFAULT NULL,
+          question TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'DRAFT',
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          published_at TEXT DEFAULT NULL,
+          response_body TEXT DEFAULT NULL,
+          response_by TEXT DEFAULT NULL,
+          response_at TEXT DEFAULT NULL,
+          response_reviewed_by TEXT DEFAULT NULL,
+          response_reviewed_at TEXT DEFAULT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_mgmt_q_client
+          ON client_management_questions(client_id, status, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS client_reports (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          period_id TEXT DEFAULT NULL,
+          report_type TEXT NOT NULL DEFAULT 'MONTHLY_ADVISORY_REVIEW',
+          title TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'DRAFT',
+          version INTEGER NOT NULL DEFAULT 1,
+          source_release_id TEXT DEFAULT NULL,
+          template_id TEXT DEFAULT NULL,
+          content_snapshot TEXT NOT NULL,
+          branding_snapshot TEXT NOT NULL,
+          supersedes_id TEXT DEFAULT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          published_by TEXT DEFAULT NULL,
+          published_at TEXT DEFAULT NULL,
+          retracted_at TEXT DEFAULT NULL,
+          retracted_by TEXT DEFAULT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_client_reports_client
+          ON client_reports(client_id, status, published_at DESC);
+
+        CREATE TABLE IF NOT EXISTS report_templates (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT DEFAULT NULL,
+          name TEXT NOT NULL,
+          version INTEGER NOT NULL DEFAULT 1,
+          sections_json TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE',
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS document_requests (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          description TEXT DEFAULT '',
+          due_date TEXT DEFAULT NULL,
+          status TEXT NOT NULL DEFAULT 'OPEN',
+          requested_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          fulfilled_document_id TEXT DEFAULT NULL,
+          client_note TEXT DEFAULT NULL,
+          closed_at TEXT DEFAULT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_doc_requests_client
+          ON document_requests(client_id, status, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS client_portal_events (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          event_type TEXT NOT NULL,
+          resource_type TEXT DEFAULT NULL,
+          resource_id TEXT DEFAULT NULL,
+          detail_json TEXT NOT NULL DEFAULT '{}',
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_portal_events_client
+          ON client_portal_events(client_id, created_at DESC);
+      `);
+
+      // Explicit visibility columns — default INTERNAL / staff-only.
+      const fpaCols = db.prepare("PRAGMA table_info(fpa_model_runs)").all() as any[];
+      if (!fpaCols.some((c) => c.name === "visibility")) {
+        db.exec(`
+          ALTER TABLE fpa_model_runs ADD COLUMN visibility TEXT NOT NULL DEFAULT 'INTERNAL';
+          ALTER TABLE fpa_model_runs ADD COLUMN shared_snapshot_json TEXT DEFAULT NULL;
+          ALTER TABLE fpa_model_runs ADD COLUMN shared_at TEXT DEFAULT NULL;
+          ALTER TABLE fpa_model_runs ADD COLUMN shared_by TEXT DEFAULT NULL;
+        `);
+      }
+      const docCols = db.prepare("PRAGMA table_info(source_documents)").all() as any[];
+      if (!docCols.some((c) => c.name === "visibility")) {
+        db.exec(`
+          ALTER TABLE source_documents ADD COLUMN visibility TEXT NOT NULL DEFAULT 'INTERNAL';
+        `);
+      }
+      const commentCols = db.prepare("PRAGMA table_info(comments)").all() as any[];
+      if (!commentCols.some((c) => c.name === "context_type")) {
+        db.exec(`
+          ALTER TABLE comments ADD COLUMN context_type TEXT DEFAULT NULL;
+          ALTER TABLE comments ADD COLUMN context_id TEXT DEFAULT NULL;
+        `);
+      }
+
+      // Default monthly advisory review template (platform-wide).
+      db.prepare(`
+        INSERT OR IGNORE INTO report_templates (id, firm_id, name, version, sections_json, status)
+        VALUES (?, NULL, ?, 1, ?, 'ACTIVE')
+      `).run(
+        "tmpl_monthly_advisory_v1",
+        "Monthly Advisory Review",
+        JSON.stringify([
+          "COVER", "EXECUTIVE_SUMMARY", "KEY_METRICS", "WHAT_CHANGED",
+          "FINANCIAL_PERFORMANCE", "CASH_WORKING_CAPITAL", "FORECAST_OUTLOOK",
+          "MANAGEMENT_QUESTIONS", "ADVISOR_COMMENTARY",
+        ]),
+      );
+    },
+  },
 ];
 
 /**

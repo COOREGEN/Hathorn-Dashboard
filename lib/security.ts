@@ -145,4 +145,5 @@ export const LIMITS = {
   integrationSync: { max: 40, windowMinutes: 60 },
   copilot: { max: 40, windowMinutes: 60 },
   intelligence: { max: 40, windowMinutes: 60 },
+  clientPortal: { max: 60, windowMinutes: 60 },
 };

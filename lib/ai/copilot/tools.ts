@@ -40,6 +40,13 @@ import {
   revenueDriverBridge,
   syncSignalsForPeriod,
 } from "../../intelligence";
+import {
+  listInsights,
+  listQuestions,
+  listReports,
+  listSharedScenarios,
+  getPublishedReport,
+} from "../../client-portal";
 import { cite, sanitizeForPrompt } from "./citations";
 import { formatK, formatPct, marginPct, varianceBlock } from "./calc";
 import type { CopilotContext, CopilotToolResult, ToolTrace } from "./types";
@@ -329,6 +336,13 @@ const TOOLS: ToolDef[] = [
     label: "Planning",
     description: "Read saved FP&A model runs (not freeform formula execution).",
     run: (ctx, args) => {
+      if (ctx.audience === "CLIENT") {
+        return {
+          ok: false,
+          error: "Internal planning runs are not available. Ask about a shared forecast instead.",
+          sourceStatus: "UNAVAILABLE",
+        };
+      }
       const clientId = requireClient(ctx, args.clientId as string | undefined);
       const runId = args.runId ? String(args.runId) : null;
       const forge = forgeStatus();
@@ -376,6 +390,13 @@ const TOOLS: ToolDef[] = [
     label: "Documents",
     description: "List/search source documents and latest extraction summaries.",
     run: (ctx, args) => {
+      if (ctx.audience === "CLIENT") {
+        return {
+          ok: false,
+          error: "Internal document search is not available. Shared files appear in Documents.",
+          sourceStatus: "UNAVAILABLE",
+        };
+      }
       const clientId = requireClient(ctx, args.clientId as string | undefined);
       const q = String(args.query || "").toLowerCase().trim();
       const docs = listDocuments(clientId).slice(0, 40);
@@ -996,6 +1017,13 @@ const TOOLS: ToolDef[] = [
     label: "Forecast intelligence",
     description: "FP&A vs historical trend projection and forecast error when available.",
     run: (ctx, args) => {
+      if (ctx.audience === "CLIENT") {
+        return {
+          ok: false,
+          error: "Internal forecast accuracy tools are not available to clients.",
+          sourceStatus: "UNAVAILABLE",
+        };
+      }
       const clientId = requireClient(ctx, args.clientId as string | undefined);
       const hist = clientHistory(clientId, false);
       const fi = forecastIntelligence(clientId, hist);
@@ -1010,6 +1038,117 @@ const TOOLS: ToolDef[] = [
             })]
           : [cite({ sourceType: "calculation", title: "Trend projection" })],
         warnings: fi.available ? undefined : [fi.reason || "Unavailable"],
+      };
+    },
+  },
+  {
+    name: "getClientInsights",
+    label: "Published insights",
+    description: "Advisor-published client insights only (never drafts or internal signals).",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const insights = listInsights({ clientId, forClient: true });
+      return {
+        ok: true,
+        sourceStatus: insights.length ? "SUPPORTED_BY_SOURCE_DATA" : "PARTIALLY_SUPPORTED",
+        data: {
+          insights: insights.map((i) => ({
+            id: i.id, title: i.title, section: i.section, body: i.body, publishedAt: i.publishedAt,
+          })),
+        },
+        citations: insights.slice(0, 5).map((i) => cite({
+          sourceType: "client_insight", sourceId: i.id, title: i.title, clientId,
+        })),
+        warnings: insights.length ? undefined : ["No published insights yet."],
+      };
+    },
+  },
+  {
+    name: "getClientSharedForecast",
+    label: "Shared forecast",
+    description: "Client-shared FP&A scenario snapshots only.",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const scenarios = listSharedScenarios(clientId);
+      return {
+        ok: true,
+        sourceStatus: scenarios.length ? "SUPPORTED_BY_SOURCE_DATA" : "INSUFFICIENT_DATA",
+        data: {
+          scenarios: scenarios.map((s) => ({
+            id: s.id,
+            scenario: s.scenario,
+            totals: s.snapshot?.totals || null,
+            assumptions: s.snapshot?.assumptions || null,
+            disclaimer: s.snapshot?.disclaimer || null,
+          })),
+          note: "FORECAST — not actual results.",
+        },
+        citations: scenarios.slice(0, 3).map((s) => cite({
+          sourceType: "fpa_model_run", sourceId: s.id,
+          title: `Shared ${s.scenario}`, clientId,
+        })),
+        warnings: scenarios.length ? undefined : ["No forecast has been shared with the client."],
+      };
+    },
+  },
+  {
+    name: "getClientReport",
+    label: "Published report",
+    description: "Published Monthly Advisory Review snapshots.",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const reports = listReports({ clientId, forClient: true });
+      const id = args.reportId ? String(args.reportId) : reports[0]?.id;
+      const report = id ? getPublishedReport(id, clientId) : null;
+      return {
+        ok: true,
+        sourceStatus: report ? "SUPPORTED_BY_SOURCE_DATA" : "INSUFFICIENT_DATA",
+        data: report
+          ? {
+              id: report.id,
+              title: report.title,
+              periodLabel: report.content.periodLabel,
+              kpis: report.content.kpis,
+              whatChanged: report.content.whatChanged,
+              outlook: report.content.outlook,
+              managementQuestions: report.content.managementQuestions,
+              publishedAt: report.publishedAt,
+            }
+          : { reports: reports.map((r) => ({ id: r.id, title: r.title })) },
+        citations: report
+          ? [cite({
+              sourceType: "client_report", sourceId: report.id,
+              title: report.title, clientId,
+            })]
+          : [],
+        warnings: report ? undefined : ["No published advisory report."],
+      };
+    },
+  },
+  {
+    name: "getClientManagementQuestions",
+    label: "Management questions",
+    description: "Published advisor questions for management (client-visible).",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const questions = listQuestions({ clientId, forClient: true });
+      return {
+        ok: true,
+        sourceStatus: questions.length ? "SUPPORTED_BY_SOURCE_DATA" : "PARTIALLY_SUPPORTED",
+        data: {
+          questions: questions.map((q) => ({
+            id: q.id,
+            question: q.question,
+            status: q.status,
+            hasResponse: !!q.responseBody,
+            // Responses are engagement evidence — not verified accounting facts.
+            responsePendingReview: !!q.responseBody && !q.responseReviewedAt,
+          })),
+        },
+        citations: questions.slice(0, 5).map((q) => cite({
+          sourceType: "management_question", sourceId: q.id,
+          title: q.question.slice(0, 80), clientId,
+        })),
       };
     },
   },

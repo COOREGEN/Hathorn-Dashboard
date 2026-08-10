@@ -28,6 +28,7 @@ export default function StaffHeader({
     { href: "/", label: "Today" },
     { href: "/ask", label: "Ask Hathorn" },
     { href: "/intelligence", label: "Intelligence" },
+    { href: "/client-experience", label: "Client Experience" },
     { href: "/portfolio", label: "Attention" },
     { href: "/clients", label: "Clients" },
     { href: "/planning", label: "Planning" },

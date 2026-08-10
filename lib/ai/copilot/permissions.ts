@@ -28,10 +28,14 @@ export const STAFF_TOOLS = [
   "resolvePeriod",
 ] as const;
 
-/** Reduced client registry — published surface only. */
+/** Reduced client registry — published / explicitly shared surface only. */
 export const CLIENT_TOOLS = [
   "getPublishedRelease",
   "resolvePeriod",
+  "getClientInsights",
+  "getClientSharedForecast",
+  "getClientReport",
+  "getClientManagementQuestions",
 ] as const;
 
 export type CopilotToolName = (typeof STAFF_TOOLS)[number] | (typeof CLIENT_TOOLS)[number];

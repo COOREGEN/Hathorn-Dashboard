@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { clientHistory } from "@/lib/metrics";
-import { buildAdvisory, buildComparabilityMatrix } from "@/app/portal/page";
+import { buildAdvisory, buildComparabilityMatrix } from "@/lib/portal-helpers";
 import { periodContext, normalisePerDay } from "@/lib/comparability";
 import { assessConfidence } from "@/lib/confidence";
 import { runGate } from "@/lib/gate";

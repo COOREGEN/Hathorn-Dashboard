@@ -955,6 +955,43 @@ assert "intelligence ask ok" grep -q '"ok":true' "$COOKIE_DIR/copilot-fi.json"
 assert "intelligence ask used FI tools" grep -Eq 'getFinancialSignals|getDriverAnalysis|getProfitabilityAnalysis|getTrendAnalysis' "$COOKIE_DIR/copilot-fi.json"
 
 echo
+echo "20. Client Experience"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/portal")
+assert "client reaches /portal overview" test "$CODE" = "200"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/portal/insights")
+assert "client reaches /portal/insights" test "$CODE" = "200"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/portal/reports")
+assert "client reaches /portal/reports" test "$CODE" = "200"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/client-experience")
+assert "client blocked from /client-experience" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" "$BASE/client-experience")
+assert "admin reaches /client-experience" test "$CODE" = "200"
+RESP=$(curl -s -b "$COOKIE_DIR/client.jar" "$BASE/api/client-portal?view=overview")
+echo "$RESP" > "$COOKIE_DIR/portal-overview.json"
+assert "client overview ok" grep -q '"ok":true' "$COOKIE_DIR/portal-overview.json"
+assert "client overview has metrics" grep -q '"metrics"' "$COOKIE_DIR/portal-overview.json"
+RESP=$(curl -s -b "$COOKIE_DIR/client.jar" "$BASE/api/client-portal?view=insights")
+echo "$RESP" > "$COOKIE_DIR/portal-insights.json"
+assert "client insights ok" grep -q '"ok":true' "$COOKIE_DIR/portal-insights.json"
+# Draft / internal must not appear as working-ledger style status in client insights payload
+assert "client insights are published-shaped" python3 -c "import json; d=json.load(open('$COOKIE_DIR/portal-insights.json')); assert all(i.get('status')=='PUBLISHED' for i in d.get('insights',[]))"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" "$BASE/api/client-portal?view=overview&clientId=$CLIENT_ID")
+assert "Firm B blocked from Firm A client portal API" test "$CODE" = "403" -o "$CODE" = "400"
+RESP=$(curl -s -b "$COOKIE_DIR/client.jar" -X POST "$BASE/api/copilot" \
+  -H 'content-type: application/json' \
+  -d '{"question":"What internal exceptions are open?"}')
+echo "$RESP" > "$COOKIE_DIR/portal-copilot-ex.json"
+assert "client copilot refuses internal exceptions" grep -qi 'not available' "$COOKIE_DIR/portal-copilot-ex.json"
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/client-portal" \
+  -H 'content-type: application/json' \
+  -d "{\"action\":\"createDocumentRequest\",\"clientId\":\"$CLIENT_ID\",\"title\":\"Proof request\",\"description\":\"Upload for proof\"}")
+echo "$RESP" > "$COOKIE_DIR/portal-docreq.json"
+assert "staff can create document request" grep -q '"ok":true' "$COOKIE_DIR/portal-docreq.json"
+HTML=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/portal?client=northbridge&preview=1")
+echo "$HTML" > "$COOKIE_DIR/portal-preview.html"
+assert "staff preview banner" grep -qi 'Preview as client' "$COOKIE_DIR/portal-preview.html"
+
+echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1

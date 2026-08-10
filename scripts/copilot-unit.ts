@@ -226,8 +226,11 @@ async function main() {
     const client = CLIENT_TOOLS as readonly string[];
     const staff = STAFF_TOOLS as readonly string[];
     assert.ok(client.includes("getPublishedRelease"));
+    assert.ok(client.includes("getClientInsights"));
+    assert.ok(client.includes("getClientSharedForecast"));
     assert.ok(!client.includes("getExceptions"));
     assert.ok(!client.includes("getFinancialSummary"));
+    assert.ok(!client.includes("getPlanningScenario"));
     assert.ok(staff.includes("getAttentionDigest"));
   });
 

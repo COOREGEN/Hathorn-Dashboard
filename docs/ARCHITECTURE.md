@@ -73,3 +73,21 @@ AI explanation (optional) → advisor judgment
 ```
 
 Staff-only. No cross-firm benchmarking. No ML stack. See `docs/FINANCIAL-INTELLIGENCE.md`.
+
+## Client presentation (Phase 11)
+
+```
+ACCOUNTING SYSTEM
+      ↓
+REVIEW
+      ↓
+RELEASE (immutable)
+      ↓
+INTELLIGENCE (staff)
+      ↓
+ADVISOR CURATION (explicit publish / share)
+      ↓
+CLIENT PRESENTATION (/portal)
+```
+
+Clients never see working books, close, recon, tax drafts, or internal signals. See `docs/CLIENT-PORTAL.md` and `docs/CLIENT-PORTAL-SECURITY.md`.

@@ -203,6 +203,14 @@ export const TRANSFER_ORDER = [
   "financial_signal_policies",
   "financial_signals",
   "financial_intelligence_runs",
+  "client_portal_config",
+  "client_portal_metric_config",
+  "client_insights",
+  "client_management_questions",
+  "report_templates",
+  "client_reports",
+  "document_requests",
+  "client_portal_events",
   "audit_logs",
 ] as const;
 

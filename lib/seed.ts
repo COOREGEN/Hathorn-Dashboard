@@ -94,6 +94,13 @@ const WIPE = [
   "financial_signals",
   "financial_signal_policies",
   "cost_allocation_rules",
+  "client_portal_events",
+  "document_requests",
+  "client_reports",
+  "client_management_questions",
+  "client_insights",
+  "client_portal_metric_config",
+  "client_portal_config",
   "login_attempts",
   "rate_events",
 ];
@@ -436,6 +443,58 @@ db.prepare("UPDATE clients SET currency='USD', accounting_basis='ACCRUAL', verti
     } catch (e: any) {
       console.warn("Seed lock failed:", e.message);
     }
+  }
+
+  // Client Experience — publish a curated sample for Northbridge (explicit visibility).
+  try {
+    const {
+      createInsight, setInsightStatus, createQuestion, createMonthlyReport,
+      createDocumentRequest, ensureDefaultMetrics,
+    } = require("./client-portal");
+    ensureDefaultMetrics(clientId);
+    const latestPub: any = db.prepare(`
+      SELECT p.id FROM periods p
+      JOIN release_records r ON r.period_id=p.id AND r.status='ACTIVE'
+      WHERE p.client_id=? ORDER BY p.year DESC, p.month DESC LIMIT 1
+    `).get(clientId);
+    if (latestPub?.id) {
+      const insight = createInsight({
+        clientId,
+        periodId: latestPub.id,
+        title: "Performance at a glance",
+        section: "PERFORMANCE",
+        body: "Revenue and margin movements this month are drawn from the published release. Discuss labor mix and collections with management.",
+        actorId: admin.id,
+      });
+      setInsightStatus({
+        insightId: insight.id,
+        firmId: hathornFirmId,
+        status: "PUBLISHED",
+        actorId: admin.id,
+      });
+      createQuestion({
+        clientId,
+        periodId: latestPub.id,
+        question: "Was any labor increase this month temporary staffing, or a lasting change in mix?",
+        actorId: admin.id,
+        publish: true,
+      });
+      createMonthlyReport({
+        clientId,
+        periodId: latestPub.id,
+        actorId: admin.id,
+        publish: true,
+      });
+      createDocumentRequest({
+        clientId,
+        title: "AR aging support",
+        description: "Upload the payer aging support if anything material changed after close.",
+        dueDate: "2026-08-15",
+        actorId: admin.id,
+      });
+    }
+  } catch (e: any) {
+    console.warn("Client experience seed skipped:", e.message);
   }
 }
 

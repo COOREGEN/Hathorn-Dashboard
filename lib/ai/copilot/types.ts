@@ -47,7 +47,10 @@ export type CopilotCitation = {
     | "portfolio"
     | "calculation"
     | "financial_signal"
-    | "intelligence_run";
+    | "intelligence_run"
+    | "client_insight"
+    | "client_report"
+    | "management_question";
   sourceId?: string;
   title: string;
   clientId?: string;

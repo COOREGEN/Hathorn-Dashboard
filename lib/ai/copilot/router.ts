@@ -180,12 +180,22 @@ export function toolPlanForIntent(
 ): string[] {
   if (opts.audience === "CLIENT") {
     switch (intent) {
-      case "FINANCIAL_ACTUALS":
+      case "FP_AND_A":
+        return ["resolvePeriod", "getClientSharedForecast", "getPublishedRelease"];
+      case "INTELLIGENCE":
       case "GENERAL_CLIENT_CONTEXT":
       case "MEETING_PREP":
-        return ["resolvePeriod", "getPublishedRelease"];
+        return [
+          "resolvePeriod",
+          "getPublishedRelease",
+          "getClientInsights",
+          "getClientManagementQuestions",
+          "getClientReport",
+        ];
+      case "FINANCIAL_ACTUALS":
+        return ["resolvePeriod", "getPublishedRelease", "getClientReport"];
       default:
-        return ["getPublishedRelease"];
+        return ["getPublishedRelease", "getClientInsights"];
     }
   }
 
