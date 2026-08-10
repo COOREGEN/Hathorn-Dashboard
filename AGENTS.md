@@ -365,13 +365,16 @@ lib/
   validate.ts      write-boundary validation
   qbo.ts           QuickBooks OAuth + sync  ⚠ never run against live Intuit
   story-agent.ts   drafts commentary; falls back to deterministic signals without a key
+  reconciliation/  deterministic payroll / AR / debt tie-outs + exceptions
+                   (tolerance ≠ financial-statement materiality; never posts GL)
 
 app/
   portal           client view (published periods only)
   review/[id]      advisor cockpit — gate panel, story editor, approve
   admin            the book; /admin/clients/[id] full CRUD + Brand + Storage
   upload           bookkeeper CSV intake
-  api/…            25 routes, all guarded by middleware.ts
+  reconciliations  staff-only control vs supporting schedule pack
+  api/…            guarded by middleware.ts
 ```
 
 **Roles:** ADMIN · ADVISOR · BOOKKEEPER · CLIENT. `middleware.ts` guards every route —

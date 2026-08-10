@@ -564,9 +564,122 @@ assert "bookkeeper blocked from research issue API" test "$CODE" = "403"
 ASC_BODY=$(sqlite3 data/ledger.db "SELECT COUNT(*) FROM accounting_sources WHERE source_type='FASB_ASC' AND content_rights='PUBLIC' AND body_text IS NOT NULL AND length(body_text)>200")
 assert "no PUBLIC FASB_ASC body corpus" test "$ASC_BODY" = "0"
 
+echo "14. Reconciliation intelligence (staff only; deterministic; no book mutation)"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/reconciliations")
+assert "client blocked from /reconciliations" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" \
+  -X POST "$BASE/api/reconciliations" -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"periodId\":\"$APR_PERIOD\"}")
+assert "client blocked from reconciliations API" test "$CODE" = "403" -o "$CODE" = "401"
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" \
+  "$BASE/reconciliations?client=$CLIENT_ID&period=$APR_PERIOD")
+assert "admin reaches /reconciliations" test "$CODE" = "200"
+
+RECON_FP_BEFORE=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM payroll_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM fpa_model_runs WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM tax_issues WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM accounting_research_issues WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM source_documents WHERE client_id='$CLIENT_ID' AND status='APPROVED');
+")
+
+# Approve AR + debt schedules for April (payroll already approved in section 11)
+for pair in "AR_SCHEDULE:ar-schedule.csv" "DEBT_SCHEDULE:debt-schedule.csv"; do
+  DTYPE=$(echo "$pair" | cut -d: -f1)
+  FILE=$(echo "$pair" | cut -d: -f2)
+  RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/documents" \
+    -F "clientId=$CLIENT_ID" \
+    -F "documentType=$DTYPE" \
+    -F "periodId=$APR_PERIOD" \
+    -F "file=@samples/documents/$FILE")
+  DID=$(python3 -c "import json,sys; print(json.load(sys.stdin)['document']['id'])" <<<"$RESP")
+  curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/documents/$DID" \
+    -H 'content-type: application/json' -d '{"action":"approve"}' >/dev/null
+done
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/reconciliations" \
+  -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"periodId\":\"$APR_PERIOD\"}")
+echo "$RESP" > "$COOKIE_DIR/recon-pack.json"
+assert "staff can run reconciliation pack" grep -q '"ok":true' "$COOKIE_DIR/recon-pack.json"
+assert "pack includes payroll" grep -q 'PAYROLL' "$COOKIE_DIR/recon-pack.json"
+assert "pack includes AR" grep -q 'ACCOUNTS_RECEIVABLE' "$COOKIE_DIR/recon-pack.json"
+assert "pack includes debt" grep -q 'DEBT' "$COOKIE_DIR/recon-pack.json"
+
+# AR should compare (buckets or schedule vs BS) — expect a status field
+assert "AR result has status" python3 -c "
+import json
+d=json.load(open('$COOKIE_DIR/recon-pack.json'))
+rows=d['pack']['rows']
+ar=next(r for r in rows if r['type']=='ACCOUNTS_RECEIVABLE')
+assert ar['status'] in ('MATCHED','WITHIN_TOLERANCE','EXCEPTION','NEEDS_DATA')
+"
+
+PAY_ID=$(python3 -c "
+import json
+d=json.load(open('$COOKIE_DIR/recon-pack.json'))
+print(next(r['id'] for r in d['pack']['rows'] if r['type']=='PAYROLL'))
+")
+RUNS1=$(sqlite3 data/ledger.db "SELECT COUNT(*) FROM reconciliation_runs WHERE reconciliation_id='$PAY_ID'")
+
+# Re-run payroll — historical run preserved
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/reconciliations/$PAY_ID" \
+  -H 'content-type: application/json' -d '{"action":"rerun"}')
+echo "$RESP" > "$COOKIE_DIR/recon-rerun.json"
+assert "payroll rerun ok" grep -q '"ok":true' "$COOKIE_DIR/recon-rerun.json"
+RUNS2=$(sqlite3 data/ledger.db "SELECT COUNT(*) FROM reconciliation_runs WHERE reconciliation_id='$PAY_ID'")
+assert "historical reconciliation run preserved" test "$RUNS2" -gt "$RUNS1"
+
+# AI analysis must not mutate locked amounts
+CTRL_BEFORE=$(sqlite3 data/ledger.db "SELECT control_amount_cents FROM reconciliations WHERE id='$PAY_ID'")
+DIFF_BEFORE=$(sqlite3 data/ledger.db "SELECT difference_cents FROM reconciliations WHERE id='$PAY_ID'")
+STATUS_BEFORE=$(sqlite3 data/ledger.db "SELECT status FROM reconciliations WHERE id='$PAY_ID'")
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/reconciliations/$PAY_ID" \
+  -H 'content-type: application/json' -d '{"action":"analyze"}')
+echo "$RESP" > "$COOKIE_DIR/recon-analyze.json"
+assert "AI analysis generated" grep -q '"ok":true' "$COOKIE_DIR/recon-analyze.json"
+assert "AI analysis requires review" grep -q 'requiresProfessionalReview' "$COOKIE_DIR/recon-analyze.json"
+CTRL_AFTER=$(sqlite3 data/ledger.db "SELECT control_amount_cents FROM reconciliations WHERE id='$PAY_ID'")
+DIFF_AFTER=$(sqlite3 data/ledger.db "SELECT difference_cents FROM reconciliations WHERE id='$PAY_ID'")
+STATUS_AFTER=$(sqlite3 data/ledger.db "SELECT status FROM reconciliations WHERE id='$PAY_ID'")
+assert "AI does not change control amount" test "$CTRL_BEFORE" = "$CTRL_AFTER"
+assert "AI does not change difference" test "$DIFF_BEFORE" = "$DIFF_AFTER"
+assert "AI does not change status" test "$STATUS_BEFORE" = "$STATUS_AFTER"
+
+RECON_FP_AFTER=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM payroll_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM fpa_model_runs WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM tax_issues WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM accounting_research_issues WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM source_documents WHERE client_id='$CLIENT_ID' AND status='APPROVED');
+")
+# Approved doc count may rise from AR/debt uploads in this section — compare books only
+RECON_FP_BEFORE_BOOKS=$(echo "$RECON_FP_BEFORE" | cut -d'|' -f1-8)
+RECON_FP_AFTER_BOOKS=$(echo "$RECON_FP_AFTER" | cut -d'|' -f1-8)
+assert "recon does not mutate actuals/releases/fpa/tax/research" test "$RECON_FP_BEFORE_BOOKS" = "$RECON_FP_AFTER_BOOKS"
+
+# Bookkeeper can view/run; client cannot
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/books.jar" "$BASE/api/reconciliations/$PAY_ID")
+assert "bookkeeper can view reconciliation" test "$CODE" = "200"
+
+# Readiness signals present; publish gate not rewritten by this section
+assert "readiness signals present" grep -q 'allRequiredComplete' "$COOKIE_DIR/recon-pack.json"
+
 echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1
 fi
+
 

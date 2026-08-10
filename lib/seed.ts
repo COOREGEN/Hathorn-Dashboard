@@ -73,6 +73,10 @@ const WIPE = [
   "accounting_research_issues",
   "accounting_source_chunks",
   "accounting_sources",
+  "accounting_exceptions",
+  "reconciliation_runs",
+  "reconciliations",
+  "client_reconciliation_config",
 ];
 for (const t of WIPE) {
   try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }

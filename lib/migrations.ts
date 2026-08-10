@@ -943,6 +943,98 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 23,
+    name: "reconciliation_intelligence",
+    up: (db) => {
+      /**
+       * Reconciliation + sub-ledger intelligence.
+       * Deterministic tie-outs only — never posts GL / QBO / releases.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS client_reconciliation_config (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          reconciliation_type TEXT NOT NULL,
+          requirement TEXT NOT NULL DEFAULT 'REQUIRED',
+          absolute_tolerance_cents INTEGER NOT NULL DEFAULT 100,
+          percentage_tolerance REAL DEFAULT NULL,
+          tolerance_source TEXT NOT NULL DEFAULT 'FIRM_DEFAULT',
+          enabled INTEGER NOT NULL DEFAULT 1,
+          UNIQUE(client_id, reconciliation_type)
+        );
+        CREATE INDEX IF NOT EXISTS idx_recon_cfg_client ON client_reconciliation_config(client_id);
+
+        CREATE TABLE IF NOT EXISTS reconciliations (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          period_id TEXT NOT NULL,
+          reconciliation_type TEXT NOT NULL,
+          control_source TEXT NOT NULL,
+          supporting_source TEXT NOT NULL,
+          control_amount_cents INTEGER DEFAULT NULL,
+          supporting_amount_cents INTEGER DEFAULT NULL,
+          difference_cents INTEGER DEFAULT NULL,
+          absolute_difference_cents INTEGER DEFAULT NULL,
+          percentage_difference REAL DEFAULT NULL,
+          tolerance_cents INTEGER NOT NULL DEFAULT 0,
+          tolerance_source TEXT NOT NULL DEFAULT 'FIRM_DEFAULT',
+          status TEXT NOT NULL,
+          readiness TEXT NOT NULL DEFAULT 'NEEDS_DATA',
+          issues_json TEXT NOT NULL DEFAULT '[]',
+          source_refs_json TEXT NOT NULL DEFAULT '{}',
+          latest_run_id TEXT DEFAULT NULL,
+          analysis_json TEXT DEFAULT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          reviewed_by TEXT DEFAULT NULL,
+          reviewed_at TEXT DEFAULT NULL,
+          UNIQUE(client_id, period_id, reconciliation_type)
+        );
+        CREATE INDEX IF NOT EXISTS idx_recon_client_period ON reconciliations(client_id, period_id);
+
+        CREATE TABLE IF NOT EXISTS reconciliation_runs (
+          id TEXT PRIMARY KEY,
+          reconciliation_id TEXT NOT NULL,
+          control_snapshot TEXT NOT NULL,
+          supporting_snapshot TEXT NOT NULL,
+          difference_cents INTEGER DEFAULT NULL,
+          status TEXT NOT NULL,
+          readiness TEXT NOT NULL,
+          issues_json TEXT NOT NULL DEFAULT '[]',
+          source_refs_json TEXT NOT NULL DEFAULT '{}',
+          engine_version TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_recon_runs ON reconciliation_runs(reconciliation_id, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS accounting_exceptions (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          period_id TEXT NOT NULL,
+          reconciliation_id TEXT DEFAULT NULL,
+          reconciliation_run_id TEXT DEFAULT NULL,
+          type TEXT NOT NULL,
+          severity TEXT NOT NULL,
+          title TEXT NOT NULL,
+          description TEXT NOT NULL,
+          source_refs_json TEXT NOT NULL DEFAULT '{}',
+          status TEXT NOT NULL DEFAULT 'OPEN',
+          assigned_to TEXT DEFAULT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          resolved_at TEXT DEFAULT NULL,
+          resolved_by TEXT DEFAULT NULL,
+          resolution_note TEXT DEFAULT NULL,
+          resolution_category TEXT DEFAULT NULL,
+          accepted_difference_cents INTEGER DEFAULT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_acct_exc_client ON accounting_exceptions(client_id, period_id, status);
+      `);
+    },
+  },
 ];
 
 /**

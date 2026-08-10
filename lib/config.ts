@@ -166,6 +166,16 @@ export const config = {
       String(process.env.RAGFLOW_ENABLED ?? "0").toLowerCase(),
     ),
   },
+
+  /**
+   * Reconciliation + sub-ledger intelligence (native, deterministic).
+   * Default on; does not alter publish gate requirements.
+   */
+  reconciliation: {
+    enabled: !["0", "false", "no", "off", ""].includes(
+      String(process.env.RECONCILIATION_ENABLED ?? "1").toLowerCase(),
+    ),
+  },
 };
 
 /** Human-readable startup report — surfaced on the admin page so nothing is a mystery. */
@@ -197,5 +207,7 @@ export function integrationStatus() {
       hint: config.accountingGuidance.ragflowEnabled
         ? "RAGFlow flag on — native retrieval remains the supported path until a service is wired."
         : "Native source-backed technical research (leases pilot). RAGFlow deferred. No unauthorized ASC corpus." },
+    { name: "Reconciliations", enabled: config.reconciliation.enabled,
+      hint: "Deterministic payroll / AR / debt tie-outs with exceptions. Readiness signals only — publish gate unchanged." },
   ];
 }
