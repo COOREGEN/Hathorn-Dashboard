@@ -181,5 +181,6 @@ export const config = {
     "/api/firm/:path*", "/api/platform/:path*", "/api/ops/:path*", "/api/copilot/:path*", "/api/intelligence/:path*",
     "/api/client-portal/:path*",
     "/api/portal/:path*", "/api/auth/:path*",
+    "/api/health", "/api/health/:path*",
   ],
 };
