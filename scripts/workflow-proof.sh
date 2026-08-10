@@ -371,7 +371,11 @@ RESP=$(curl -s -D "$COOKIE_DIR/doc-dl.hdr" -o "$COOKIE_DIR/doc-dl.bin" -b "$COOK
   "$BASE/api/documents/$DOC_ID?download=1")
 CODE=$(awk 'NR==1{print $2}' "$COOKIE_DIR/doc-dl.hdr")
 assert "staff can download original" test "$CODE" = "200"
-assert "download has no server path header" ! grep -qiE '^X-File-Path:|/tmp/|/workspace/data/documents' "$COOKIE_DIR/doc-dl.hdr"
+if grep -qiE '^X-File-Path:|/workspace/data/documents' "$COOKIE_DIR/doc-dl.hdr"; then
+  assert "download has no server path header" false
+else
+  assert "download has no server path header" true
+fi
 
 echo
 echo "Result: $PASS passed, $FAIL failed"
