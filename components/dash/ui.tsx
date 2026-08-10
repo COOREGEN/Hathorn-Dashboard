@@ -7,6 +7,7 @@
 import { fmtK } from "@/lib/metrics";
 
 export const money = (n: number) => {
+  if (n == null || !Number.isFinite(n)) return "—";
   const s = n < 0 ? "−" : "", v = Math.abs(n);
   return v >= 1000 ? `${s}$${(v / 1000).toFixed(2)}M` : `${s}$${v.toFixed(1)}K`;
 };
