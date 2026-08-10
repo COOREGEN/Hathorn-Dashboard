@@ -8,7 +8,7 @@ Release candidate visual and interaction audit. Screenshots under `/opt/cursor/a
 
 **What we fixed:** Product naming (Dashboard not Ledger); login product mark; Firm vs Firm ops labels; Vendors honesty; favicon; formatter NaN guards.
 
-**Remaining design work:** Secondary modules (Tax, Guidance, Planning, etc.) live on Today’s practice footer and the dashboard rail rather than the masthead — keep that discoverable on first login.
+**Remaining design work:** Secondary modules (Intelligence, Client Experience, Tax, Guidance, Planning, etc.) live on Today’s practice footer and the dashboard rail rather than the masthead — keep that discoverable on first login.
 
 ---
 

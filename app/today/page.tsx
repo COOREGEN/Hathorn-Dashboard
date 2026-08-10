@@ -193,6 +193,8 @@ export default async function Today() {
         }}>
           <Link href="/portfolio" style={{ color: "var(--ink)", textDecoration: "none" }}>Attention</Link>
           <Link href="/clients" style={{ color: "var(--ink)", textDecoration: "none" }}>Clients</Link>
+          <Link href="/intelligence" style={{ color: "var(--ink)", textDecoration: "none" }}>Intelligence</Link>
+          <Link href="/client-experience" style={{ color: "var(--ink)", textDecoration: "none" }}>Client Experience</Link>
           <Link href="/planning" style={{ color: "var(--ink)", textDecoration: "none" }}>Planning</Link>
           <Link href="/documents" style={{ color: "var(--ink)", textDecoration: "none" }}>Documents</Link>
           <Link href="/tax" style={{ color: "var(--ink)", textDecoration: "none" }}>Tax</Link>

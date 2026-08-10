@@ -59,6 +59,7 @@ Temporal · Appsmith · Billing · Multi-region · Kafka · OpenFGA · Public st
 |---|---|
 | Favicon 404 | **FIXED** — `/favicon.svg` |
 | Staff masthead link density | **FIXED** — primary 9 links; full set on Today footer + dash rail |
+| Critical-path smoke script | **ADDED** — `npm run smoke` (11/11 on RC tip after rebuild) |
 | Module overlap (Intelligence / Today / Close) | Acceptable summary→drill-down; not collapsed this RC |
 | CashOutlookChart explanatory stub | Honest empty — not fake chart |
 | `restore-check` fails if live DB diverges after proof | Expected; re-seed + backup before check |
@@ -132,5 +133,6 @@ Release checksum unchanged after working P&L +$50K mutation (**immutability conf
 | `npm run copilot:test` | 20 passed |
 | `npm run client-portal:test` | 8 passed |
 | `npm run proof` | **216 passed, 0 failed** |
+| `npm run smoke` | **11 passed, 0 failed** |
 | `npm run restore-check` | OK (fresh backup) |
 | Browser visual QA | PASS (login, today, dash, portal desktop/mobile) |
