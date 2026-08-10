@@ -50,15 +50,6 @@ function withTempDb(fn: () => Promise<void>) {
   });
 }
 
-function ensureTestFirm(): string {
-  const existing: any = db().prepare("SELECT id FROM firms WHERE slug='test-firm'").get();
-  if (existing) return existing.id as string;
-  const fid = uid();
-  db().prepare(`INSERT INTO firms (id, name, slug, status, brand_primary, brand_accent, logo_text, report_footer)
-    VALUES (?,?,?,'ACTIVE',?,?,?,?)`).run(fid, "Test Firm", "test-firm", "#2C504D", "#DB5928", "TEST", "Prepared by Test Firm");
-  return fid;
-}
-
 function seedClient(): string {
   const id = uid();
   const firmId = ensureTestFirm();
