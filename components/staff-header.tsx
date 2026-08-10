@@ -27,6 +27,7 @@ export default function StaffHeader({
   const nav = [
     { href: "/", label: "Today" },
     { href: "/ask", label: "Ask Hathorn" },
+    { href: "/intelligence", label: "Intelligence" },
     { href: "/portfolio", label: "Attention" },
     { href: "/clients", label: "Clients" },
     { href: "/planning", label: "Planning" },

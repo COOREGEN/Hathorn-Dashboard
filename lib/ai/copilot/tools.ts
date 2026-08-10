@@ -30,6 +30,16 @@ import {
 import { ragflowStatus } from "../../research/ragflow";
 import { loadPortfolio, assessClient } from "../../portfolio";
 import { listClientsForFirm } from "../../tenancy";
+import {
+  cashIntelligence,
+  computeTrend,
+  CORE_METRICS,
+  entityProfitability,
+  forecastIntelligence,
+  opexDriverBridge,
+  revenueDriverBridge,
+  syncSignalsForPeriod,
+} from "../../intelligence";
 import { cite, sanitizeForPrompt } from "./citations";
 import { formatK, formatPct, marginPct, varianceBlock } from "./calc";
 import type { CopilotContext, CopilotToolResult, ToolTrace } from "./types";
@@ -828,6 +838,178 @@ const TOOLS: ToolDef[] = [
           })),
         },
         citations: [cite({ sourceType: "portfolio", title: "Attention digest" })],
+      };
+    },
+  },
+  {
+    name: "getFinancialSignals",
+    label: "Financial signals",
+    description: "Deterministic financial signals / anomalies (not accounting exceptions).",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const period = resolvePeriodId(clientId, args, ctx);
+      if (!period) {
+        return { ok: true, sourceStatus: "INSUFFICIENT_DATA", warnings: ["No period."], data: null };
+      }
+      const hist = clientHistory(clientId, false);
+      const signals = syncSignalsForPeriod({
+        firmId: ctx.firmId,
+        clientId,
+        periodId: period.periodId,
+        history: hist,
+        actorId: ctx.userId,
+      });
+      return {
+        ok: true,
+        sourceStatus: signals.length ? "SUPPORTED_BY_SOURCE_DATA" : "PARTIALLY_SUPPORTED",
+        data: {
+          period: period.label,
+          signals: signals.map((s) => ({
+            id: s.id, title: s.title, severity: s.severity, method: s.method,
+            metricKey: s.metricKey, detectedValue: s.detectedValue,
+            referenceValue: s.referenceValue, difference: s.difference,
+            differencePct: s.differencePct, status: s.status,
+          })),
+        },
+        citations: signals.slice(0, 8).map((s) => cite({
+          sourceType: "financial_signal", sourceId: s.id,
+          title: s.title, clientId, period: period.label,
+        })),
+        warnings: signals.length ? undefined : ["No material signals under configured thresholds."],
+      };
+    },
+  },
+  {
+    name: "getProfitabilityAnalysis",
+    label: "Profitability",
+    description: "Entity direct profitability; states unavailable dimensions honestly.",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const period = resolvePeriodId(clientId, args, ctx);
+      if (!period) {
+        return { ok: true, sourceStatus: "INSUFFICIENT_DATA", warnings: ["No period."], data: null };
+      }
+      const m = computePeriod(period.periodId);
+      const report = entityProfitability(m, clientId, { allocateOpex: true });
+      return {
+        ok: true,
+        sourceStatus: report.availability === "WORKING" ? "SUPPORTED_BY_SOURCE_DATA" : "INSUFFICIENT_DATA",
+        data: {
+          period: period.label,
+          availability: report.availability,
+          sourceQuality: report.sourceQuality,
+          unavailable: ["Customer", "Project", "Job", "Location", "Department"],
+          rows: report.rows.slice(0, 20),
+          concentration: report.concentration,
+          allocation: report.allocation,
+        },
+        citations: [cite({
+          sourceType: "financial_period", sourceId: period.periodId,
+          title: `Entity profitability ${period.label}`, clientId, period: period.label,
+        })],
+        warnings: [
+          "Customer profitability is UNAVAILABLE — AR payers are not costed customers.",
+        ],
+      };
+    },
+  },
+  {
+    name: "getTrendAnalysis",
+    label: "Trends",
+    description: "MoM / YoY deterministic trends for core metrics.",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const period = resolvePeriodId(clientId, args, ctx);
+      const hist = clientHistory(clientId, false);
+      const keys = ["revenue", "grossMarginPct", "opex", "cash", "arTotal", "totalPayroll"];
+      const trends = keys.map((key) => {
+        const metric = CORE_METRICS.find((m) => m.key === key)!;
+        return computeTrend(hist, metric, "MoM", period?.periodId);
+      });
+      return {
+        ok: true,
+        sourceStatus: "SUPPORTED_BY_SOURCE_DATA",
+        data: { period: period?.label || null, trends },
+        citations: period
+          ? [cite({
+              sourceType: "calculation", sourceId: period.periodId,
+              title: "Trend analysis", clientId, period: period.label,
+            })]
+          : [],
+      };
+    },
+  },
+  {
+    name: "getCashIntelligence",
+    label: "Cash intelligence",
+    description: "Cash change, burn basis, runway when applicable.",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const period = resolvePeriodId(clientId, args, ctx);
+      if (!period) {
+        return { ok: true, sourceStatus: "INSUFFICIENT_DATA", warnings: ["No period."], data: null };
+      }
+      const hist = clientHistory(clientId, false);
+      const cash = cashIntelligence(hist, period.periodId, "3m_avg");
+      return {
+        ok: true,
+        sourceStatus: "SUPPORTED_BY_SOURCE_DATA",
+        data: { period: period.label, cash },
+        citations: [cite({
+          sourceType: "financial_period", sourceId: period.periodId,
+          title: `Cash ${period.label}`, clientId, period: period.label,
+        })],
+        warnings: cash.runwayApplicable ? undefined : [cash.runwayReason],
+      };
+    },
+  },
+  {
+    name: "getDriverAnalysis",
+    label: "Drivers",
+    description: "Entity revenue bridge and OPEX label decomposition.",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const period = resolvePeriodId(clientId, args, ctx);
+      if (!period) {
+        return { ok: true, sourceStatus: "INSUFFICIENT_DATA", warnings: ["No period."], data: null };
+      }
+      const hist = clientHistory(clientId, false);
+      const idx = hist.findIndex((p) => p.periodId === period.periodId);
+      const cur = idx >= 0 ? hist[idx] : computePeriod(period.periodId);
+      const prior = idx > 0 ? hist[idx - 1] : null;
+      const revenue = revenueDriverBridge(cur, prior);
+      const opex = opexDriverBridge(cur, prior);
+      return {
+        ok: true,
+        sourceStatus: prior ? "SUPPORTED_BY_SOURCE_DATA" : "PARTIALLY_SUPPORTED",
+        data: { period: period.label, revenue, opex },
+        citations: [cite({
+          sourceType: "calculation", sourceId: period.periodId,
+          title: "Driver analysis", clientId, period: period.label,
+        })],
+        warnings: prior ? revenue.notes : ["No prior period — drivers limited."],
+      };
+    },
+  },
+  {
+    name: "getForecastAccuracy",
+    label: "Forecast intelligence",
+    description: "FP&A vs historical trend projection and forecast error when available.",
+    run: (ctx, args) => {
+      const clientId = requireClient(ctx, args.clientId as string | undefined);
+      const hist = clientHistory(clientId, false);
+      const fi = forecastIntelligence(clientId, hist);
+      return {
+        ok: true,
+        sourceStatus: fi.available ? "SUPPORTED_BY_SOURCE_DATA" : "INSUFFICIENT_DATA",
+        data: fi,
+        citations: fi.management
+          ? [cite({
+              sourceType: "fpa_model_run", sourceId: fi.management.runId,
+              title: `FP&A ${fi.management.scenario}`, clientId,
+            })]
+          : [cite({ sourceType: "calculation", title: "Trend projection" })],
+        warnings: fi.available ? undefined : [fi.reason || "Unavailable"],
       };
     },
   },

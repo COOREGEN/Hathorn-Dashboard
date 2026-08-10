@@ -29,6 +29,7 @@ const GUARDS: [string, string[]][] = [
   ["/api/firm", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/api/platform", ["ADMIN"]],
   ["/api/copilot", ["ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT"]],
+  ["/api/intelligence", ["ADMIN", "ADVISOR"]],
   ["/api/portal/pdf", ["ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT"]],
   ["/api/auth/mfa/setup", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   // Pages — internal advisory book. Portal is staff preview of a locked statement.
@@ -37,6 +38,7 @@ const GUARDS: [string, string[]][] = [
   ["/admin", ["ADMIN", "ADVISOR"]],
   ["/account", ["ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT"]],
   ["/ask", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
+  ["/intelligence", ["ADMIN", "ADVISOR"]],
   ["/dash", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/today", ["ADMIN", "ADVISOR"]],
   ["/portfolio", ["ADMIN", "ADVISOR"]],
@@ -136,7 +138,7 @@ export async function middleware(req: NextRequest) {
  */
 export const config = {
   matcher: [
-    "/admin/:path*", "/firm/:path*", "/platform/:path*", "/account/:path*", "/ask/:path*", "/dash/:path*", "/today/:path*", "/portfolio/:path*",
+    "/admin/:path*", "/firm/:path*", "/platform/:path*", "/account/:path*", "/ask/:path*", "/intelligence/:path*", "/dash/:path*", "/today/:path*", "/portfolio/:path*",
     "/clients/:path*", "/engagement/:path*", "/planning/:path*", "/documents/:path*", "/tax/:path*", "/guidance/:path*", "/reconciliations/:path*", "/integrations/:path*", "/close/:path*", "/exceptions/:path*", "/review/:path*", "/upload/:path*", "/portal/:path*",
     "/api/admin/:path*", "/api/approve/:path*", "/api/notes/:path*",
     "/api/upload/:path*", "/api/comments/:path*",
@@ -145,7 +147,7 @@ export const config = {
     "/api/documents/:path*", "/api/tax/:path*", "/api/research/:path*",
     "/api/reconciliations/:path*", "/api/integrations/:path*",
     "/api/close/:path*", "/api/exceptions/:path*",
-    "/api/firm/:path*", "/api/platform/:path*", "/api/copilot/:path*",
+    "/api/firm/:path*", "/api/platform/:path*", "/api/copilot/:path*", "/api/intelligence/:path*",
     "/api/portal/:path*", "/api/auth/:path*",
   ],
 };

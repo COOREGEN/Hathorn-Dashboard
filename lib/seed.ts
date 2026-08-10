@@ -90,6 +90,10 @@ const WIPE = [
   "firms",
   "copilot_messages",
   "copilot_conversations",
+  "financial_intelligence_runs",
+  "financial_signals",
+  "financial_signal_policies",
+  "cost_allocation_rules",
   "login_attempts",
   "rate_events",
 ];

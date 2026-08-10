@@ -199,6 +199,10 @@ export const TRANSFER_ORDER = [
   "close_events",
   "copilot_conversations",
   "copilot_messages",
+  "cost_allocation_rules",
+  "financial_signal_policies",
+  "financial_signals",
+  "financial_intelligence_runs",
   "audit_logs",
 ] as const;
 

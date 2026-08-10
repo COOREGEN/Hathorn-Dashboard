@@ -19,6 +19,12 @@ export const STAFF_TOOLS = [
   "searchAccountingGuidance",
   "getClientPortfolioStatus",
   "getAttentionDigest",
+  "getFinancialSignals",
+  "getProfitabilityAnalysis",
+  "getTrendAnalysis",
+  "getCashIntelligence",
+  "getDriverAnalysis",
+  "getForecastAccuracy",
   "resolvePeriod",
 ] as const;
 

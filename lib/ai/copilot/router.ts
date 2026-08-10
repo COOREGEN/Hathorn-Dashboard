@@ -6,6 +6,22 @@ import type { CopilotIntent } from "./types";
 
 const RULES: { intent: CopilotIntent; patterns: RegExp[] }[] = [
   {
+    intent: "INTELLIGENCE",
+    patterns: [
+      /\bwhat'?s happening\b/i,
+      /\bwhere (are we|do we) (making|losing) money\b/i,
+      /\bwhat changed this month\b/i,
+      /\bwhat should management investigate\b/i,
+      /\bprofitability\b/i,
+      /\banomal(?:y|ies)\b/i,
+      /\bfinancial signals?\b/i,
+      /\bwhy did (gross )?margin\b/i,
+      /\bdriver analysis\b/i,
+      /\bcash (runway|burn|intelligence)\b/i,
+      /\btrend projection\b/i,
+    ],
+  },
+  {
     intent: "ATTENTION",
     patterns: [
       /\bwhat needs (my |our )?attention\b/i,
@@ -175,6 +191,18 @@ export function toolPlanForIntent(
 
   const client = opts.hasClient;
   switch (intent) {
+    case "INTELLIGENCE":
+      return client
+        ? [
+            "resolvePeriod",
+            "getFinancialSignals",
+            "getProfitabilityAnalysis",
+            "getDriverAnalysis",
+            "getTrendAnalysis",
+            "getCashIntelligence",
+            "getForecastAccuracy",
+          ]
+        : ["getAttentionDigest", "getFinancialSignals"];
     case "ATTENTION":
       return ["getAttentionDigest"];
     case "PORTFOLIO":
@@ -218,11 +246,11 @@ export function toolPlanForIntent(
           : ["getClientPortfolioStatus"];
       }
       return client
-        ? ["resolvePeriod", "getFinancialSummary", "getMetricHistory", "getPublishedRelease"]
+        ? ["resolvePeriod", "getFinancialSummary", "getMetricHistory", "getDriverAnalysis", "getFinancialSignals", "getPublishedRelease"]
         : ["getClientPortfolioStatus", "getAttentionDigest"];
     case "GENERAL_CLIENT_CONTEXT":
       return client
-        ? ["resolvePeriod", "getFinancialSummary", "getCloseStatus", "getExceptions"]
+        ? ["resolvePeriod", "getFinancialSummary", "getFinancialSignals", "getCloseStatus", "getExceptions"]
         : ["getAttentionDigest"];
     default:
       return client ? ["getFinancialSummary"] : ["getAttentionDigest"];

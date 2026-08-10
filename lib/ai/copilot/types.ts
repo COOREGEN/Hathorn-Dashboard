@@ -17,6 +17,7 @@ export type CopilotIntent =
   | "PORTFOLIO"
   | "MEETING_PREP"
   | "ATTENTION"
+  | "INTELLIGENCE"
   | "GENERAL_CLIENT_CONTEXT"
   | "UNSUPPORTED";
 
@@ -44,7 +45,9 @@ export type CopilotCitation = {
     | "accounting_source"
     | "accounting_issue"
     | "portfolio"
-    | "calculation";
+    | "calculation"
+    | "financial_signal"
+    | "intelligence_run";
   sourceId?: string;
   title: string;
   clientId?: string;

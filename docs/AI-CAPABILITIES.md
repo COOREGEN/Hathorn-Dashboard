@@ -227,6 +227,31 @@ Advisor draft story notes are **not** exposed as a separate Copilot write/read t
 
 ---
 
+## Financial Intelligence (Phase 10)
+
+| Field | Value |
+|---|---|
+| Capability | Deterministic financial signals / anomalies |
+| Source | `lib/intelligence` anomaly + signal engines |
+| Tool | `getFinancialSignals` |
+| Deterministic | YES |
+| Client Visible | NO |
+| Staff Visible | YES |
+| Can Modify Data | NO (signal status updates are staff review, not GL writes) |
+
+| Field | Value |
+|---|---|
+| Capability | Entity profitability / trend / cash / drivers / forecast compare |
+| Source | PeriodMetrics + FP&A runs + allocation rules |
+| Tools | `getProfitabilityAnalysis`, `getTrendAnalysis`, `getCashIntelligence`, `getDriverAnalysis`, `getForecastAccuracy` |
+| Deterministic | YES (AI explains only) |
+| Client Visible | NO |
+| Staff Visible | YES (`/intelligence`) |
+| Can Modify Data | NO |
+| Notes | Customer/project/job/location profitability UNAVAILABLE — no ledger dimensions. Benchmarking DEFERRED. |
+
+---
+
 ## Explicitly NOT exposed
 
 - Raw SQL / DB credentials / shell / arbitrary HTTP  
@@ -235,3 +260,4 @@ Advisor draft story notes are **not** exposed as a separate Copilot write/read t
 - Autonomous agent loops  
 - Generic web search  
 - Forge / Fact Graph / RAGFlow as authoritative truth when blocked or experimental  
+- Black-box ML financial-health scores / autonomous expense or staffing decisions  

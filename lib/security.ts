@@ -144,4 +144,5 @@ export const LIMITS = {
   reconAnalyze: { max: 20, windowMinutes: 60 },
   integrationSync: { max: 40, windowMinutes: 60 },
   copilot: { max: 40, windowMinutes: 60 },
+  intelligence: { max: 40, windowMinutes: 60 },
 };

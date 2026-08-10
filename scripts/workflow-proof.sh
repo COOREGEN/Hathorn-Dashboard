@@ -931,6 +931,30 @@ assert "financial ask ok" grep -q '"ok":true' "$COOKIE_DIR/copilot-fin.json"
 assert "financial ask has citations or status" grep -Eq '"citations"|"sourceStatus"' "$COOKIE_DIR/copilot-fin.json"
 
 echo
+echo "19. Financial Intelligence"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" "$BASE/intelligence")
+assert "admin reaches /intelligence" test "$CODE" = "200"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/intelligence")
+assert "client blocked from /intelligence" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/books.jar" "$BASE/intelligence")
+assert "bookkeeper blocked from /intelligence" test "$CODE" = "307" -o "$CODE" = "403"
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/api/intelligence?clientId=$CLIENT_ID")
+echo "$RESP" > "$COOKIE_DIR/fi-overview.json"
+assert "intelligence overview ok" grep -q '"ok":true' "$COOKIE_DIR/fi-overview.json"
+assert "intelligence has engineVersion" grep -q '"engineVersion":"1.0.0"' "$COOKIE_DIR/fi-overview.json"
+assert "intelligence marks customer unavailable" grep -qi 'UNAVAILABLE\|Customer' "$COOKIE_DIR/fi-overview.json"
+assert "intelligence has profitability" grep -q '"profitability"' "$COOKIE_DIR/fi-overview.json"
+assert "intelligence has cash" grep -q '"runwayApplicable"' "$COOKIE_DIR/fi-overview.json"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" "$BASE/api/intelligence?clientId=$CLIENT_ID")
+assert "Firm B blocked from Firm A intelligence" test "$CODE" = "403" -o "$CODE" = "400"
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/copilot" \
+  -H 'content-type: application/json' \
+  -d "{\"question\":\"What changed this month that matters?\",\"clientId\":\"$CLIENT_ID\",\"year\":2026,\"month\":4}")
+echo "$RESP" > "$COOKIE_DIR/copilot-fi.json"
+assert "intelligence ask ok" grep -q '"ok":true' "$COOKIE_DIR/copilot-fi.json"
+assert "intelligence ask used FI tools" grep -Eq 'getFinancialSignals|getDriverAnalysis|getProfitabilityAnalysis|getTrendAnalysis' "$COOKIE_DIR/copilot-fi.json"
+
+echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1

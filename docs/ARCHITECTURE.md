@@ -24,10 +24,11 @@ Authenticated request
 
 - `lib/tenancy.ts` — firms, memberships, orphan report, branding tokens  
 - `lib/auth.ts` — sessions, `requireClientAccess`, platform vs firm admin  
-- `lib/migrations.ts` — append-only schema (#26 multi-tenant, #27 AI Copilot)  
-- `lib/postgres.ts` — offline transfer order (firms before clients; copilot tables included)  
-- Staff UI: `/firm`, `/platform`, `/ask`  
-- APIs: `/api/firm`, `/api/firm/switch`, `/api/platform/firms`, `/api/copilot`  
+- `lib/migrations.ts` — append-only schema (#26 multi-tenant, #27 AI Copilot, #28 Financial Intelligence)  
+- `lib/postgres.ts` — offline transfer order (firms before clients; copilot + intelligence tables included)  
+- `lib/intelligence/` — deterministic FI engines (profitability, trends, anomalies, cash, drivers, signals)  
+- Staff UI: `/firm`, `/platform`, `/ask`, `/intelligence`  
+- APIs: `/api/firm`, `/api/firm/switch`, `/api/platform/firms`, `/api/copilot`, `/api/intelligence`  
 
 ## White-label
 
@@ -56,3 +57,19 @@ AI explanation (optional; grounded fallback without API key)
 ```
 
 See `docs/AI-COPILOT.md`, `docs/AI-SECURITY.md`, `docs/AI-CAPABILITIES.md`.
+
+## Financial Intelligence (Phase 10)
+
+```
+Accounting + ops + history + planning
+  ↓
+Deterministic metrics (KPI registry / PeriodMetrics)
+  ↓
+Profitability · Trends · Anomalies · Drivers · Cash · Forecast compare
+  ↓
+Durable financial signals (≠ accounting exceptions)
+  ↓
+AI explanation (optional) → advisor judgment
+```
+
+Staff-only. No cross-firm benchmarking. No ML stack. See `docs/FINANCIAL-INTELLIGENCE.md`.

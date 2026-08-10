@@ -1382,6 +1382,101 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 28,
+    name: "financial_intelligence",
+    up: (db) => {
+      /**
+       * Advanced Financial Intelligence — deterministic signals, allocation policy,
+       * and reproducible analysis runs. Never invents dimensions the ledger lacks.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS cost_allocation_rules (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          cost_pool TEXT NOT NULL,
+          target_dimension TEXT NOT NULL DEFAULT 'ENTITY',
+          allocation_method TEXT NOT NULL,
+          driver_key TEXT DEFAULT NULL,
+          version INTEGER NOT NULL DEFAULT 1,
+          effective_from TEXT NOT NULL,
+          effective_to TEXT DEFAULT NULL,
+          reason TEXT DEFAULT '',
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          superseded_by TEXT DEFAULT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE'
+        );
+        CREATE INDEX IF NOT EXISTS idx_alloc_rules_client
+          ON cost_allocation_rules(client_id, status, effective_from);
+
+        CREATE TABLE IF NOT EXISTS financial_signal_policies (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          client_id TEXT DEFAULT NULL,
+          metric_key TEXT NOT NULL,
+          method TEXT NOT NULL,
+          threshold REAL NOT NULL,
+          severity TEXT NOT NULL DEFAULT 'WARNING',
+          enabled INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(firm_id, client_id, metric_key, method)
+        );
+        CREATE INDEX IF NOT EXISTS idx_signal_policies_firm
+          ON financial_signal_policies(firm_id, enabled);
+
+        CREATE TABLE IF NOT EXISTS financial_signals (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          period_id TEXT NOT NULL,
+          signal_key TEXT NOT NULL,
+          signal_type TEXT NOT NULL,
+          metric_key TEXT NOT NULL,
+          severity TEXT NOT NULL,
+          title TEXT NOT NULL,
+          detected_value REAL,
+          reference_value REAL,
+          difference REAL,
+          difference_pct REAL,
+          method TEXT NOT NULL,
+          threshold REAL,
+          status TEXT NOT NULL DEFAULT 'NEW',
+          source_refs_json TEXT NOT NULL DEFAULT '[]',
+          detail_json TEXT NOT NULL DEFAULT '{}',
+          policy_version TEXT DEFAULT NULL,
+          engine_version TEXT NOT NULL,
+          detected_at TEXT DEFAULT (datetime('now')),
+          reviewed_by TEXT DEFAULT NULL,
+          reviewed_at TEXT DEFAULT NULL,
+          UNIQUE(client_id, period_id, signal_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_fin_signals_client
+          ON financial_signals(client_id, period_id, status);
+        CREATE INDEX IF NOT EXISTS idx_fin_signals_firm
+          ON financial_signals(firm_id, status, detected_at DESC);
+
+        CREATE TABLE IF NOT EXISTS financial_intelligence_runs (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          client_id TEXT NOT NULL,
+          period_id TEXT NOT NULL,
+          source_kind TEXT NOT NULL,
+          source_release_id TEXT DEFAULT NULL,
+          source_data_version TEXT NOT NULL,
+          engine_version TEXT NOT NULL,
+          policy_version TEXT NOT NULL,
+          results_json TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_fi_runs_client
+          ON financial_intelligence_runs(client_id, period_id, created_at DESC);
+      `);
+    },
+  },
 ];
 
 /**
