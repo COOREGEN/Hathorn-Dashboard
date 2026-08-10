@@ -1,4 +1,4 @@
-# Architecture — Hathorn Dashboard (Phase 8)
+# Architecture — Hathorn Dashboard
 
 ## Product vs firm
 
@@ -24,11 +24,35 @@ Authenticated request
 
 - `lib/tenancy.ts` — firms, memberships, orphan report, branding tokens  
 - `lib/auth.ts` — sessions, `requireClientAccess`, platform vs firm admin  
-- `lib/migrations.ts` #26 — schema  
-- `lib/postgres.ts` — offline transfer order (firms before clients)  
-- Staff UI: `/firm`, `/platform`  
-- APIs: `/api/firm`, `/api/firm/switch`, `/api/platform/firms`  
+- `lib/migrations.ts` — append-only schema (#26 multi-tenant, #27 AI Copilot)  
+- `lib/postgres.ts` — offline transfer order (firms before clients; copilot tables included)  
+- Staff UI: `/firm`, `/platform`, `/ask`  
+- APIs: `/api/firm`, `/api/firm/switch`, `/api/platform/firms`, `/api/copilot`  
 
 ## White-label
 
 Controlled tokens on `firms`: name, logo text, primary/accent hex, report footer, portal name, show_platform_mark. **No** arbitrary CSS/JS/HTML.
+
+## Ask Hathorn (Phase 9)
+
+AI is the interface — never wired directly to the database.
+
+```
+User
+  ↓
+Copilot Router (intent + tool plan)
+  ↓
+Permission Layer (role · firm · client · audience registry)
+  ↓
+Tool Registry (explicit read-only tools)
+  ↓
+Domain Services
+  ↓
+Accounting / Planning / Research / Close / Recon / Integrations
+  ↓
+Structured result + citations
+  ↓
+AI explanation (optional; grounded fallback without API key)
+```
+
+See `docs/AI-COPILOT.md`, `docs/AI-SECURITY.md`, `docs/AI-CAPABILITIES.md`.

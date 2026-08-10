@@ -197,6 +197,8 @@ export const TRANSFER_ORDER = [
   "close_runs",
   "close_checklist_items",
   "close_events",
+  "copilot_conversations",
+  "copilot_messages",
   "audit_logs",
 ] as const;
 

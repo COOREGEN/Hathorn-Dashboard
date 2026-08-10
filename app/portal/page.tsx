@@ -10,6 +10,7 @@ import { computePeriods } from "@/lib/metrics";
 import { vertical } from "@/lib/verticals";
 import Dashboard, { type ClientMeta, type GoalRow } from "@/components/dashboard";
 import LogoutButton from "@/components/logout-button";
+import AskPanel from "@/components/copilot/ask-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,16 @@ export default async function Portal({ searchParams }: { searchParams: { client?
         comparabilityByPair={comparabilityByPair}
         confidenceByPeriod={confidenceByPeriod}
         perDayByPeriod={perDayByPeriod} />
+      {s.role === "CLIENT" && (
+        <div className="sheet no-print" style={{ maxWidth: 840, margin: "0 auto", paddingBottom: 48 }}>
+          <AskPanel
+            clientId={clientId}
+            clientName={client.name}
+            periodId={selectedId}
+            periodLabel={periods.find((p: any) => p.periodId === selectedId)?.label || null}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -1342,6 +1342,46 @@ export const MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    id: 27,
+    name: "ai_copilot",
+    up: (db) => {
+      /**
+       * Conversations for Ask Hathorn. Messages store references/citations, not raw
+       * financial dumps or provider payloads. Tool traces are operational metadata —
+       * never chain-of-thought.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS copilot_conversations (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT NOT NULL,
+          user_id TEXT NOT NULL,
+          client_id TEXT DEFAULT NULL,
+          title TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_copilot_conv_user
+          ON copilot_conversations(firm_id, user_id, updated_at DESC);
+
+        CREATE TABLE IF NOT EXISTS copilot_messages (
+          id TEXT PRIMARY KEY,
+          conversation_id TEXT NOT NULL,
+          role TEXT NOT NULL,
+          content TEXT NOT NULL DEFAULT '',
+          source_status TEXT DEFAULT NULL,
+          citations_json TEXT NOT NULL DEFAULT '[]',
+          tools_json TEXT NOT NULL DEFAULT '[]',
+          warnings_json TEXT NOT NULL DEFAULT '[]',
+          model_provider TEXT DEFAULT NULL,
+          model_name TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_copilot_msg_conv
+          ON copilot_messages(conversation_id, created_at);
+      `);
+    },
+  },
 ];
 
 /**

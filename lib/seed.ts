@@ -88,6 +88,8 @@ const WIPE = [
   "close_policies",
   "firm_memberships",
   "firms",
+  "copilot_messages",
+  "copilot_conversations",
   "login_attempts",
   "rate_events",
 ];

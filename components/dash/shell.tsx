@@ -39,6 +39,7 @@ const NAV: { group: string; items: { href: string; label: string; icon: string; 
     group: "Practice",
     items: [
       { href: "/today", label: "Today", icon: "M3 12l9-9 9 9M5 10v10h14V10" },
+      { href: "/ask", label: "Ask Hathorn", icon: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" },
       { href: "/portfolio", label: "Attention", icon: "M3 3v18h18M7 16l4-4 3 2 5-6" },
       { href: "/clients", label: "Clients", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8" },
       { href: "/upload", label: "Upload", icon: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" },
