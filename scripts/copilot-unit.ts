@@ -221,10 +221,12 @@ async function main() {
   });
 
   await check("client tool registry is reduced", () => {
-    assert.ok(CLIENT_TOOLS.includes("getPublishedRelease"));
-    assert.ok(!CLIENT_TOOLS.includes("getExceptions"));
-    assert.ok(!CLIENT_TOOLS.includes("getFinancialSummary"));
-    assert.ok(STAFF_TOOLS.includes("getAttentionDigest"));
+    const client = CLIENT_TOOLS as readonly string[];
+    const staff = STAFF_TOOLS as readonly string[];
+    assert.ok(client.includes("getPublishedRelease"));
+    assert.ok(!client.includes("getExceptions"));
+    assert.ok(!client.includes("getFinancialSummary"));
+    assert.ok(staff.includes("getAttentionDigest"));
   });
 
   await withTempDb(async () => {

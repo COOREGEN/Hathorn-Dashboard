@@ -114,7 +114,7 @@ export async function askCopilot(
 
   // Client asking for internal exceptions / close / recon — refuse without leaking
   if (ctx.audience === "CLIENT") {
-    if (/\b(exception|reconcil|close blocker|integration secret|tax research|technical memo|working books)\b/i.test(question)) {
+    if (/\b(exceptions?|reconcil(?:e|iation|iations)?|close blockers?|integration secrets?|tax research|technical memos?|working books)\b/i.test(question)) {
       return finalize(ctx, conversationId, {
         intent: "UNSUPPORTED",
         answer: "That information is not available in the client portal Copilot.",

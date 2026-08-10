@@ -5,6 +5,7 @@
 
 import { db } from "../../db";
 import { AuthError } from "../../auth";
+import { ValidationError } from "../../validate";
 import { config } from "../../config";
 import { computePeriod, clientHistory } from "../../metrics";
 import { activeRelease, releaseHistory } from "../../release";
@@ -45,7 +46,7 @@ type ToolDef = {
 
 function requireClient(ctx: CopilotContext, clientId?: string | null): string {
   const id = clientId || ctx.clientId;
-  if (!id) throw new AuthError(400, "clientId is required for this question.");
+  if (!id) throw new ValidationError("clientId is required for this question.");
   // Ownership: client's firm must match session firm; staff membership already bound.
   const row: any = db().prepare("SELECT firm_id FROM clients WHERE id=?").get(id);
   if (!row?.firm_id || row.firm_id !== ctx.firmId) {
@@ -318,7 +319,6 @@ const TOOLS: ToolDef[] = [
     label: "Planning",
     description: "Read saved FP&A model runs (not freeform formula execution).",
     run: (ctx, args) => {
-      if (!config) {/* keep */}
       const clientId = requireClient(ctx, args.clientId as string | undefined);
       const runId = args.runId ? String(args.runId) : null;
       const forge = forgeStatus();
@@ -329,8 +329,8 @@ const TOOLS: ToolDef[] = [
         }
         return {
           ok: true,
-          sourceStatus: run.engine === "FORGE" ? "SOURCE_VERIFICATION_REQUIRED" : "SUPPORTED_BY_SOURCE_DATA",
-          warnings: run.engine === "FORGE"
+          sourceStatus: run.engine === "forge" ? "SOURCE_VERIFICATION_REQUIRED" : "SUPPORTED_BY_SOURCE_DATA",
+          warnings: run.engine === "forge"
             ? ["Forge is an experimental pilot — treat as non-authoritative."]
             : undefined,
           data: {
@@ -354,8 +354,8 @@ const TOOLS: ToolDef[] = [
       return {
         ok: true,
         sourceStatus: runs.length ? "SUPPORTED_BY_SOURCE_DATA" : "INSUFFICIENT_DATA",
-        data: { clientId, runs, forge: { enabled: forge.enabled, blocked: forge.blocked, reason: forge.reason } },
-        warnings: forge.enabled && forge.blocked
+        data: { clientId, runs, forge: { enabled: forge.enabled, available: forge.available, reason: forge.reason } },
+        warnings: forge.enabled && !forge.available
           ? [`Forge pilot blocked: ${forge.reason}`]
           : undefined,
       };
@@ -572,7 +572,7 @@ const TOOLS: ToolDef[] = [
       const warnings: string[] = [];
       for (const c of dash.connections) {
         if (c.health === "STALE" || c.status === "RECONNECT_REQUIRED") {
-          warnings.push(`${c.providerKey} is ${c.health || c.status}` +
+          warnings.push(`${c.provider} is ${c.health || c.status}` +
             (c.lastSuccessfulSyncAt ? ` (last success ${c.lastSuccessfulSyncAt})` : ""));
         }
       }
@@ -585,7 +585,7 @@ const TOOLS: ToolDef[] = [
           readiness,
           connections: dash.connections.map((c) => ({
             id: c.id,
-            provider: c.providerKey,
+            provider: c.provider,
             status: c.status,
             health: c.health,
             lastSuccessfulSyncAt: c.lastSuccessfulSyncAt,
@@ -594,7 +594,7 @@ const TOOLS: ToolDef[] = [
         },
         citations: dash.connections.map((c) => cite({
           sourceType: "integration", sourceId: c.id,
-          title: `${c.providerKey} connection`, clientId,
+          title: `${c.provider} connection`, clientId,
         })),
         warnings,
       };
@@ -619,7 +619,7 @@ const TOOLS: ToolDef[] = [
           sourceStatus: draft ? "DRAFT_NOT_FINAL" : "SUPPORTED_BY_SOURCE_DATA",
           warnings: [
             ...(draft ? ["This tax analysis is not finalized — draft only."] : []),
-            ...(fg.enabled && fg.blocked ? [`Fact Graph pilot blocked: ${fg.reason}`] : []),
+            ...(fg.enabled && !fg.available ? [`Fact Graph pilot blocked: ${fg.reason}`] : []),
           ],
           data: {
             issue: {
@@ -702,7 +702,7 @@ const TOOLS: ToolDef[] = [
             ...bundle.sources.slice(0, 6).map((s: any) => cite({
               sourceType: "accounting_source", sourceId: s.id,
               title: s.title,
-              section: s.sourceType || s.rights,
+              section: s.sourceType || s.contentRights,
             })),
           ],
         };
@@ -712,7 +712,7 @@ const TOOLS: ToolDef[] = [
         : null;
       const issues = listResearchIssues(clientId).slice(0, 10);
       const sources = listSources({ clientId }).slice(0, 12).map((s) => ({
-        id: s.id, title: s.title, sourceType: s.sourceType, rights: s.rights, scope: s.scope,
+        id: s.id, title: s.title, sourceType: s.sourceType, contentRights: s.contentRights, scope: s.scope,
       }));
       return {
         ok: true,
@@ -798,7 +798,7 @@ const TOOLS: ToolDef[] = [
               if (conn.health === "STALE" || conn.status === "RECONNECT_REQUIRED") {
                 staleIntegrations.push({
                   clientId: c.id, clientName: c.name,
-                  provider: conn.providerKey, health: conn.health || conn.status,
+                  provider: conn.provider, health: conn.health || conn.status,
                 });
               }
             }
@@ -888,7 +888,11 @@ export async function executeTool(
       trace: { tool: name, ok: result.ok, ms: Date.now() - start, label: def.label, error: result.error },
     };
   } catch (e: any) {
-    const msg = e instanceof AuthError ? "Resource not found." : (e?.message || "Tool failed");
+    const msg = e instanceof AuthError
+      ? "Resource not found."
+      : e instanceof ValidationError
+        ? e.message
+        : (e?.message || "Tool failed");
     return {
       result: { ok: false, error: msg, sourceStatus: "UNAVAILABLE" },
       trace: { tool: name, ok: false, ms: Date.now() - start, label: def.label, error: msg },
