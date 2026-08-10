@@ -37,14 +37,17 @@ export function cashIntelligence(
   const oneMonth = prior ? cur.cash.total - prior.cash.total : null;
 
   let monthlyBurnUsed: number | null = null;
+  let resolvedBasis: CashIntelligence["burnBasis"] = burnBasis;
   if (burnBasis === "1m" && oneMonth != null) monthlyBurnUsed = -oneMonth;
   else if (burnBasis === "6m_avg" && avg6 != null) monthlyBurnUsed = -avg6;
   else if (avg3 != null) {
     monthlyBurnUsed = -avg3;
-    burnBasis = "3m_avg";
+    resolvedBasis = "3m_avg";
   } else if (oneMonth != null) {
     monthlyBurnUsed = -oneMonth;
-    burnBasis = "1m";
+    resolvedBasis = "1m";
+  } else {
+    resolvedBasis = "none";
   }
 
   const cashChange = prior ? r1(cur.cash.total - prior.cash.total) : null;
@@ -58,18 +61,18 @@ export function cashIntelligence(
 
   if (burn == null || burn <= 0) {
     runwayApplicable = false;
-    runwayReason = burnBasis === "none"
+    runwayReason = resolvedBasis === "none"
       ? "Insufficient cash history."
       : "Normalized cash flow is not a burn (firm is cash-generative or flat on the chosen basis). Runway is not applicable.";
   } else if (cur.cash.total <= 0) {
     runwayApplicable = true;
     runwayMonths = 0;
-    runwayReason = `Cash is non-positive. Burn basis: ${burnBasis}.`;
+    runwayReason = `Cash is non-positive. Burn basis: ${resolvedBasis}.`;
   } else {
     runwayApplicable = true;
     runwayMonths = r1(cur.cash.total / burn);
     runwayReason =
-      `Runway = ending cash ÷ monthly burn. Burn basis: ${burnBasis} ` +
+      `Runway = ending cash ÷ monthly burn. Burn basis: ${resolvedBasis} ` +
       `(average cash decline; one unusual month is not silently used when averages exist).`;
   }
 
@@ -80,7 +83,7 @@ export function cashIntelligence(
     monthlyGeneration: generation,
     trailingBurn3m: avg3 != null && avg3 < 0 ? r1(-avg3) : avg3 != null ? 0 : null,
     trailingBurn6m: avg6 != null && avg6 < 0 ? r1(-avg6) : avg6 != null ? 0 : null,
-    burnBasis: monthlyBurnUsed == null ? "none" : burnBasis,
+    burnBasis: monthlyBurnUsed == null ? "none" : resolvedBasis,
     monthlyBurnUsed: burn,
     runwayMonths,
     runwayApplicable,

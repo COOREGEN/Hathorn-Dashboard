@@ -4,7 +4,7 @@
 
 import { db, uid } from "../db";
 import { audit } from "../auth";
-import { computePeriod, clientHistory } from "../metrics";
+import { computePeriod, clientHistory, type PeriodMetrics } from "../metrics";
 import { activeRelease } from "../release";
 import { detectAnomalies } from "./anomalies";
 import { cashIntelligence } from "./cash";

@@ -68,7 +68,7 @@ export function computeTrend(
   }
 
   let prior: number | null = null;
-  let method = mode;
+  let method: string = mode;
   let current = currentPt.value;
 
   if (mode === "MoM") {

@@ -25,7 +25,7 @@ function bridgeFromMaps(
   prior: Map<string, number>,
   topN = 6,
 ): DriverBridge {
-  const keys = new Set([...current.keys(), ...prior.keys()]);
+  const keys = Array.from(new Set(Array.from(current.keys()).concat(Array.from(prior.keys()))));
   const slices: DriverSlice[] = [];
   for (const key of keys) {
     const c = current.get(key) || 0;
