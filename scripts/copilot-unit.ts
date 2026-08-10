@@ -210,7 +210,9 @@ async function main() {
     assert.equal(routeIntent("Does AR reconcile?"), "RECONCILIATION");
     assert.equal(routeIntent("What authority supports this tax position?"), "TAX");
     assert.equal(routeIntent("What ASC guidance supports this?"), "ACCOUNTING_GUIDANCE");
-    assert.equal(routeIntent("Why did gross margin fall in July?"), "FINANCIAL_ACTUALS");
+    assert.equal(routeIntent("Why did gross margin fall in July?"), "INTELLIGENCE");
+    assert.equal(routeIntent("What was July revenue?"), "FINANCIAL_ACTUALS");
+    assert.equal(routeIntent("What's happening in this business?"), "INTELLIGENCE");
     assert.ok(wantsPublishedData("What was published for June?"));
   });
 
