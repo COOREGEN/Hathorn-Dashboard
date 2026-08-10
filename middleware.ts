@@ -28,6 +28,7 @@ const GUARDS: [string, string[]][] = [
   ["/api/exceptions", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/api/firm", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/api/platform", ["ADMIN"]],
+  ["/api/ops", ["ADMIN"]],
   ["/api/copilot", ["ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT"]],
   ["/api/intelligence", ["ADMIN", "ADVISOR"]],
   ["/api/client-portal", ["ADMIN", "ADVISOR", "CLIENT"]],
@@ -73,24 +74,41 @@ function deny(req: NextRequest, isApi: boolean, status: 401 | 403) {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isApi = pathname.startsWith("/api/");
+  const correlationId =
+    req.headers.get("x-request-id") ||
+    req.headers.get("x-correlation-id") ||
+    cryptoRandomId();
+
+  const withCorr = (res: NextResponse) => {
+    res.headers.set("x-request-id", correlationId);
+    return res;
+  };
 
   // Fail closed in production if the signing secret was never set or is the published default.
   if (process.env.NODE_ENV === "production") {
     const secret = process.env.AUTH_SECRET || "";
     if (!secret || secret === DEFAULT_SECRET || secret.length < 32) {
       if (isApi) {
-        return NextResponse.json(
+        return withCorr(NextResponse.json(
           { ok: false, error: "Server misconfigured: AUTH_SECRET is required." },
           { status: 503 },
-        );
+        ));
       }
-      return new NextResponse("Server misconfigured: AUTH_SECRET is required.", { status: 503 });
+      return withCorr(new NextResponse("Server misconfigured: AUTH_SECRET is required.", { status: 503 }));
     }
+  }
+
+  // Health probes stay unauthenticated and must not require a session.
+  if (
+    pathname === "/api/health" ||
+    pathname.startsWith("/api/health/")
+  ) {
+    return withCorr(NextResponse.next());
   }
 
   // Intuit redirects the browser here after consent; the OAuth state token is the
   // proof of intent, not a session cookie. Guarding it would break the handshake.
-  if (pathname.startsWith("/api/qbo/callback")) return NextResponse.next();
+  if (pathname.startsWith("/api/qbo/callback")) return withCorr(NextResponse.next());
 
   // Password recovery and MFA challenge verification are unauthenticated by design.
   if (
@@ -100,35 +118,46 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/api/login") ||
     pathname.startsWith("/api/logout")
   ) {
-    return NextResponse.next();
+    return withCorr(NextResponse.next());
   }
 
   // Forced MFA enrollment: allow the setup API with either a session or setup cookie.
   if (pathname.startsWith("/api/auth/mfa/setup") || pathname.startsWith("/account/security")) {
     const session = req.cookies.get("ledger_session")?.value;
     const setup = req.cookies.get("ledger_mfa_setup")?.value;
-    if (setup && !session) return NextResponse.next();
+    if (setup && !session) return withCorr(NextResponse.next());
   }
 
   const guard = GUARDS.filter(([p]) => pathname.startsWith(p))
     .sort((a, b) => b[0].length - a[0].length)[0];
-  if (!guard) return NextResponse.next();
+  if (!guard) return withCorr(NextResponse.next());
 
   const token = req.cookies.get("ledger_session")?.value;
   if (!token) {
     // Mid forced-setup: send them to the security page, not login.
     if (req.cookies.get("ledger_mfa_setup")?.value && pathname.startsWith("/account")) {
-      return NextResponse.next();
+      return withCorr(NextResponse.next());
     }
-    return deny(req, isApi, 401);
+    return withCorr(deny(req, isApi, 401));
   }
 
   try {
     const { payload } = await jwtVerify(token, SECRET);
-    if (!guard[1].includes((payload as any).role)) return deny(req, isApi, 403);
-    return NextResponse.next();
+    if (!guard[1].includes((payload as any).role)) return withCorr(deny(req, isApi, 403));
+    return withCorr(NextResponse.next());
   } catch {
-    return deny(req, isApi, 401);
+    return withCorr(deny(req, isApi, 401));
+  }
+}
+
+function cryptoRandomId(): string {
+  // Edge-safe-ish: middleware may run on Edge; prefer Web Crypto when present.
+  try {
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return `${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`;
   }
 }
 
@@ -149,7 +178,7 @@ export const config = {
     "/api/documents/:path*", "/api/tax/:path*", "/api/research/:path*",
     "/api/reconciliations/:path*", "/api/integrations/:path*",
     "/api/close/:path*", "/api/exceptions/:path*",
-    "/api/firm/:path*", "/api/platform/:path*", "/api/copilot/:path*", "/api/intelligence/:path*",
+    "/api/firm/:path*", "/api/platform/:path*", "/api/ops/:path*", "/api/copilot/:path*", "/api/intelligence/:path*",
     "/api/client-portal/:path*",
     "/api/portal/:path*", "/api/auth/:path*",
   ],

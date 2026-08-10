@@ -54,6 +54,36 @@ export async function POST(
 
     if (action === "sync" || action === "full_resync") {
       rateLimit({ action: "integrationSync", subject: s.userId, ...LIMITS.integrationSync });
+      // Durable async path — survives request timeout; idempotent per connection+window.
+      if (body.async) {
+        const { enqueueJob, getJob, jobPublicView, processJob } = await import("@/lib/ops/jobs");
+        const { firmIdForClient } = await import("@/lib/tenancy");
+        const window = new Date().toISOString().slice(0, 13);
+        const job = enqueueJob({
+          jobType: "INTEGRATION_SYNC",
+          firmId: firmIdForClient(connection.clientId),
+          clientId: connection.clientId,
+          resourceId: connection.id,
+          concurrencyKey: `sync:${connection.id}`,
+          idempotencyKey: `sync:${connection.id}:${action}:${window}`,
+          params: {
+            connectionId: connection.id,
+            clientId: connection.clientId,
+            syncType: action === "full_resync" ? "FULL" : "MANUAL",
+            year: body.year != null ? Number(body.year) : undefined,
+            month: body.month != null ? Number(body.month) : undefined,
+          },
+          createdBy: s.userId,
+          jitterSeconds: 15,
+        });
+        // Best-effort immediate processing; cron tick recovers if this process dies.
+        void processJob(job);
+        return NextResponse.json({
+          ok: true,
+          async: true,
+          job: jobPublicView(getJob(job.id)!),
+        });
+      }
       const outcome = await syncConnection({
         connectionId: connection.id,
         clientId: connection.clientId,

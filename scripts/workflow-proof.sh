@@ -992,6 +992,48 @@ echo "$HTML" > "$COOKIE_DIR/portal-preview.html"
 assert "staff preview banner" grep -qi 'Preview as client' "$COOKIE_DIR/portal-preview.html"
 
 echo
+echo "21. Platform operations"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/health/live")
+assert "liveness ok" test "$CODE" = "200"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' "$BASE/api/health/ready")
+assert "readiness responds" test "$CODE" = "200" -o "$CODE" = "503"
+RESP=$(curl -s "$BASE/api/health")
+echo "$RESP" > "$COOKIE_DIR/health.json"
+assert "health has dependencies or status" grep -Eq '"status"|"dependencies"' "$COOKIE_DIR/health.json"
+assert "health has appEnv or schema" grep -Eq '"appEnv"|"schema"' "$COOKIE_DIR/health.json"
+# Correlation id on health
+HDR=$(curl -sI "$BASE/api/health/live")
+echo "$HDR" > "$COOKIE_DIR/health-headers.txt"
+assert "health returns x-request-id" grep -qi 'x-request-id' "$COOKIE_DIR/health-headers.txt"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/api/ops/jobs")
+assert "client blocked from ops jobs" test "$CODE" = "403" -o "$CODE" = "401" -o "$CODE" = "307"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/books.jar" "$BASE/api/ops/jobs")
+assert "bookkeeper blocked from ops jobs" test "$CODE" = "403" -o "$CODE" = "401" -o "$CODE" = "307"
+# Platform admin is seeded regen user with is_platform_admin
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/api/ops/jobs")
+echo "$RESP" > "$COOKIE_DIR/ops-jobs.json"
+assert "platform admin ops jobs ok" grep -q '"ok":true' "$COOKIE_DIR/ops-jobs.json"
+assert "ops jobs has counts" grep -q '"counts"' "$COOKIE_DIR/ops-jobs.json"
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/api/ops/usage")
+echo "$RESP" > "$COOKIE_DIR/ops-usage.json"
+assert "ops usage ok" grep -q '"ok":true' "$COOKIE_DIR/ops-usage.json"
+assert "ops usage has no revenue field" python3 -c "import json; d=json.load(open('$COOKIE_DIR/ops-usage.json')); assert 'revenue' not in json.dumps(d.get('usage',{}))"
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/ops/jobs" \
+  -H 'content-type: application/json' \
+  -d '{"action":"enqueue_maintenance"}')
+echo "$RESP" > "$COOKIE_DIR/ops-maint.json"
+assert "ops maintenance enqueue ok" grep -q '"ok":true' "$COOKIE_DIR/ops-maint.json"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" "$BASE/platform")
+assert "platform admin reaches /platform" test "$CODE" = "200"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" "$BASE/api/ops/jobs")
+assert "Firm B admin blocked from platform ops without platform flag" test "$CODE" = "403" -o "$CODE" = "401"
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/ops/diagnostics" \
+  -H 'content-type: application/json' \
+  -d '{"action":"integrity"}')
+echo "$RESP" > "$COOKIE_DIR/ops-integrity.json"
+assert "integrity check ok" grep -q '"ok":true' "$COOKIE_DIR/ops-integrity.json"
+
+echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1

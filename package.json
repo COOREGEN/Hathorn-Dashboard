@@ -10,10 +10,12 @@
     "seed": "tsx lib/seed.ts",
     "backup": "tsx scripts/backup.ts",
     "restore-check": "tsx scripts/restore-check.ts",
+    "jobs:tick": "tsx scripts/jobs-tick.ts",
     "db:migrate-postgres": "tsx scripts/migrate-to-postgres.ts",
     "db:verify": "tsx scripts/verify-postgres.ts",
     "seed:book": "tsx scripts/seed-demo-book.ts",
     "proof": "bash scripts/workflow-proof.sh",
+    "typecheck": "tsc --noEmit",
     "fpa:test": "tsx scripts/fpa-unit.ts",
     "documents:test": "tsx scripts/documents-unit.ts",
     "tax:test": "tsx scripts/tax-unit.ts",
@@ -24,7 +26,8 @@
     "tenancy:test": "tsx scripts/tenancy-unit.ts",
     "copilot:test": "tsx scripts/copilot-unit.ts",
     "intelligence:test": "tsx scripts/intelligence-unit.ts",
-    "client-portal:test": "tsx scripts/client-portal-unit.ts"
+    "client-portal:test": "tsx scripts/client-portal-unit.ts",
+    "ops:test": "tsx scripts/ops-unit.ts"
   },
   "dependencies": {
     "@types/pdfkit": "^0.17.6",

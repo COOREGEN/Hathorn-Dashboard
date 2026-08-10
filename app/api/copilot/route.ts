@@ -40,6 +40,14 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT");
+    const { config } = await import("@/lib/config");
+    if (!config.ai.enabled || !config.ai.copilotEnabled) {
+      return NextResponse.json({
+        ok: false,
+        error: "Copilot is temporarily unavailable. Financial reports remain available.",
+        degraded: true,
+      }, { status: 503 });
+    }
     rateLimit({ action: "copilot", subject: s.userId, ...LIMITS.copilot });
     const body = await jsonObject(req);
     const question = String(body.question || "").trim();

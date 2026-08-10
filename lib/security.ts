@@ -22,20 +22,45 @@ import { config } from "./config";
  * The key derives from ENCRYPTION_KEY when set, falling back to AUTH_SECRET so a
  * single-secret deployment still encrypts rather than storing plaintext.
  */
-function key(): Buffer {
-  const material = process.env.ENCRYPTION_KEY || config.authSecret;
+/**
+ * Key material for AES-256-GCM. Prefer ENCRYPTION_KEY; fall back to AUTH_SECRET.
+ * During rotation, keep ENCRYPTION_KEY_PREVIOUS until all rows re-encrypt on write.
+ */
+function keyFrom(material: string): Buffer {
   return crypto.createHash("sha256").update(material).digest();
 }
 
+function activeKey(): Buffer {
+  const material = process.env.ENCRYPTION_KEY || config.authSecret;
+  return keyFrom(material);
+}
+
+function previousKey(): Buffer | null {
+  const prev = process.env.ENCRYPTION_KEY_PREVIOUS;
+  return prev ? keyFrom(prev) : null;
+}
+
+/** Current ciphertext prefix — bump only with a dual-decrypt migration plan. */
 const ENC_PREFIX = "enc:v1:";
 
 export function encrypt(plain: string): string {
   if (!plain) return plain;
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv("aes-256-gcm", key(), iv);
+  const cipher = crypto.createCipheriv("aes-256-gcm", activeKey(), iv);
   const body = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
   const tag = cipher.getAuthTag();
   return ENC_PREFIX + [iv, tag, body].map((b) => b.toString("base64")).join(".");
+}
+
+function tryDecrypt(storedBody: string, key: Buffer): string | null {
+  try {
+    const [ivB, tagB, bodyB] = storedBody.split(".");
+    const decipher = crypto.createDecipheriv("aes-256-gcm", key, Buffer.from(ivB, "base64"));
+    decipher.setAuthTag(Buffer.from(tagB, "base64"));
+    return Buffer.concat([decipher.update(Buffer.from(bodyB, "base64")), decipher.final()]).toString("utf8");
+  } catch {
+    return null;
+  }
 }
 
 export function decrypt(stored: string): string {
@@ -43,18 +68,19 @@ export function decrypt(stored: string): string {
   // Rows written before encryption was introduced are returned as-is so an
   // existing deployment keeps working; they re-encrypt on next write.
   if (!stored.startsWith(ENC_PREFIX)) return stored;
-  try {
-    const [ivB, tagB, bodyB] = stored.slice(ENC_PREFIX.length).split(".");
-    const decipher = crypto.createDecipheriv("aes-256-gcm", key(), Buffer.from(ivB, "base64"));
-    decipher.setAuthTag(Buffer.from(tagB, "base64"));
-    return Buffer.concat([decipher.update(Buffer.from(bodyB, "base64")), decipher.final()]).toString("utf8");
-  } catch {
-    throw new Error("Stored credential could not be decrypted. The encryption key may have changed.");
+  const body = stored.slice(ENC_PREFIX.length);
+  const primary = tryDecrypt(body, activeKey());
+  if (primary != null) return primary;
+  const prev = previousKey();
+  if (prev) {
+    const secondary = tryDecrypt(body, prev);
+    if (secondary != null) return secondary;
   }
+  throw new Error("Stored credential could not be decrypted. The encryption key may have changed.");
 }
 
 /** True when a value is already ciphertext — useful in migrations. */
-export const isEncrypted = (v: string) => Boolean(v) && v.startsWith(ENC_PREFIX);
+export const isEncrypted = (v: string) => Boolean(v) && /^enc:v\d+:/.test(v);
 
 /* ------------------------------------------------------------------ */
 /* Outbound calls                                                      */

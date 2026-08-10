@@ -3,9 +3,13 @@
  *
  * The rule: in development, sensible defaults keep you moving. In production,
  * a missing or published secret is a hard stop — never a silent fallback.
+ * Optional integrations are only required when their feature flags are on.
  */
 
+import { resolveAppEnv, isProductionLike, appVersionInfo, type AppEnv } from "./ops/env";
+
 const isProd = process.env.NODE_ENV === "production";
+const appEnv: AppEnv = resolveAppEnv();
 
 /** Published in the repository. Never acceptable as a production signing key. */
 export const DEFAULT_AUTH_SECRET = "dev-secret-change-in-production-9f2a";
@@ -43,7 +47,8 @@ function truthy(v: string | undefined, defaultWhenUnset: boolean): boolean {
  * with a secret that is published in this repository.
  */
 export function assertProductionReady() {
-  if (!isProd || isBuildPhase) return;
+  if (isBuildPhase) return;
+  if (!isProductionLike(appEnv) && !isProd) return;
   const problems: string[] = [];
   const secret = process.env.AUTH_SECRET || "";
   if (!secret) {
@@ -55,13 +60,21 @@ export function assertProductionReady() {
   }
   // Staging/proof escape hatch only — never set on a real client-facing host.
   const allowLocal = process.env.LEDGER_ALLOW_LOCAL_PROD === "1";
-  if (!process.env.NEXT_PUBLIC_BASE_URL) {
-    problems.push("NEXT_PUBLIC_BASE_URL is not set — email links and OAuth redirects will point at localhost.");
-  } else if (!allowLocal && /localhost|127\.0\.0\.1/.test(process.env.NEXT_PUBLIC_BASE_URL)) {
-    problems.push("NEXT_PUBLIC_BASE_URL still points at localhost.");
+  if (appEnv === "PRODUCTION" || (isProd && appEnv !== "STAGING")) {
+    if (!process.env.NEXT_PUBLIC_BASE_URL) {
+      problems.push("NEXT_PUBLIC_BASE_URL is not set — email links and OAuth redirects will point at localhost.");
+    } else if (!allowLocal && /localhost|127\.0\.0\.1/.test(process.env.NEXT_PUBLIC_BASE_URL)) {
+      problems.push("NEXT_PUBLIC_BASE_URL still points at localhost.");
+    }
+    if (!allowLocal && !process.env.BACKUP_DIR) {
+      problems.push("BACKUP_DIR is not set — backups would land next to the live database on the same disk.");
+    }
   }
-  if (!allowLocal && !process.env.BACKUP_DIR) {
-    problems.push("BACKUP_DIR is not set — backups would land next to the live database on the same disk.");
+  // Optional services: only require credentials when the feature kill-switch is on.
+  if (truthy(process.env.AI_PROVIDER_ENABLED, Boolean(process.env.ANTHROPIC_API_KEY))
+      && truthy(process.env.REQUIRE_AI_KEY, false)
+      && !process.env.ANTHROPIC_API_KEY) {
+    problems.push("AI_PROVIDER_ENABLED requires ANTHROPIC_API_KEY.");
   }
   if (problems.length) {
     throw new Error(`Refusing to serve with an unsafe configuration:\n  - ${problems.join("\n  - ")}`);
@@ -70,6 +83,8 @@ export function assertProductionReady() {
 
 export const config = {
   isProd,
+  appEnv,
+  version: appVersionInfo(),
 
   /** JWT signing secret. Rotating this invalidates every session. */
   authSecret: required("AUTH_SECRET", DEFAULT_AUTH_SECRET),
@@ -113,10 +128,21 @@ export const config = {
     },
   },
 
+  /**
+   * AI kill switch — when off, Copilot / story drafts degrade without taking down financials.
+   * Default: on when a key is present; explicit AI_PROVIDER_ENABLED=0 always wins.
+   */
+  ai: {
+    enabled: truthy(process.env.AI_PROVIDER_ENABLED, Boolean(process.env.ANTHROPIC_API_KEY)),
+    copilotEnabled: truthy(process.env.COPILOT_ENABLED, true),
+    maxContextChars: Number(process.env.AI_MAX_CONTEXT_CHARS || 120_000),
+    maxToolCalls: Number(process.env.AI_MAX_TOOL_CALLS || 12),
+  },
+
   anthropic: {
     apiKey: process.env.ANTHROPIC_API_KEY || "",
     model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
-    get enabled() { return Boolean(this.apiKey); },
+    get enabled() { return Boolean(this.apiKey) && config.ai.enabled; },
   },
 
   /**
@@ -205,8 +231,14 @@ export function integrationStatus() {
       hint: "Set RESEND_API_KEY to notify clients when a period publishes and to deliver password resets." },
     { name: "QuickBooks Online", enabled: config.qbo.enabled,
       hint: "Set QBO_CLIENT_ID and QBO_CLIENT_SECRET to pull P&L and AR automatically." },
-    { name: "Story agent (Claude)", enabled: config.anthropic.enabled,
-      hint: "Set ANTHROPIC_API_KEY to draft commentary from the numbers." },
+    { name: "AI provider (Claude)", enabled: config.anthropic.enabled,
+      hint: config.ai.enabled
+        ? "Set ANTHROPIC_API_KEY to draft commentary / Copilot narrative."
+        : "AI_PROVIDER_ENABLED=0 — financials remain available; AI features degraded." },
+    { name: "Copilot", enabled: config.ai.enabled && config.ai.copilotEnabled,
+      hint: config.ai.copilotEnabled
+        ? "Interactive ask surface; respects AI kill switch."
+        : "COPILOT_ENABLED=0 — hide/disable Copilot cleanly." },
     { name: "Staff MFA", enabled: true,
       hint: config.requireStaffMfa
         ? "Required for ADMIN / ADVISOR / BOOKKEEPER before a session is issued."

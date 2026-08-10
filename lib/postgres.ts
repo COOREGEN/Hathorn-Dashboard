@@ -211,6 +211,10 @@ export const TRANSFER_ORDER = [
   "client_reports",
   "document_requests",
   "client_portal_events",
+  "background_jobs",
+  "firm_capabilities",
+  "ai_usage_events",
+  "ops_incidents",
   "audit_logs",
 ] as const;
 

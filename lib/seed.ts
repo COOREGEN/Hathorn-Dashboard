@@ -13,12 +13,21 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { runMigrations } from "./migrations";
 
-if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO_SEED !== "1") {
-  console.error(
-    "Refusing to seed in production. This wipes the book and installs demo passwords.\n" +
-    "For a staging reset only: ALLOW_DEMO_SEED=1 npm run seed",
-  );
-  process.exit(1);
+{
+  const appEnv = (process.env.APP_ENV || "").toUpperCase();
+  const prodLike =
+    process.env.NODE_ENV === "production" || appEnv === "PRODUCTION";
+  // PRODUCTION never accepts ALLOW_DEMO_SEED without LEDGER_ALLOW_LOCAL_PROD.
+  const allow =
+    process.env.ALLOW_DEMO_SEED === "1" &&
+    (appEnv !== "PRODUCTION" || process.env.LEDGER_ALLOW_LOCAL_PROD === "1");
+  if (prodLike && !allow) {
+    console.error(
+      "Refusing to seed in production/APP_ENV=PRODUCTION. This wipes the book and installs demo passwords.\n" +
+      "Staging reset only: APP_ENV=STAGING ALLOW_DEMO_SEED=1 npm run seed",
+    );
+    process.exit(1);
+  }
 }
 
 /**

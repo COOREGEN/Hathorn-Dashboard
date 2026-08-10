@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { AuthError, audit, hashPassword } from "@/lib/auth";
 import { db, uid } from "@/lib/db";
 import { ValidationError, jsonObject, text } from "@/lib/validate";
-import { createFirm, requirePlatformAdmin } from "@/lib/tenancy";
+import { requirePlatformAdmin } from "@/lib/tenancy";
+import { provisionFirm } from "@/lib/ops/provision";
+import { listFirmCapabilities } from "@/lib/ops/capabilities";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ export async function GET() {
         clientCount: r.client_count,
         memberCount: r.member_count,
         createdAt: r.created_at,
+        capabilities: listFirmCapabilities(r.id),
       })),
     });
   } catch (e: any) {
@@ -37,6 +40,7 @@ export async function GET() {
 
 /**
  * Platform-admin provisioning only — ordinary firm users cannot create sibling firms.
+ * Flow: firm → defaults → admin → brand → close policy → capabilities → audit.
  */
 export async function POST(req: Request) {
   try {
@@ -59,16 +63,23 @@ export async function POST(req: Request) {
       ).run(adminId, adminEmail, hashPassword(password), adminName, "ADMIN", null);
     }
 
-    const firm = createFirm({
+    const result = provisionFirm({
       name,
       slug: body.slug ? String(body.slug) : undefined,
       adminUserId: adminId,
       brandPrimary: body.brandPrimary ? String(body.brandPrimary) : undefined,
       brandAccent: body.brandAccent ? String(body.brandAccent) : undefined,
+      actorId: s.userId,
     });
 
-    audit(s.userId, "PLATFORM_FIRM_CREATE", firm.id, { firmId: firm.id });
-    return NextResponse.json({ ok: true, firm, adminUserId: adminId });
+    audit(s.userId, "PLATFORM_FIRM_CREATE", result.firm.id, { firmId: result.firm.id });
+    return NextResponse.json({
+      ok: true,
+      firm: result.firm,
+      adminUserId: adminId,
+      defaults: result.defaults,
+      capabilities: listFirmCapabilities(result.firm.id),
+    });
   } catch (e: any) {
     if (e instanceof AuthError) return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
     if (e instanceof ValidationError) return NextResponse.json({ ok: false, error: e.message }, { status: 400 });

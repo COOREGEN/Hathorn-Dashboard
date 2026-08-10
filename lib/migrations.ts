@@ -1658,6 +1658,110 @@ export const MIGRATIONS: Migration[] = [
       );
     },
   },
+  {
+    id: 30,
+    name: "platform_operations",
+    up: (db) => {
+      /**
+       * Platform operations + scale: durable jobs, firm capabilities, AI usage
+       * aggregates, lightweight incidents. No Temporal / Kafka / warehouse.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS background_jobs (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT DEFAULT NULL,
+          client_id TEXT DEFAULT NULL,
+          job_type TEXT NOT NULL,
+          resource_id TEXT DEFAULT NULL,
+          concurrency_key TEXT DEFAULT NULL,
+          idempotency_key TEXT DEFAULT NULL,
+          status TEXT NOT NULL DEFAULT 'QUEUED',
+          attempt INTEGER NOT NULL DEFAULT 0,
+          max_attempts INTEGER NOT NULL DEFAULT 3,
+          scheduled_at TEXT NOT NULL DEFAULT (datetime('now')),
+          started_at TEXT DEFAULT NULL,
+          completed_at TEXT DEFAULT NULL,
+          heartbeat_at TEXT DEFAULT NULL,
+          error_code TEXT DEFAULT NULL,
+          error_message TEXT DEFAULT NULL,
+          params_json TEXT NOT NULL DEFAULT '{}',
+          result_json TEXT DEFAULT NULL,
+          app_version TEXT DEFAULT NULL,
+          created_by TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(idempotency_key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_jobs_status_sched
+          ON background_jobs(status, scheduled_at);
+        CREATE INDEX IF NOT EXISTS idx_jobs_type_status
+          ON background_jobs(job_type, status);
+        CREATE INDEX IF NOT EXISTS idx_jobs_client
+          ON background_jobs(client_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_jobs_concurrency
+          ON background_jobs(concurrency_key, status);
+
+        CREATE TABLE IF NOT EXISTS firm_capabilities (
+          firm_id TEXT NOT NULL,
+          capability TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          updated_at TEXT DEFAULT (datetime('now')),
+          updated_by TEXT DEFAULT NULL,
+          PRIMARY KEY (firm_id, capability)
+        );
+
+        CREATE TABLE IF NOT EXISTS ai_usage_events (
+          id TEXT PRIMARY KEY,
+          firm_id TEXT DEFAULT NULL,
+          client_id TEXT DEFAULT NULL,
+          feature TEXT NOT NULL,
+          model TEXT DEFAULT NULL,
+          request_count INTEGER NOT NULL DEFAULT 1,
+          input_tokens INTEGER DEFAULT NULL,
+          output_tokens INTEGER DEFAULT NULL,
+          status TEXT NOT NULL DEFAULT 'ok',
+          error_class TEXT DEFAULT NULL,
+          correlation_id TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_usage_created
+          ON ai_usage_events(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_ai_usage_firm_feature
+          ON ai_usage_events(firm_id, feature, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS ops_incidents (
+          id TEXT PRIMARY KEY,
+          severity TEXT NOT NULL,
+          title TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'OPEN',
+          detail TEXT DEFAULT NULL,
+          opened_by TEXT DEFAULT NULL,
+          closed_by TEXT DEFAULT NULL,
+          opened_at TEXT DEFAULT (datetime('now')),
+          closed_at TEXT DEFAULT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_ops_incidents_status
+          ON ops_incidents(status, severity);
+
+        CREATE INDEX IF NOT EXISTS idx_audit_action_created
+          ON audit_logs(action, created_at DESC);
+      `);
+
+      // Safe defaults for existing firms — all modules on except nothing published.
+      const firms: any[] = db.prepare("SELECT id FROM firms").all();
+      const caps = [
+        "FPA", "TAX_INTELLIGENCE", "ACCOUNTING_GUIDANCE", "COPILOT",
+        "CLIENT_PORTAL", "DOCUMENT_INTELLIGENCE", "INTEGRATION_HUB",
+        "CLOSE_AUTOMATION", "FINANCIAL_INTELLIGENCE",
+      ];
+      const ins = db.prepare(`
+        INSERT OR IGNORE INTO firm_capabilities (firm_id, capability, enabled)
+        VALUES (?, ?, 1)
+      `);
+      for (const f of firms) {
+        for (const c of caps) ins.run(f.id, c);
+      }
+    },
+  },
 ];
 
 /**

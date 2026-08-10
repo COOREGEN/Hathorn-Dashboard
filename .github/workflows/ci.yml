@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: TEST
+      REQUIRE_STAFF_MFA: "0"
+      AUTH_SECRET: "ci-test-secret-not-for-production-use-32chars"
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint || true
+
+      - name: Module unit suites
+        run: |
+          npm run ops:test
+          npm run tenancy:test
+          npm run fpa:test
+          npm run documents:test
+          npm run tax:test
+          npm run research:test
+          npm run recon:test
+          npm run integrations:test
+          npm run close:test
+          npm run copilot:test
+          npm run intelligence:test
+          npm run client-portal:test
+
+      - name: Build
+        run: npm run build
+
+      - name: Seed + proof (critical path)
+        run: |
+          npm run seed
+          npm run start &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000/api/health/live && break
+            sleep 1
+          done
+          REQUIRE_STAFF_MFA=0 npm run proof

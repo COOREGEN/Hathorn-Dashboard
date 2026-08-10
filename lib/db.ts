@@ -48,7 +48,30 @@ export const monthShort = (m: number) =>
 
 /** Structured log line. Cheap now, essential the first time something breaks at a client. */
 export function log(level: "info" | "warn" | "error", event: string, detail: Record<string, any> = {}) {
-  const line = JSON.stringify({ ts: new Date().toISOString(), level, event, ...detail });
+  let safeDetail: Record<string, unknown> = detail || {};
+  let corr: { correlationId?: string; firmId?: string | null; clientId?: string | null; userId?: string | null } = {};
+  let appEnv = process.env.APP_ENV || process.env.NODE_ENV || "local";
+  try {
+    // Lazy require avoids circular imports at module init.
+    const { redactObject } = require("./ops/redact") as typeof import("./ops/redact");
+    const { getCorrelation } = require("./ops/correlation") as typeof import("./ops/correlation");
+    const { resolveAppEnv } = require("./ops/env") as typeof import("./ops/env");
+    safeDetail = redactObject(detail || {});
+    corr = getCorrelation();
+    appEnv = resolveAppEnv();
+  } catch { /* ops modules unavailable during very early boot */ }
+
+  const line = JSON.stringify({
+    ts: new Date().toISOString(),
+    level,
+    event,
+    environment: appEnv,
+    correlationId: corr.correlationId && corr.correlationId !== "no-corr" ? corr.correlationId : undefined,
+    firmId: corr.firmId || undefined,
+    clientId: corr.clientId || undefined,
+    userId: corr.userId || undefined,
+    ...safeDetail,
+  });
   if (level === "error") console.error(line);
   else if (level === "warn") console.warn(line);
   else console.log(line);

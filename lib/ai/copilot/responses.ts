@@ -267,6 +267,15 @@ ${sanitizeForPrompt(JSON.stringify(payload), 14_000)}
 
 Write the answer now.`;
 
+  if (!config.ai.enabled || !config.anthropic.enabled) {
+    return {
+      text: fallback,
+      provider: null,
+      model: null,
+      warning: "AI explanation unavailable. Financial data remains available.",
+    };
+  }
+
   try {
     const res = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -283,7 +292,21 @@ Write the answer now.`;
         messages: [{ role: "user", content: user }],
       }),
     }, 45_000);
-    if (!res.ok) throw new Error(`Anthropic API returned ${res.status}`);
+    if (!res.ok) {
+      const cls = res.status === 429 ? "rate_limit" : res.status >= 500 ? "provider_5xx" : "invalid_request";
+      try {
+        const { recordAiUsage } = require("../../ops/usage") as typeof import("../../ops/usage");
+        recordAiUsage({
+          feature: "copilot",
+          model: config.anthropic.model,
+          status: "error",
+          errorClass: cls,
+          firmId: (ctx as any).firmId,
+          clientId: (ctx as any).clientId,
+        });
+      } catch { /* ops optional */ }
+      throw new Error(`Anthropic API returned ${res.status}`);
+    }
     const data = await res.json();
     const text = (data.content || [])
       .filter((c: any) => c.type === "text")
@@ -291,6 +314,18 @@ Write the answer now.`;
       .join("\n")
       .trim();
     if (!text) throw new Error("Empty model response");
+    try {
+      const { recordAiUsage } = require("../../ops/usage") as typeof import("../../ops/usage");
+      recordAiUsage({
+        feature: "copilot",
+        model: config.anthropic.model,
+        inputTokens: data.usage?.input_tokens ?? null,
+        outputTokens: data.usage?.output_tokens ?? null,
+        status: "ok",
+        firmId: (ctx as any).firmId,
+        clientId: (ctx as any).clientId,
+      });
+    } catch { /* ops optional */ }
     return {
       text,
       provider: "anthropic",
