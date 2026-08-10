@@ -4,7 +4,8 @@ import { assertProductionReady } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: "Hathorn Dashboard",
-  description: "Monthly financial dashboards — Hathorn Advisory Group",
+  description: "Monthly financial statements for advisory clients — Hathorn Dashboard",
+  icons: { icon: "/favicon.svg" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
