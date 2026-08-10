@@ -1,0 +1,6 @@
+Employee,Department,Period,Gross Pay,Employer Taxes,Benefits,Deductions,Net Pay
+Ada Okonkwo,Operations,2026-04,42000.00,3213.00,2100.00,8400.00,31400.00
+Ben Carter,Operations,2026-04,38500.00,2945.25,1925.00,7700.00,28875.00
+Chloe Nguyen,Clinical,2026-04,51200.00,3916.80,2560.00,10240.00,38400.00
+Devon Price,Admin,2026-04,29800.00,2279.70,1490.00,5960.00,22350.00
+Elena Ruiz,Clinical,2026-04,20950.00,1602.68,1047.50,4190.00,15712.50

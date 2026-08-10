@@ -1,0 +1,760 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   HATHORN v2026.1 — canonical tokens.
+   Typography and rhythm are the constant across every client. Client branding
+   enters only through --brand / --accent, which are set per client at render
+   and used as accents, never as page fills.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Dark */
+  --ink: #0C0B0A;
+  --ink-panel: #151310;
+  --hairline-dark: #2A2620;
+
+  /* Light */
+  --paper: #FBF8F1;
+  --panel: #F4EFE3;
+  --ivory: #F4EFE2;
+  --hairline: #E4DCC9;
+
+  /* Text on light */
+  --ink-soft: #3A352E;
+  --ink-mute: #6E675B;
+
+  /* Gold — accent only, never fill */
+  --gold: #D3AF37;
+  --gold-deep: #9A7B1E;
+  --gold-label: #B68F23;
+
+  /* Type */
+  --display: "Cormorant Garamond", Georgia, serif;
+  --editorial: "EB Garamond", Georgia, serif;
+  --utility: "Libre Franklin", ui-sans-serif, system-ui, sans-serif;
+
+  /* Shell */
+  --rail: 232px;
+  --brand-text: var(--brand-deep);
+
+  /* Client accents — overridden inline per client */
+  --brand: #2C504D;
+  --brand-deep: #1D342F;
+  --brand-tint: rgba(44, 80, 77, 0.10);
+  --accent: #DB5928;
+  --accent-deep: #9E3F1D;
+  --accent-tint: rgba(219, 89, 40, 0.12);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--editorial);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Every figure is tabular. On a financial document, jittering digits read as amateur. */
+.tnum, table, .kpi-value, .stat, .mini-v, td, th {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* ── Utility type: labels, eyebrows, captions, anything under 10.5pt ─────── */
+.eyebrow {
+  font-family: var(--utility);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.label     { font-family: var(--utility); font-size: 10.5px; font-weight: 600; letter-spacing: .06em; color: var(--ink-mute); }
+.caption   { font-family: var(--utility); font-size: 11px; color: var(--ink-mute); line-height: 1.5; }
+.field-label { font-family: var(--utility); font-size: 9.5px; font-weight: 600; letter-spacing: .12em;
+               text-transform: uppercase; color: var(--ink-mute); }
+
+/* ── Display type: Cormorant, 16pt and up only, never body ───────────────── */
+.display-xl { font-family: var(--display); font-size: 42px; font-weight: 300; line-height: 1.08; letter-spacing: -0.015em; }
+.display-l  { font-family: var(--display); font-size: 30px; font-weight: 300; line-height: 1.15; letter-spacing: -0.01em; }
+.display-m  { font-family: var(--display); font-size: 22px; font-weight: 400; line-height: 1.2; }
+
+/* ── Editorial body ───────────────────────────────────────────────────────── */
+.prose { font-family: var(--editorial); font-size: 14.5px; line-height: 1.65; color: var(--ink-soft); }
+
+/* ══════════════════════ Structure ══════════════════════ */
+
+.rule        { border: 0; border-top: 1px solid var(--hairline); margin: 0; }
+.rule-accent { border: 0; border-top: 2px solid var(--brand); width: 44px; margin: 0; }
+
+.masthead {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--ink);
+  border-bottom: 1px solid var(--hairline-dark);
+}
+.masthead-inner { max-width: 1080px; margin: 0 auto; padding: 18px 28px;
+                  display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.wordmark { font-family: var(--display); font-size: 21px; font-weight: 400; letter-spacing: .1em;
+            color: var(--paper); line-height: 1.1; }
+.wordmark-sub { font-family: var(--utility); font-size: 8.5px; font-weight: 500; letter-spacing: .26em;
+                text-transform: uppercase; color: var(--gold-label); margin-top: 3px; }
+.prepared-by { font-family: var(--utility); font-size: 8.5px; letter-spacing: .2em;
+               text-transform: uppercase; color: #6b655c; }
+/* Masthead is ink — lighten prepared-by so nav is readable. */
+.masthead .prepared-by { color: #A8A196; }
+.masthead a.prepared-by:hover { color: var(--gold-label); }
+.masthead .eyebrow { color: #A8A196; border-color: #3a3530 !important; }
+
+.sheet { max-width: 1080px; margin: 0 auto; padding: 0 28px 72px; }
+
+/* Section: an eyebrow number, a display heading, a hairline. No boxes. */
+.section { margin-top: 60px; }
+.section-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 4px; }
+.section-num { font-family: var(--utility); font-size: 10px; font-weight: 600; letter-spacing: .18em;
+               color: var(--gold-label); padding-top: 6px; }
+.section-title { font-family: var(--display); font-size: 27px; font-weight: 300; letter-spacing: -0.01em; color: var(--ink); }
+.section-q { font-family: var(--editorial); font-style: italic; font-size: 14px; color: var(--ink-mute);
+             margin: 2px 0 20px; }
+
+/* ── KPI: no box. A rule above, a label, a large figure. ─────────────────── */
+.kpi { padding: 14px 0 4px; border-top: 1px solid var(--hairline); }
+.kpi-value { font-family: var(--display); font-size: 34px; font-weight: 400; line-height: 1.05;
+             letter-spacing: -0.02em; margin: 6px 0 4px; }
+.kpi-sub   { font-family: var(--utility); font-size: 10.5px; color: var(--ink-mute); line-height: 1.4; }
+.kpi-tap   { cursor: pointer; transition: border-color .18s; }
+.kpi-tap:hover { border-top-color: var(--brand); }
+.kpi-drill { border-top: 1px solid var(--hairline); margin-top: 10px; padding-top: 8px; }
+.kpi-drill-row { display: flex; justify-content: space-between; font-family: var(--utility);
+                 font-size: 11px; padding: 3px 0; }
+
+/* ── Panel: for charts and tables. Ivory, hairline, square. ──────────────── */
+.panel { background: var(--panel); border: 1px solid var(--hairline); padding: 20px 22px; }
+.panel-white { background: #FFFDF8; border: 1px solid var(--hairline); padding: 20px 22px; }
+.panel-title { font-family: var(--utility); font-size: 11px; font-weight: 600; letter-spacing: .1em;
+               text-transform: uppercase; color: var(--ink); }
+.panel-sub   { font-family: var(--utility); font-size: 10.5px; color: var(--ink-mute); margin-top: 2px; }
+
+/* ── The signature: commentary set as editorial pull-quotes. ──────────────
+   The explanation is the product. It is not a callout box in a dashboard —
+   it is the piece of writing the client actually reads. Treated accordingly. */
+.note { padding: 16px 0 16px 20px; border-left: 2px solid var(--hairline); margin-bottom: 4px; }
+.note + .note { border-top: 1px solid var(--hairline); }
+.note-warn { border-left-color: var(--accent); }
+.note-bad  { border-left-color: var(--accent-deep); }
+.note-info { border-left-color: var(--brand); }
+.note-head { font-family: var(--utility); font-size: 11.5px; font-weight: 600; letter-spacing: .01em;
+             color: var(--ink); margin-bottom: 5px; }
+.note-body { font-family: var(--editorial); font-size: 14.5px; line-height: 1.62; color: var(--ink-soft); }
+.note-lead .note-body { font-size: 17px; line-height: 1.55; }
+
+/* ── Goal strip ─────────────────────────────────────────────────────────── */
+.goal { border-top: 1px solid var(--hairline); padding-top: 12px; }
+.goal-track { height: 2px; background: var(--hairline); margin-top: 10px; }
+.goal-fill  { height: 2px; background: var(--brand); }
+
+/* ── Entity comparison table ────────────────────────────────────────────── */
+.ledger-table { width: 100%; border-collapse: collapse; font-family: var(--utility); font-size: 12.5px; }
+.ledger-table thead th { font-size: 9.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+                         color: var(--ink-mute); text-align: right; padding: 0 0 10px 16px;
+                         border-bottom: 1px solid var(--ink); }
+.ledger-table thead th:first-child { text-align: left; padding-left: 0; }
+.ledger-table td { padding: 11px 0 11px 16px; border-bottom: 1px solid var(--hairline); text-align: right; font-weight: 500; }
+.ledger-table td:first-child { text-align: left; padding-left: 0; font-weight: 400; color: var(--ink-mute);
+                               font-family: var(--editorial); font-size: 13.5px; }
+.ledger-table tbody tr:last-child td { border-bottom: 1px solid var(--ink); font-weight: 600; }
+
+/* ── Controls ───────────────────────────────────────────────────────────── */
+.select {
+  font-family: var(--utility); font-size: 11.5px; font-weight: 500; letter-spacing: .04em;
+  background: transparent; border: 1px solid var(--hairline-dark); color: var(--paper);
+  padding: 7px 12px; cursor: pointer;
+}
+.select:focus { outline: 1px solid var(--gold); outline-offset: 1px; }
+.select-light { border-color: var(--hairline); color: var(--ink); background: #FFFDF8; }
+
+.btn { font-family: var(--utility); font-size: 11.5px; font-weight: 600; letter-spacing: .06em;
+       padding: 10px 20px; background: var(--ink); color: var(--paper); border: 1px solid var(--ink);
+       cursor: pointer; transition: opacity .15s; }
+.btn:hover { opacity: .88; }
+.btn:disabled { opacity: .35; cursor: not-allowed; }
+.btn-quiet { background: transparent; color: var(--ink); border-color: var(--hairline); }
+.btn-gold  { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.linkish {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font: inherit; color: var(--brand-deep); text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.linkish:hover { color: var(--accent-deep); }
+
+.input { font-family: var(--utility); font-size: 12.5px; width: 100%;
+         border: 1px solid var(--hairline); background: #FFFDF8; padding: 9px 11px; color: var(--ink); }
+.input:focus { outline: 1px solid var(--brand); outline-offset: -1px; border-color: var(--brand); }
+
+.tag { font-family: var(--utility); font-size: 9px; font-weight: 600; letter-spacing: .12em;
+       text-transform: uppercase; padding: 3px 9px; border: 1px solid currentColor; }
+
+.card { background: #FFFDF8; border: 1px solid var(--hairline); padding: 18px 20px; }
+.card-title { font-family: var(--utility); font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--ink); }
+
+/* ══════════════════════ Template variants ══════════════════════
+   Same type system throughout — these change density and surface, not craft. */
+
+/* MODERN — lighter, more air, white panels. */
+.tpl-modern { background: #FCFAF6; }
+.tpl-modern .panel { background: #FFFFFF; }
+.tpl-modern .section-title { font-weight: 400; }
+
+/* EDITORIAL — the Hathorn signature. Ivory paper, deepest contrast. */
+.tpl-editorial { background: var(--paper); }
+
+/* EXECUTIVE — maximum restraint. Rules only, no panel fills, larger figures. */
+.tpl-executive { background: #FFFFFF; }
+.tpl-executive .panel, .tpl-executive .panel-white { background: transparent; border: 0;
+  border-top: 1px solid var(--hairline); padding: 18px 0 0; }
+.tpl-executive .kpi-value { font-size: 40px; }
+.tpl-executive .section { margin-top: 72px; }
+
+/* ══════════════════════ Dark mode ══════════════════════
+   Owners check numbers at 11pm. Same type, same rhythm — the paper becomes ink.
+   Client accent colours are lightened at render time by the brand engine so they
+   stay legible without abandoning the client's palette. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #100F0D;
+    --panel: #171613;
+    --ivory: #171613;
+    --hairline: #2A2620;
+    --ink: #EFEAE0;
+    --ink-soft: #C6BFB2;
+    --ink-mute: #8C857A;
+    --gold-label: #C9A43F;
+  }
+  :root:not([data-theme="light"]) body { background: var(--paper); color: var(--ink); }
+  :root:not([data-theme="light"]) .panel { background: var(--panel); }
+  :root:not([data-theme="light"]) .panel-white,
+  :root:not([data-theme="light"]) .card { background: #171613; }
+  :root:not([data-theme="light"]) .input,
+  :root:not([data-theme="light"]) .select-light { background: #1C1A16; color: var(--ink); }
+  :root:not([data-theme="light"]) .btn { background: var(--ink); color: #100F0D; border-color: var(--ink); }
+  :root:not([data-theme="light"]) .btn-quiet { background: transparent; color: var(--ink); }
+  :root:not([data-theme="light"]) .tpl-modern,
+  :root:not([data-theme="light"]) .tpl-editorial,
+  :root:not([data-theme="light"]) .tpl-executive { background: var(--paper); }
+  :root:not([data-theme="light"]) .goal-track { background: #2A2620; }
+}
+
+[data-theme="dark"] {
+  --paper: #100F0D; --panel: #171613; --ivory: #171613; --hairline: #2A2620;
+  --ink: #EFEAE0; --ink-soft: #C6BFB2; --ink-mute: #8C857A; --gold-label: #C9A43F;
+}
+[data-theme="dark"] body { background: var(--paper); color: var(--ink); }
+[data-theme="dark"] .panel { background: var(--panel); }
+[data-theme="dark"] .panel-white, [data-theme="dark"] .card { background: #171613; }
+[data-theme="dark"] .input, [data-theme="dark"] .select-light { background: #1C1A16; color: var(--ink); }
+[data-theme="dark"] .btn { background: var(--ink); color: #100F0D; border-color: var(--ink); }
+[data-theme="dark"] .btn-quiet { background: transparent; color: var(--ink); }
+[data-theme="dark"] .tpl-modern, [data-theme="dark"] .tpl-editorial,
+[data-theme="dark"] .tpl-executive { background: var(--paper); }
+[data-theme="dark"] .goal-track { background: #2A2620; }
+
+/* ══════════════════════ Motion ══════════════════════
+   Restrained and purposeful: the numbers settle, then the commentary arrives.
+   Everything here is disabled under prefers-reduced-motion. */
+
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes draw { from { opacity: 0; } to { opacity: 1; } }
+
+.enter { animation: rise .5s cubic-bezier(.22,.8,.3,1) both; }
+.enter-1 { animation-delay: .04s } .enter-2 { animation-delay: .09s }
+.enter-3 { animation-delay: .14s } .enter-4 { animation-delay: .19s }
+.enter-late { animation: rise .6s cubic-bezier(.22,.8,.3,1) .28s both; }
+.chart-in { animation: draw .7s ease .2s both; }
+
+.kpi { transition: border-color .2s ease; }
+.kpi-drill { animation: rise .22s ease both; }
+.note { transition: border-left-color .2s ease; }
+
+/* Chart interaction */
+.hit { fill: transparent; cursor: crosshair; }
+.hit:hover ~ .marker, .hit:focus ~ .marker { opacity: 1; }
+.marker { opacity: 0; transition: opacity .12s ease; pointer-events: none; }
+.tip { position: absolute; pointer-events: none; z-index: 5; background: var(--ink);
+       color: var(--paper); padding: 7px 10px; font-family: var(--utility); font-size: 11px;
+       white-space: nowrap; transform: translate(-50%, -125%); }
+.tip-row { display: flex; gap: 10px; justify-content: space-between; }
+
+/* Print: a real document, not a screenshot of a webpage. */
+@page {
+  size: Letter portrait;
+  margin: 18mm 16mm 20mm;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DASHBOARD SHELL
+   Staff-facing application chrome. The client statement at /portal keeps the
+   editorial document treatment; this is the tool that sits behind it.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════ Shell ══════════════════════ */
+
+.app { display: flex; min-height: 100vh; }
+
+/* ── Rail ─────────────────────────────────────────── */
+.rail {
+  width: var(--rail); flex-shrink: 0; background: var(--ink);
+  border-right: 1px solid var(--hairline-dark);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+}
+.rail-brand { padding: 22px 20px 18px; border-bottom: 1px solid var(--hairline-dark); }
+.rail-mark { display: flex; align-items: center; gap: 11px; }
+.rail-badge { width: 34px; height: 34px; border: 1px solid var(--gold-label); display: flex;
+              align-items: center; justify-content: center; font-family: var(--display);
+              font-size: 14px; color: var(--gold); flex-shrink: 0; }
+.rail-name { font-family: var(--display); font-size: 17px; letter-spacing: .06em; color: var(--paper); line-height: 1.15; }
+.rail-sub { font-family: var(--utility); font-size: 8px; font-weight: 500; letter-spacing: .22em;
+            text-transform: uppercase; color: var(--gold-label); margin-top: 3px; }
+
+.rail-section { padding: 16px 12px 6px; }
+.rail-section .eyebrow { font-size: 8.5px; color: #5F5A52; padding-left: 8px; }
+
+.nav { list-style: none; margin: 0; padding: 0 12px; }
+/* Both selectors, always. The shell renders navigation as links; styling only
+   `.nav button` left every item unstyled — invisible text on a near-black rail, with
+   the group labels floating in a void and no way to navigate. */
+.nav button, .nav a {
+  width: 100%; display: flex; align-items: center; gap: 11px;
+  background: transparent; border: 0; cursor: pointer; text-align: left;
+  padding: 9px 10px; margin-bottom: 1px; text-decoration: none;
+  font-family: var(--utility); font-size: 12.5px; font-weight: 500;
+  color: #A8A196; transition: color .15s, background .15s;
+  border-left: 2px solid transparent;
+}
+.nav button:hover, .nav a:hover { color: var(--paper); background: rgba(255,255,255,.04); }
+.nav button.on, .nav a.on {
+  color: var(--paper); background: rgba(211,175,55,.09); border-left-color: var(--gold);
+}
+.nav svg { width: 15px; height: 15px; flex-shrink: 0; stroke-width: 1.6; }
+.nav .count { margin-left: auto; font-size: 9.5px; font-weight: 600; padding: 1px 6px;
+              border: 1px solid currentColor; color: var(--accent); }
+
+.rail-foot { margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--hairline-dark); }
+.rail-foot .eyebrow { color: #5F5A52; }
+.rail-client { font-family: var(--display); font-size: 15px; color: var(--paper); margin-top: 5px; }
+
+/* ── Main column ──────────────────────────────────── */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--paper); border-bottom: 1px solid var(--hairline);
+  padding: 18px 32px; display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap;
+}
+.topbar h1 { font-family: var(--display); font-size: 27px; font-weight: 300;
+             letter-spacing: -.01em; margin: 0; line-height: 1.15; }
+.topbar p { font-family: var(--editorial); font-size: 13.5px; color: var(--ink-mute); margin: 3px 0 0; }
+.top-actions { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.select {
+  font-family: var(--utility); font-size: 11.5px; font-weight: 500; letter-spacing: .03em;
+  background: #FFFDF8; border: 1px solid var(--hairline); color: var(--ink);
+  padding: 8px 11px; cursor: pointer;
+}
+.select:focus { outline: 1px solid var(--gold); outline-offset: 1px; }
+
+.quality {
+  display: flex; align-items: center; gap: 8px; cursor: pointer;
+  background: transparent; border: 1px solid var(--hairline); padding: 7px 12px;
+  font-family: var(--utility); font-size: 11px; font-weight: 600; letter-spacing: .05em;
+}
+.quality .dot { width: 7px; height: 7px; border-radius: 50%; }
+.avatar { width: 32px; height: 32px; background: var(--ink); color: var(--paper);
+          display: flex; align-items: center; justify-content: center;
+          font-family: var(--display); font-size: 14px; }
+
+.content { padding: 30px 32px 72px; max-width: 1240px; }
+
+/* ── Entity pills ─────────────────────────────────── */
+.pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 26px; }
+.pill {
+  font-family: var(--utility); font-size: 11.5px; font-weight: 500;
+  padding: 8px 15px; border: 1px solid var(--hairline); background: transparent;
+  color: var(--ink-mute); cursor: pointer; transition: all .15s;
+}
+.pill:hover { border-color: var(--ink-mute); color: var(--ink); }
+.pill.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+/* ── Cards and grids ──────────────────────────────── */
+.grid { display: grid; gap: 20px; }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.g2 { grid-template-columns: repeat(2, 1fr); }
+.g21 { grid-template-columns: 1.6fr 1fr; }
+
+.card { background: #FFFDF8; border: 1px solid var(--hairline); padding: 20px 22px; }
+.card-t { font-family: var(--utility); font-size: 11px; font-weight: 600;
+          letter-spacing: .1em; text-transform: uppercase; }
+.card-s { font-family: var(--utility); font-size: 10.5px; color: var(--ink-mute); margin-top: 3px; }
+
+.kpi { background: #FFFDF8; border: 1px solid var(--hairline); padding: 18px 20px; }
+.kpi-v { font-family: var(--display); font-size: 33px; font-weight: 400; line-height: 1.05;
+         letter-spacing: -.02em; margin: 8px 0 4px; }
+.kpi-s { font-family: var(--utility); font-size: 10.5px; color: var(--ink-mute); line-height: 1.4; }
+.kpi-delta { font-family: var(--utility); font-size: 10.5px; font-weight: 600; }
+
+/* ── Tables ───────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; font-family: var(--utility); font-size: 12.5px; }
+thead th { font-size: 9.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+           color: var(--ink-mute); text-align: right; padding: 0 0 10px 16px;
+           border-bottom: 1px solid var(--ink); }
+thead th:first-child { text-align: left; padding-left: 0; }
+td { padding: 11px 0 11px 16px; border-bottom: 1px solid var(--hairline); text-align: right; font-weight: 500; }
+td:first-child { text-align: left; padding-left: 0; font-weight: 400; color: var(--ink-mute);
+                 font-family: var(--editorial); font-size: 13.5px; }
+tbody tr:last-child td { border-bottom: 1px solid var(--ink); font-weight: 600; }
+
+/* ── Commentary: the signature. Editorial prose, not a callout box. ── */
+.note { padding: 15px 0 15px 20px; border-left: 2px solid var(--hairline); }
+.note + .note { border-top: 1px solid var(--hairline); }
+.note-warn { border-left-color: var(--accent); }
+.note-bad  { border-left-color: var(--accent-deep); }
+.note-info { border-left-color: var(--brand); }
+.note-h { font-family: var(--utility); font-size: 11.5px; font-weight: 600; margin-bottom: 5px; }
+.note-b { font-family: var(--editorial); font-size: 14.5px; line-height: 1.62; color: var(--ink-soft); }
+.note-lead .note-b { font-size: 17px; line-height: 1.55; }
+
+/* ── Charts ───────────────────────────────────────── */
+.chart { width: 100%; height: auto; font-variant-numeric: tabular-nums lining-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 12px; }
+.legend span { font-family: var(--utility); font-size: 11px; color: var(--ink-mute);
+               display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 9px; height: 9px; display: inline-block; }
+
+/* ── Bullet band ──────────────────────────────────── */
+.bullet { margin-bottom: 18px; }
+.bullet-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+.bullet-h span:first-child { font-family: var(--editorial); font-size: 14px; }
+.bullet-h span:last-child { font-family: var(--utility); font-size: 13px; font-weight: 600; }
+.track { position: relative; height: 10px; background: #E8E2D4; }
+.band { position: absolute; top: 0; bottom: 0; background: var(--brand); opacity: .2; }
+.fill { position: absolute; top: 2px; bottom: 2px; left: 0; }
+.mark { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--ink); }
+
+/* ── Tags, alerts ─────────────────────────────────── */
+.tag { font-family: var(--utility); font-size: 9px; font-weight: 600; letter-spacing: .12em;
+       text-transform: uppercase; padding: 3px 8px; border: 1px solid currentColor; }
+
+.alert { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--hairline); }
+.alert:last-child { border-bottom: 0; }
+.sev { width: 3px; flex-shrink: 0; }
+.alert-h { font-family: var(--utility); font-size: 12.5px; font-weight: 600; }
+.alert-b { font-family: var(--editorial); font-size: 14px; color: var(--ink-soft); margin-top: 4px; line-height: 1.55; }
+.alert-m { font-family: var(--utility); font-size: 10.5px; color: var(--ink-mute); margin-top: 6px; }
+
+/* ── Confidence drawer ────────────────────────────── */
+.drawer { display: none; margin-bottom: 26px; }
+.drawer.open { display: block; }
+.conf-row { border-top: 1px solid var(--hairline); padding: 11px 0; }
+.conf-h { display: flex; justify-content: space-between; font-family: var(--utility);
+          font-size: 12px; font-weight: 600; }
+.conf-track { height: 3px; background: #E8E2D4; margin-top: 7px; }
+
+/* ── Empty state, used where a data source isn't connected ── */
+.empty { border: 1px dashed var(--hairline); padding: 40px 28px; text-align: center; }
+.empty h3 { font-family: var(--display); font-size: 21px; font-weight: 400; margin: 0 0 8px; }
+.empty p { font-family: var(--editorial); font-size: 14px; color: var(--ink-mute);
+           max-width: 460px; margin: 0 auto; line-height: 1.6; }
+
+.section-gap { margin-top: 30px; }
+h2.sec { font-family: var(--display); font-size: 22px; font-weight: 400; margin: 0 0 4px; }
+p.sec-q { font-family: var(--editorial); font-style: italic; font-size: 13.5px;
+          color: var(--ink-mute); margin: 0 0 18px; }
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, 1fr); } .g21 { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  .rail { position: fixed; left: 0; top: 0; transform: translateX(-100%);
+          transition: transform .22s ease; z-index: 60; }
+  .rail.open { transform: none; }
+  .burger { display: flex !important; }
+  .g3, .g2 { grid-template-columns: 1fr; }
+  .content, .topbar { padding-left: 18px; padding-right: 18px; }
+}
+@media (max-width: 620px) { .g4 { grid-template-columns: 1fr; } .topbar h1 { font-size: 22px; } }
+
+.burger { display: none; background: transparent; border: 1px solid var(--hairline);
+          padding: 8px 10px; cursor: pointer; align-items: center; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+
+@media print {
+  .no-print, .select, .kpi-drill { display: none !important; }
+  :root { --paper: #fff; --panel: #fff; --ink: #000; --ink-soft: #222; --hairline: #ccc; }
+  body { background: #fff; color: #000; font-size: 10.5pt; }
+  .enter, .enter-late, .chart-in { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .masthead { position: static; background: #fff !important; border-bottom: 1.5pt solid #000; padding-bottom: 8pt; }
+  .wordmark, .wordmark-sub, .prepared-by { color: #000 !important; }
+  .sheet { max-width: none; padding: 0; }
+  .section { break-inside: avoid; page-break-inside: avoid; margin-top: 24pt; }
+  .section:nth-of-type(3) { break-before: page; }
+  .panel, .panel-white { background: #fff; border: 0.5pt solid #999; }
+  .kpi { border-top: 0.5pt solid #666; }
+  .kpi-value { font-size: 20pt; }
+  .display-xl { font-size: 26pt; }
+  .section-title { font-size: 16pt; }
+  .note { break-inside: avoid; }
+  .ledger-table { font-size: 9pt; }
+  a[href]:after { content: none !important; }
+  .print-only { display: block !important; }
+}
+.print-only { display: none; }
+
+@media (max-width: 720px) {
+  .sheet { padding: 0 18px 48px; }
+  .masthead-inner { padding: 14px 18px; }
+  .display-xl { font-size: 32px; }
+  .section-title { font-size: 23px; }
+  .kpi-value { font-size: 28px; }
+  .section { margin-top: 42px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE BOOK
+   A register, not a feed. A partner with thirty clients should see the whole
+   practice without scrolling and run their eye down one column.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.stat { min-width: 76px; }
+.stat-v { font-family: var(--display); font-size: 26px; font-weight: 400; line-height: 1.1;
+          margin-top: 3px; letter-spacing: -0.01em; }
+
+/* Filter chips: small, quiet, and grouped under a label so three different
+   concepts do not read as one pile of buttons. */
+.chip {
+  font-family: var(--utility); font-size: 11px; font-weight: 500;
+  padding: 5px 11px; border: 1px solid var(--hairline); background: transparent;
+  color: var(--ink-mute); cursor: pointer; transition: all .12s; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+}
+.chip:hover { border-color: var(--ink-mute); color: var(--ink); }
+.chip.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.chip-n { font-size: 9.5px; opacity: .6; }
+
+/* Nine columns, aligned. Numbers right, text left, trend in the middle. */
+.book-head, .book-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.6fr) 84px 96px 74px 66px 66px 58px minmax(200px, 1.5fr) 62px;
+  gap: 14px; align-items: center;
+}
+.book-head {
+  padding: 10px 18px; border-bottom: 1px solid var(--ink);
+  font-family: var(--utility); font-size: 9px; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--ink-mute);
+  position: sticky; top: 0; background: #FFFDF8; z-index: 5;
+}
+.book-row {
+  padding: 13px 18px 13px 15px; border-bottom: 1px solid var(--hairline);
+  transition: background .12s;
+}
+.book-row:hover { background: var(--panel); }
+
+.book-name { font-family: var(--display); font-size: 17px; color: var(--ink);
+             text-decoration: none; display: block; line-height: 1.2; }
+.book-name:hover { color: var(--gold-deep); }
+.book-sub { font-family: var(--utility); font-size: 10px; color: var(--ink-mute); margin-top: 2px; }
+.book-num { font-family: var(--utility); font-size: 13px; font-weight: 500; text-align: right; }
+.book-delta { font-size: 9.5px; font-weight: 600; margin-top: 1px; }
+
+.book-why { font-family: var(--utility); font-size: 11px; text-decoration: none;
+            display: flex; align-items: center; gap: 7px; line-height: 1.3; }
+.book-why:hover { text-decoration: underline; }
+.book-more { font-size: 9px; padding: 1px 5px; border: 1px solid var(--hairline);
+             color: var(--ink-mute); flex-shrink: 0; }
+.book-clear { font-family: var(--utility); font-size: 11px; color: var(--ink-mute); opacity: .65; }
+.book-score { font-family: var(--display); font-size: 22px; letter-spacing: -0.01em; }
+
+.book-detail { padding: 14px 18px 16px 36px; background: var(--panel);
+               border-bottom: 1px solid var(--hairline); }
+.book-open { font-family: var(--utility); font-size: 11px; font-weight: 600;
+             color: var(--gold-deep); text-decoration: none; }
+
+/* Below the grid's comfortable width, the register becomes stacked cards rather
+   than a squeezed table — a cramped nine-column grid is worse than either. */
+@media (max-width: 1180px) {
+  .book-head { display: none; }
+  .book-row {
+    grid-template-columns: 1fr auto; gap: 6px 16px;
+    padding: 15px 16px 15px 13px;
+  }
+  .book-row > div:nth-child(2) { grid-column: 2; grid-row: 1 / span 2; }
+  .book-row > div:nth-child(n+3):nth-child(-n+7) {
+    grid-column: 1; display: inline-flex; gap: 6px; text-align: left;
+  }
+  .book-row > div:nth-child(8) { grid-column: 1 / -1; }
+  .book-row > div:nth-child(9) { grid-column: 2; text-align: right; }
+}
+
+
+/* ── Metric rows: value and shape lead, provenance follows ─────────────── */
+.mrow {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.7fr) 108px 82px 100px 116px minmax(120px, 0.9fr);
+  gap: 16px; align-items: center;
+  padding: 11px 18px; border-bottom: 1px solid var(--hairline);
+}
+.mrow:last-child { border-bottom: 0; }
+.mrow-head {
+  border-bottom: 1px solid var(--ink); padding-top: 9px; padding-bottom: 9px;
+  font-family: var(--utility); font-size: 9px; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--ink-mute);
+}
+.mrow-label { font-family: var(--editorial); font-size: 14px; color: var(--ink); }
+.mrow-key { font-family: var(--utility); font-size: 8px; font-weight: 600; letter-spacing: .1em;
+            text-transform: uppercase; color: var(--gold-deep); margin-left: 7px;
+            border: 1px solid currentColor; padding: 1px 4px; }
+.mrow-v { font-family: var(--utility); font-size: 14.5px; font-weight: 600; text-align: right; }
+.mrow-band { font-family: var(--utility); font-size: 8px; font-weight: 600; letter-spacing: .1em;
+             text-transform: uppercase; margin-left: 6px; border: 1px solid currentColor;
+             padding: 1px 4px; }
+.mrow-delta { font-family: var(--utility); font-size: 11.5px; font-weight: 600; text-align: right; }
+.mrow-target { font-family: var(--utility); font-size: 12px; text-align: right; color: var(--ink-soft); }
+.mrow-basis { font-family: var(--utility); font-size: 10.5px; line-height: 1.35; }
+
+@media (max-width: 1080px) {
+  .mrow-head { display: none; }
+  .mrow { grid-template-columns: 1fr auto auto; gap: 6px 14px; padding: 13px 16px; }
+  .mrow > div:nth-child(4) { grid-column: 3; grid-row: 1 / span 2; }
+  .mrow > div:nth-child(5), .mrow > div:nth-child(6) { grid-column: 1 / -1; text-align: left; }
+}
+
+
+/* ── Clients register ─────────────────────────────────────────────────── */
+.client-row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.8fr) 110px minmax(160px, 1.2fr) minmax(220px, auto);
+  gap: 16px; align-items: center;
+  padding: 14px 18px 14px 15px; border-bottom: 1px solid var(--hairline);
+}
+.client-row:last-child { border-bottom: 0; }
+.client-row:hover { background: var(--panel); }
+@media (max-width: 900px) {
+  .client-row { grid-template-columns: 1fr; gap: 8px; }
+  .client-row > div:last-child { justify-content: flex-start; }
+}
+
+
+/* ── The arrival ──────────────────────────────────────────────────────── */
+.home-queue-row {
+  display: grid;
+  grid-template-columns: 88px 1fr auto 18px;
+  gap: 12px 18px;
+  align-items: baseline;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hairline);
+  text-decoration: none;
+  color: inherit;
+}
+.home-queue-row:first-of-type { border-top: 1px solid var(--hairline); }
+.home-queue-row:hover .home-queue-head { color: var(--gold-deep); }
+.home-queue-when {
+  font-family: var(--utility); font-size: 9px; font-weight: 600;
+  letter-spacing: .16em; text-transform: uppercase;
+}
+.home-queue-head {
+  font-family: var(--display); font-size: 17px; line-height: 1.3;
+  transition: color .12s;
+}
+.home-queue-client {
+  font-family: var(--utility); font-size: 10.5px; color: var(--ink-mute);
+  letter-spacing: .04em; text-align: right;
+}
+.home-queue-go { color: var(--ink-mute); font-size: 14px; }
+
+@media (max-width: 700px) {
+  .home-queue-row {
+    grid-template-columns: 72px 1fr 14px;
+    grid-template-areas:
+      "when head go"
+      "when client go";
+  }
+  .home-queue-when { grid-area: when; }
+  .home-queue-head { grid-area: head; }
+  .home-queue-client { grid-area: client; text-align: left; }
+  .home-queue-go { grid-area: go; }
+}
+
+
+.filter-toggle {
+  font-family: var(--utility); font-size: 10.5px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink-mute);
+  cursor: pointer; list-style: none; padding: 6px 0; user-select: none;
+}
+.filter-toggle::-webkit-details-marker { display: none; }
+.filter-toggle::before { content: "+ "; color: var(--gold-deep); }
+details[open] > .filter-toggle::before { content: "− "; }
+.filter-toggle:hover { color: var(--ink); }
+
+
+/* Industry autocomplete — the firm's own list, never an invented menu. */
+.suggest { position: absolute; left: 0; right: 0; top: 100%; z-index: 20;
+           background: #FFFDF8; border: 1px solid var(--hairline); border-top: 0; }
+.suggest-item { display: block; width: 100%; text-align: left; background: transparent;
+                border: 0; padding: 8px 12px; cursor: pointer;
+                font-family: var(--utility); font-size: 12.5px; color: var(--ink); }
+.suggest-item:hover { background: var(--panel); }
+
+/* Ask Hathorn — Copilot panel */
+.ask-panel { position: relative; padding: 8px 0 24px; }
+.ask-badge {
+  font-family: var(--utility); font-size: 10px; font-weight: 600;
+  letter-spacing: .08em; text-transform: uppercase;
+  border: 1px solid var(--hairline); padding: 3px 8px; color: var(--ink-mute);
+}
+.ask-msg-body {
+  white-space: pre-wrap; font-family: var(--editorial, "EB Garamond", Georgia, serif);
+  font-size: 16.5px; line-height: 1.45; margin: 0;
+}
+.ask-numbers {
+  list-style: none; padding: 0; margin: 4px 0; width: 100%; max-width: 28rem;
+  display: grid; gap: 4px;
+}
+.ask-numbers li {
+  display: flex; justify-content: space-between; gap: 1rem;
+  font-family: var(--utility); font-size: 12.5px;
+  border-bottom: 1px solid var(--hairline); padding: 3px 0;
+}
+.ask-warnings {
+  margin: 0; padding-left: 1.1rem;
+  font-family: var(--utility); font-size: 12px; color: #8a4b2a;
+}
+.ask-input {
+  width: 100%; resize: vertical; min-height: 3.2rem;
+  font-family: var(--editorial, "EB Garamond", Georgia, serif); font-size: 16px;
+  padding: 10px 12px; border: 1px solid var(--hairline);
+  background: var(--paper); color: inherit;
+}
+.ask-source-row {
+  display: grid; gap: 2px; padding: 8px 0;
+  border-bottom: 1px solid var(--hairline);
+  font-family: var(--utility); font-size: 13px;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
+}
+@media (max-width: 640px) {
+  .ask-panel form { grid-template-columns: 1fr !important; }
+}
