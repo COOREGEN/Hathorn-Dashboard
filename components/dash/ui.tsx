@@ -10,7 +10,7 @@ export const money = (n: number) => {
   const s = n < 0 ? "−" : "", v = Math.abs(n);
   return v >= 1000 ? `${s}$${(v / 1000).toFixed(2)}M` : `${s}$${v.toFixed(1)}K`;
 };
-export const pct = (n: number) => `${n.toFixed(1)}%`;
+export const pct = (n: number) => (n == null || !Number.isFinite(n) ? "—" : `${n.toFixed(1)}%`);
 
 export function Kpi({ label, value, sub, tone = "n", delta }: {
   label: string; value: string; sub: string;

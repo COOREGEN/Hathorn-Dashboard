@@ -7,7 +7,7 @@ import type { KpiUnit } from "@/lib/kpi-registry";
  * shown as $27.6K is off by a factor of a thousand and an owner will act on it.
  */
 export function formatKpi(value: number | null, unit: KpiUnit, decimals = 1): string {
-  if (value === null) return "—";
+  if (value === null || !Number.isFinite(value)) return "—";
   switch (unit) {
     case "money": {
       const s = value < 0 ? "−" : "", v = Math.abs(value);

@@ -23,7 +23,7 @@ export default function BrandMark({
   const subSize = size === "lg" ? 8.5 : 8;
 
   return (
-    <Link href={href} aria-label="Hathorn Ledger home"
+    <Link href={href} aria-label="Hathorn Dashboard home"
       style={{ textDecoration: "none", display: "inline-block", color: "inherit" }}>
       <div style={{
         fontFamily: "var(--display)", fontSize: titleSize, fontWeight: size === "lg" ? 300 : 400,

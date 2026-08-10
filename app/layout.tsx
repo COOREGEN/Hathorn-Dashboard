@@ -3,7 +3,7 @@ import "./globals.css";
 import { assertProductionReady } from "@/lib/config";
 
 export const metadata: Metadata = {
-  title: "Hathorn Ledger",
+  title: "Hathorn Dashboard",
   description: "Monthly financial dashboards — Hathorn Advisory Group",
 };
 

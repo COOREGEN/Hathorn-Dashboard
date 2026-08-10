@@ -66,7 +66,7 @@ export default function Login() {
             letterSpacing: ".16em", color: "var(--paper)" }}>HATHORN</div>
           <div style={{ fontFamily: "var(--utility)", fontSize: 8.5, fontWeight: 500,
             letterSpacing: ".3em", textTransform: "uppercase", color: "var(--gold-label)",
-            marginTop: 8 }}>Advisory Group</div>
+            marginTop: 8 }}>Dashboard</div>
           <hr style={{ border: 0, borderTop: "1px solid var(--hairline-dark)", margin: "26px auto 0", width: 56 }} />
         </div>
 
@@ -77,7 +77,7 @@ export default function Login() {
           <p className="caption" style={{ marginBottom: 20 }}>
             {mfaStep
               ? "Enter the 6-digit code from your authenticator app, or a backup code."
-              : "Clients open their monthly statement. Advisors open the book."}
+              : "Clients open their monthly statement. Advisors open the practice."}
           </p>
 
           {!mfaStep ? (
@@ -128,7 +128,7 @@ export default function Login() {
 
         <p style={{ textAlign: "center", marginTop: 22, fontFamily: "var(--utility)",
           fontSize: 9.5, letterSpacing: ".18em", textTransform: "uppercase", color: "#5F5A52" }}>
-          Confidential · Hathorn Advisory Group
+          Confidential · Hathorn Dashboard
         </p>
       </div>
     </div>

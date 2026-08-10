@@ -202,8 +202,10 @@ export default async function Today() {
           <Link href="/close" style={{ color: "var(--ink)", textDecoration: "none" }}>Close</Link>
           <Link href="/exceptions" style={{ color: "var(--ink)", textDecoration: "none" }}>Exceptions</Link>
           <Link href="/upload" style={{ color: "var(--ink)", textDecoration: "none" }}>Upload</Link>
+          <Link href="/ask" style={{ color: "var(--ink)", textDecoration: "none" }}>Ask Hathorn</Link>
           <Link href="/dash" style={{ color: "var(--ink)", textDecoration: "none" }}>Dashboard</Link>
-          <Link href="/admin" style={{ color: "var(--ink)", textDecoration: "none" }}>Firm</Link>
+          <Link href="/firm" style={{ color: "var(--ink)", textDecoration: "none" }}>Firm</Link>
+          <Link href="/admin" style={{ color: "var(--ink)", textDecoration: "none" }}>Firm ops</Link>
           <Link href="/account/security" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>Security</Link>
         </nav>
       </main>

@@ -59,7 +59,7 @@ function SecurityInner() {
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <header className="masthead">
         <div className="masthead-inner" style={{ maxWidth: 560 }}>
-          <BrandMark href="/" tone="ink" sub="Ledger · Security" />
+          <BrandMark href="/" tone="ink" sub="Dashboard · Security" />
           <nav className="ml-auto flex items-center gap-4">
             <Link href="/" className="prepared-by" style={{ textDecoration: "none" }}>Today</Link>
             <Link href="/admin" className="prepared-by" style={{ textDecoration: "none" }}>Firm</Link>

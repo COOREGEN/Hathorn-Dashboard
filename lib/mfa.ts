@@ -13,7 +13,7 @@ import bcrypt from "bcryptjs";
 import { db, uid } from "./db";
 import { encrypt, decrypt } from "./security";
 
-const ISSUER = "Hathorn Ledger";
+const ISSUER = "Hathorn Dashboard";
 
 export function isStaffRole(role: string): boolean {
   return role === "ADMIN" || role === "ADVISOR" || role === "BOOKKEEPER";

@@ -1,4 +1,4 @@
-# Hathorn Ledger
+# Hathorn Dashboard
 
 Monthly advisory platform for Hathorn Advisory Group.
 

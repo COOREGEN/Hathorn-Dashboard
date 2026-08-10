@@ -41,6 +41,7 @@ export default function StaffHeader({
     { href: "/exceptions", label: "Exceptions" },
     { href: "/upload", label: "Upload" },
     { href: "/firm", label: "Firm" },
+    { href: "/admin", label: "Ops" },
     ...(links || []),
   ];
 

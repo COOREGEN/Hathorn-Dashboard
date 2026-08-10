@@ -39,7 +39,7 @@ export default async function Clients() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <StaffHeader
-        sub="Ledger · Clients"
+        sub="Dashboard · Clients"
         maxWidth={1240}
         userName={s.name}
         links={s.role === "ADMIN" ? [{ href: "/admin", label: "Firm" }] : []}

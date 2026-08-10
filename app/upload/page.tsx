@@ -24,7 +24,7 @@ export default async function Upload() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <StaffHeader
-        sub="Ledger · Monthly close"
+        sub="Dashboard · Monthly close"
         maxWidth={760}
         userName={s.name}
         role={s.role}

@@ -1,4 +1,4 @@
-# Production runbook — Hathorn Ledger
+# Production runbook — Hathorn Dashboard
 
 This is the live advisory book, not a demo. Ship only when every item below is true.
 

@@ -117,7 +117,7 @@ export function sendPasswordReset(opts: { email: string; name: string; resetUrl:
   const url = escapeHtml(opts.resetUrl);
   send(
     opts.email,
-    "Reset your Hathorn Ledger password",
+    "Reset your Hathorn Dashboard password",
     `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;color:#232323">
       <div style="background:#0C0B0A;padding:28px 32px;border-radius:8px 8px 0 0">
         <div style="font-size:13px;font-weight:700;letter-spacing:.2em;color:#D3AF37">HATHORN ADVISORY GROUP</div>
@@ -125,7 +125,7 @@ export function sendPasswordReset(opts: { email: string; name: string; resetUrl:
       <div style="background:#fff;padding:32px;border:1px solid #e8e5e0;border-top:none;border-radius:0 0 8px 8px">
         <p style="margin:0 0 8px;font-size:18px;font-weight:700">Reset your password</p>
         <p style="color:#6E675B;font-size:14px;line-height:1.6;margin:0 0 24px">
-          Hi ${escapeHtml(opts.name)}, we received a request to reset your Ledger password.
+          Hi ${escapeHtml(opts.name)}, we received a request to reset your Hathorn Dashboard password.
           This link expires in one hour. If you did not ask for this, you can ignore this email.
         </p>
         <a href="${url}" style="display:inline-block;background:#0C0B0A;color:#fff;

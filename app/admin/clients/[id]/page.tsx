@@ -24,7 +24,7 @@ export default async function ManageClient({ params }: { params: { id: string } 
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <StaffHeader
-        sub="Ledger · Manage"
+        sub="Dashboard · Manage"
         maxWidth={1000}
         userName={s.name}
         links={[

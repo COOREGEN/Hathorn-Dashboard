@@ -87,7 +87,7 @@ export default async function Portfolio({ searchParams }: {
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <StaffHeader
-        sub="Ledger · Attention"
+        sub="Dashboard · Attention"
         maxWidth={1440}
         userName={s.name}
         links={[{ href: "/dash", label: "Dashboard" }]}

@@ -21,7 +21,7 @@ export default async function Admin() {
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <StaffHeader
-        sub="Ledger · Firm"
+        sub="Dashboard · Firm ops"
         maxWidth={880}
         userName={s.name}
         role={s.role}

@@ -38,7 +38,7 @@ export default async function PlanningPage({
   return (
     <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
       <StaffHeader
-        sub="Ledger · Planning"
+        sub="Dashboard · Planning"
         maxWidth={1080}
         userName={s.name}
         role={s.role}
