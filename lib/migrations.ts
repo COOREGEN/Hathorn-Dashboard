@@ -656,6 +656,37 @@ export const MIGRATIONS: Migration[] = [
       addColumn(db, "users", "mfa_enrolled_at", "TEXT DEFAULT NULL");
     },
   },
+  {
+    id: 19,
+    name: "fpa_model_runs",
+    up: (db) => {
+      /**
+       * FP&A model runs — forward-looking projections based on assumptions.
+       *
+       * Strictly separate from release_records / pl_lines. A run freezes its inputs
+       * and outputs so recomputation cannot silently change a past answer.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS fpa_model_runs (
+          id TEXT PRIMARY KEY,
+          client_id TEXT NOT NULL,
+          source_period_id TEXT NOT NULL,
+          source_release_id TEXT DEFAULT NULL,
+          scenario TEXT NOT NULL,
+          engine TEXT NOT NULL,
+          engine_version TEXT NOT NULL,
+          assumptions_json TEXT NOT NULL,
+          results_json TEXT NOT NULL,
+          checks_json TEXT NOT NULL,
+          status TEXT DEFAULT 'OK',
+          analysis TEXT DEFAULT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_fpa_client ON fpa_model_runs(client_id, created_at DESC);
+      `);
+    },
+  },
 ];
 
 /**

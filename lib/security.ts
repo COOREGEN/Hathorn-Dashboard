@@ -130,4 +130,6 @@ export const LIMITS = {
   qboSync: { max: 30, windowMinutes: 60 },
   upload: { max: 60, windowMinutes: 60 },
   comment: { max: 60, windowMinutes: 60 },
+  fpaRun: { max: 40, windowMinutes: 60 },
+  fpaAnalyze: { max: 20, windowMinutes: 60 },
 };

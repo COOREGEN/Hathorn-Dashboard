@@ -56,6 +56,7 @@ const WIPE = [
   "kpi_inputs","client_tags","import_mappings","import_runs","volume_lines","passthrough_lines",
   "fee_lines","channel_lines","personal_finance","assets","release_deliveries",
   "password_reset_tokens",
+  "fpa_model_runs",
 ];
 for (const t of WIPE) {
   try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }

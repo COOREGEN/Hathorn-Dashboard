@@ -118,6 +118,17 @@ export const config = {
     model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6",
     get enabled() { return Boolean(this.apiKey); },
   },
+
+  /**
+   * Optional Forge FP&A engine. Default off. Hathorn never requires Forge to boot.
+   * Pilot is currently BLOCKED in this environment — see lib/fpa/forge-engine.ts.
+   */
+  forge: {
+    enabled: !["0", "false", "no", "off", ""].includes(
+      String(process.env.FORGE_ENABLED ?? "0").toLowerCase(),
+    ),
+    bin: process.env.FORGE_BIN || "forge",
+  },
 };
 
 /** Human-readable startup report — surfaced on the admin page so nothing is a mystery. */
@@ -133,5 +144,9 @@ export function integrationStatus() {
       hint: config.requireStaffMfa
         ? "Required for ADMIN / ADVISOR / BOOKKEEPER before a session is issued."
         : "Optional (REQUIRE_STAFF_MFA is off). Enroll from Account security." },
+    { name: "FP&A / Planning", enabled: true,
+      hint: config.forge.enabled
+        ? "FORGE_ENABLED=1 — Forge pilot; native engine remains the fallback."
+        : "Native 12-month forecast engine (Forge pilot off by default)." },
   ];
 }

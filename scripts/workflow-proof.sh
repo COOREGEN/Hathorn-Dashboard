@@ -241,6 +241,61 @@ else
 fi
 
 echo
+echo "10. Planning / FP&A (staff only; native engine)"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/planning")
+assert "client blocked from /planning" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" \
+  -X POST "$BASE/api/planning" -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"scenario\":\"BASE\"}")
+assert "client blocked from planning API" test "$CODE" = "403" -o "$CODE" = "401"
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" \
+  "$BASE/planning?client=$CLIENT_ID")
+assert "admin reaches /planning" test "$CODE" = "200"
+
+# Fingerprint accounting tables before a forecast run
+FP_BEFORE=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID');
+")
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/planning" \
+  -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"scenario\":\"BASE\",\"assumptions\":{\"annualRevenueGrowthPct\":8,\"grossMarginPct\":35,\"annualOpexGrowthPct\":3,\"horizonMonths\":12}}")
+echo "$RESP" > "$COOKIE_DIR/fpa-run.json"
+assert "staff can run forecast" grep -q '"ok":true' "$COOKIE_DIR/fpa-run.json"
+assert "forecast uses native engine" grep -q '"engine":"native"' "$COOKIE_DIR/fpa-run.json"
+assert "forecast has 12 months" python3 -c "import json,sys; d=json.load(open('$COOKIE_DIR/fpa-run.json')); assert len(d['run']['results']['forecast'])==12"
+
+FP_AFTER=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID');
+")
+assert "forecast does not mutate actuals/releases" test "$FP_BEFORE" = "$FP_AFTER"
+
+RUNS=$(sqlite3 data/ledger.db "SELECT COUNT(*) FROM fpa_model_runs WHERE client_id='$CLIENT_ID'")
+assert "model run persisted" test "${RUNS:-0}" -ge 1
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/planning" \
+  -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"scenario\":\"BASE\",\"assumptions\":{\"annualRevenueGrowthPct\":999,\"grossMarginPct\":35,\"annualOpexGrowthPct\":3}}")
+echo "$RESP" > "$COOKIE_DIR/fpa-bad.json"
+assert "rejects invalid growth %" grep -qiE 'outside|error|"ok":false' "$COOKIE_DIR/fpa-bad.json"
+
+RUN_ID=$(python3 -c "import json; print(json.load(open('$COOKIE_DIR/fpa-run.json'))['run']['id'])")
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/planning/analyze" \
+  -H 'content-type: application/json' -d "{\"runId\":\"$RUN_ID\"}")
+echo "$RESP" > "$COOKIE_DIR/fpa-analyze.json"
+assert "staff can generate analysis" grep -q '"ok":true' "$COOKIE_DIR/fpa-analyze.json"
+assert "analysis draft present" grep -qiE 'WHAT CHANGED|KEY DRIVER|assumption' "$COOKIE_DIR/fpa-analyze.json"
+
+echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1
