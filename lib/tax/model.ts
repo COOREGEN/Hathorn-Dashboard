@@ -409,13 +409,15 @@ export function issueBundle(issueId: string) {
   };
 }
 
-function listClientDocuments(clientId: string) {
+function listClientDocuments(clientId: string): {
+  id: string; document_type: string; original_filename: string; status: string;
+}[] {
   try {
     return db().prepare(
       `SELECT id, document_type, original_filename, status, uploaded_at
        FROM source_documents WHERE client_id=? AND status IN ('APPROVED','NEEDS_REVIEW','PARSED')
        ORDER BY uploaded_at DESC LIMIT 20`,
-    ).all(clientId);
+    ).all(clientId) as any;
   } catch {
     return [];
   }

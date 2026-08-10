@@ -11,7 +11,7 @@ type Bundle = {
   ruleRuns: { id: string; ruleKey: string; ruleVersion: string; taxYear: number; result: TaxRuleResult; createdAt: string }[];
   scenarios: TaxScenario[];
   missingFacts: string[];
-  rules: { key: string; label: string }[];
+  rules: readonly { key: string; label: string }[];
   documents: { id: string; document_type: string; original_filename: string; status: string }[];
 };
 
