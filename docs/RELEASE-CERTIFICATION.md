@@ -101,6 +101,7 @@ Branch audited: `cursor/release-candidate-audit-c8e9` (from Phase 12 tip).
 | Backups | Hourly cron documented; verify OK |
 | Jobs | `npm run jobs:tick` |
 | Monitoring | Health live/ready + structured logs |
+| Critical-path smoke | `npm run smoke` (live/ready, auth, portal, ops wall, firm isolation) |
 | Error handling | Degrade matrix for AI/QBO/email/Docling |
 | Performance | Prior portal batching; no new regressions observed |
 | Deployment | CI workflow present; Next major upgrade tracked |
