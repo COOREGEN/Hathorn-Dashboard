@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Briefing for anyone — human or AI — picking up Hathorn Ledger.
+Briefing for anyone — human or AI — picking up Hathorn Dashboard.
 
 Drop this in the repo root. Cursor, Claude Code, and Codex all read it automatically.
 `CLAUDE.md` alongside it goes deeper on individual subsystems; this file is the map and

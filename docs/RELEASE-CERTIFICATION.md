@@ -46,7 +46,7 @@ Branch audited: `cursor/release-candidate-audit-c8e9` (from Phase 12 tip).
 | Client portal | VERIFIED | Portal tests + visual QA + isolation |
 | Reports | VERIFIED | Snapshot freeze + portal reports |
 | Background jobs | VERIFIED | ops:test + proof §21 |
-| Backups | VERIFIED | create + restore-check OK |
+| Backups | VERIFIED | create + restore-check OK (2026-08-10 RC drill) |
 | Operations | VERIFIED | `/platform` + `/api/ops/*` |
 | Malware scanning | BLOCKED / NOT READY | Documented gap |
 | Next.js CVE patch level | PARTIAL | 14.2.35; major upgrade deferred |

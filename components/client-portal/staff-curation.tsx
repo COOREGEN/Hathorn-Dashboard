@@ -33,7 +33,11 @@ export default function StaffCurationWorkspace({ clients }: { clients: Client[] 
     });
   }
 
-  useEffect(() => { if (clientId) load(clientId); }, [clientId]);
+  useEffect(() => {
+    if (clientId) void load(clientId);
+    // load closes over latest setters; re-run only when client changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId]);
 
   async function post(body: Record<string, unknown>) {
     setMsg("");

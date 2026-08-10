@@ -64,7 +64,7 @@ Must work even when optional systems fail:
 
 | Date | Environment | Result | Notes |
 |---|---|---|---|
-| — | — | NOT YET RECORDED | Run staging restore and append here |
+| 2026-08-10 | Local/STAGING (RC audit) | SNAPSHOT VERIFY OK | `npm run backup` then `npm run restore-check` after fresh seed — integrity ok, 428 rows / 14 tables counted. Full file-swap restore to a separate DATA_DIR not yet operated in this drill. |
 
 ## CI gates
 

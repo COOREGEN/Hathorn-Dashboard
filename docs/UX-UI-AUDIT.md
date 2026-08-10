@@ -8,7 +8,7 @@ Release candidate visual and interaction audit. Screenshots under `/opt/cursor/a
 
 **What we fixed:** Product naming (Dashboard not Ledger); login product mark; Firm vs Firm ops labels; Vendors honesty; favicon; formatter NaN guards.
 
-**Remaining design work:** Staff masthead still carries many top-level modules (desktop-first). Consider progressive grouping in a later polish pass — not collapsed here to avoid hiding accounting workflows.
+**Remaining design work:** Secondary modules (Tax, Guidance, Planning, etc.) live on Today’s practice footer and the dashboard rail rather than the masthead — keep that discoverable on first login.
 
 ---
 

@@ -23,7 +23,11 @@ function SecurityInner() {
     setStatus({ enabled: data.enabled, email: data.email, name: data.name });
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    void refresh();
+    // Initial load only — refresh is recreated each render and must not re-fetch in a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function begin() {
     setBusy(true); setError(""); setBackupCodes(null);

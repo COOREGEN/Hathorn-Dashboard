@@ -58,7 +58,7 @@ Temporal · Appsmith · Billing · Multi-region · Kafka · OpenFGA · Public st
 | Finding | Disposition |
 |---|---|
 | Favicon 404 | **FIXED** — `/favicon.svg` |
-| Staff masthead link density | Remaining design polish |
+| Staff masthead link density | **FIXED** — primary 9 links; full set on Today footer + dash rail |
 | Module overlap (Intelligence / Today / Close) | Acceptable summary→drill-down; not collapsed this RC |
 | CashOutlookChart explanatory stub | Honest empty — not fake chart |
 | `restore-check` fails if live DB diverges after proof | Expected; re-seed + backup before check |

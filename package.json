@@ -27,7 +27,8 @@
     "copilot:test": "tsx scripts/copilot-unit.ts",
     "intelligence:test": "tsx scripts/intelligence-unit.ts",
     "client-portal:test": "tsx scripts/client-portal-unit.ts",
-    "ops:test": "tsx scripts/ops-unit.ts"
+    "ops:test": "tsx scripts/ops-unit.ts",
+    "smoke": "bash scripts/rc-smoke.sh"
   },
   "dependencies": {
     "@types/pdfkit": "^0.17.6",

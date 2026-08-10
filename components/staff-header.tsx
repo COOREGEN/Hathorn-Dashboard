@@ -5,11 +5,26 @@ import Link from "next/link";
 /**
  * Shared staff chrome — dark masthead, clickable mark, consistent destinations.
  *
+ * Primary masthead stays short so hierarchy is readable. Full module set lives on
+ * Today’s practice footer and the dashboard rail — not duplicated as 17 top links.
+ *
  * Naming (deliberate — these used to collide as "The Book"):
  *   Attention → /portfolio (who needs you)
  *   Clients   → /clients
  *   Firm      → /firm (profile, branding, team) · Ops → /admin
  */
+const PRIMARY_NAV = [
+  { href: "/", label: "Today" },
+  { href: "/ask", label: "Ask Hathorn" },
+  { href: "/portfolio", label: "Attention" },
+  { href: "/clients", label: "Clients" },
+  { href: "/close", label: "Close" },
+  { href: "/documents", label: "Documents" },
+  { href: "/upload", label: "Upload" },
+  { href: "/firm", label: "Firm" },
+  { href: "/admin", label: "Ops" },
+] as const;
+
 export default function StaffHeader({
   sub,
   maxWidth = 1080,
@@ -24,36 +39,24 @@ export default function StaffHeader({
   /** Extra right-side links beyond the standard set. */
   links?: { href: string; label: string }[];
 }) {
-  const nav = [
-    { href: "/", label: "Today" },
-    { href: "/ask", label: "Ask Hathorn" },
-    { href: "/intelligence", label: "Intelligence" },
-    { href: "/client-experience", label: "Client Experience" },
-    { href: "/portfolio", label: "Attention" },
-    { href: "/clients", label: "Clients" },
-    { href: "/planning", label: "Planning" },
-    { href: "/documents", label: "Documents" },
-    { href: "/tax", label: "Tax" },
-    { href: "/guidance", label: "Guidance" },
-    { href: "/reconciliations", label: "Reconciliations" },
-    { href: "/integrations", label: "Integrations" },
-    { href: "/close", label: "Close" },
-    { href: "/exceptions", label: "Exceptions" },
-    { href: "/upload", label: "Upload" },
-    { href: "/firm", label: "Firm" },
-    { href: "/admin", label: "Ops" },
-    ...(links || []),
-  ];
+  const nav = [...PRIMARY_NAV, ...(links || [])];
 
   return (
     <header className="masthead">
       <div className="masthead-inner" style={{ maxWidth }}>
         <BrandMark href="/" tone="ink" sub={sub} />
-        <nav aria-label="Practice" className="ml-auto flex items-center gap-4 flex-wrap"
-          style={{ justifyContent: "flex-end" }}>
+        <nav
+          aria-label="Practice"
+          className="ml-auto flex items-center flex-wrap"
+          style={{ justifyContent: "flex-end", gap: "10px 18px" }}
+        >
           {nav.map((l) => (
-            <Link key={l.href + l.label} href={l.href} className="prepared-by"
-              style={{ textDecoration: "none" }}>
+            <Link
+              key={l.href + l.label}
+              href={l.href}
+              className="prepared-by"
+              style={{ textDecoration: "none" }}
+            >
               {l.label}
             </Link>
           ))}

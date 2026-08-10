@@ -1,8 +1,8 @@
-# Hathorn Ledger
+# Hathorn Dashboard
 
 Client-facing financial dashboard platform for Hathorn Advisory Group's monthly advisory clients.
 Clients never open QuickBooks — **this platform is the books as far as they're concerned.**
-Working name "Hathorn Ledger"; swap when the real name lands.
+Official product name: **Hathorn Dashboard**.
 
 ## The product in one paragraph
 

@@ -50,7 +50,11 @@ export default function IntelligenceWorkspace({
     });
   }
 
-  useEffect(() => { load(clientId, periodId, source); }, [clientId, source]);
+  useEffect(() => {
+    void load(clientId, periodId, source);
+    // periodId is resolved inside load when empty; depend on client/source to avoid loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientId, source]);
 
   function switchClient(id: string) {
     setClientId(id);
