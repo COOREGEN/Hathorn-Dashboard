@@ -470,8 +470,101 @@ if [ -n "$OTHER" ]; then
   assert "bookkeeper blocked from tax issue API" test "$CODE" = "403"
 fi
 
+echo "13. Accounting Guidance (staff only; source-backed; no book mutation)"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/guidance")
+assert "client blocked from /guidance" test "$CODE" = "307" -o "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" \
+  -X POST "$BASE/api/research" -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"title\":\"x\",\"category\":\"LEASES\"}")
+assert "client blocked from research API" test "$CODE" = "403" -o "$CODE" = "401"
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" \
+  "$BASE/guidance?client=$CLIENT_ID")
+assert "admin reaches /guidance" test "$CODE" = "200"
+
+ACCT_FP_BEFORE=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM fpa_model_runs WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM tax_issues WHERE client_id='$CLIENT_ID');
+")
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/research" \
+  -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"title\":\"Equipment lease classification\",\"description\":\"Phase 4 lease pilot\",\"category\":\"LEASES\",\"entityContext\":\"PRIVATE_COMPANY\",\"reportingPeriod\":\"2026-06\"}")
+echo "$RESP" > "$COOKIE_DIR/research-issue.json"
+assert "staff can create research issue" grep -q '"ok":true' "$COOKIE_DIR/research-issue.json"
+RES_ID=$(python3 -c "import json; print(json.load(open('$COOKIE_DIR/research-issue.json'))['issue']['id'])")
+
+# Partial facts → missing information path
+for pair in "contract_term_months:36:number" "payment_structure:fixed:string" "renewal_option:true:boolean"; do
+  KEY=$(echo "$pair" | cut -d: -f1)
+  VAL=$(echo "$pair" | cut -d: -f2)
+  TYP=$(echo "$pair" | cut -d: -f3)
+  curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/research/$RES_ID" \
+    -H 'content-type: application/json' \
+    -d "{\"action\":\"add_fact\",\"factKey\":\"$KEY\",\"factValue\":\"$VAL\",\"factType\":\"$TYP\"}" >/dev/null
+done
+
+# Attach firm lease checklist from library
+SRC=$(sqlite3 data/ledger.db "SELECT id FROM accounting_sources WHERE id='src-firm-lease-checklist'")
+if [ -n "$SRC" ]; then
+  curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/research/$RES_ID" \
+    -H 'content-type: application/json' \
+    -d "{\"action\":\"attach_source\",\"sourceId\":\"$SRC\"}" >/dev/null
+fi
+
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/research/$RES_ID" \
+  -H 'content-type: application/json' -d '{"action":"run_research"}')
+echo "$RESP" > "$COOKIE_DIR/research-run.json"
+assert "research analysis generated" grep -q '"ok":true' "$COOKIE_DIR/research-run.json"
+assert "research requires professional review" grep -q 'requiresProfessionalReview' "$COOKIE_DIR/research-run.json"
+assert "research flags missing facts or needs info" grep -Eq 'NEEDS MORE INFORMATION|missingFacts|economic_life' "$COOKIE_DIR/research-run.json"
+assert "research cites attached/firm source" grep -Eq 'src-firm-lease-checklist|Hathorn Firm Guidance|FIRM_POLICY' "$COOKIE_DIR/research-run.json"
+# Must not invent ASC paragraph citations that were never supplied
+assert "no fabricated ASC paragraph citation" ! grep -qE 'ASC 842-[0-9]+-[0-9]+-[0-9]+' "$COOKIE_DIR/research-run.json"
+
+# UNKNOWN rights rejected
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/research/$RES_ID" \
+  -H 'content-type: application/json' \
+  -d '{"action":"add_source","title":"Mystery PDF","citation":"unknown","publisher":"x","sourceType":"OTHER_INTERPRETIVE","contentRights":"UNKNOWN","bodyText":"should not index"}')
+echo "$RESP" > "$COOKIE_DIR/research-unknown.json"
+assert "UNKNOWN rights rejected" grep -qiE 'UNKNOWN|error|rights' "$COOKIE_DIR/research-unknown.json"
+assert "UNKNOWN rights not ok:true" ! grep -q '"ok":true' "$COOKIE_DIR/research-unknown.json"
+
+# Contract fact source may be stored as USER_PROVIDED but is not GAAP authority
+RESP=$(curl -s -b "$COOKIE_DIR/admin.jar" -X POST "$BASE/api/research/$RES_ID" \
+  -H 'content-type: application/json' \
+  -d '{"action":"add_source","title":"Lease contract","citation":"Client lease","publisher":"Client","sourceType":"CONTRACT","contentRights":"USER_PROVIDED","bodyText":"36 month equipment lease between parties."}')
+echo "$RESP" > "$COOKIE_DIR/research-contract.json"
+assert "contract source accepted as USER_PROVIDED" grep -q '"ok":true' "$COOKIE_DIR/research-contract.json"
+assert "contract typed as CONTRACT" grep -q 'CONTRACT' "$COOKIE_DIR/research-contract.json"
+
+ACCT_FP_AFTER=$(sqlite3 data/ledger.db "
+  SELECT
+    (SELECT COUNT(*) FROM periods WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM pl_lines WHERE period_id IN (SELECT id FROM periods WHERE client_id='$CLIENT_ID')) || '|' ||
+    (SELECT COUNT(*) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COALESCE(SUM(length(snapshot)),0) FROM release_records WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM fpa_model_runs WHERE client_id='$CLIENT_ID') || '|' ||
+    (SELECT COUNT(*) FROM tax_issues WHERE client_id='$CLIENT_ID');
+")
+assert "accounting guidance does not mutate actuals/releases/fpa/tax" test "$ACCT_FP_BEFORE" = "$ACCT_FP_AFTER"
+
+# Bookkeeper cannot access guidance
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/books.jar" "$BASE/api/research/$RES_ID")
+assert "bookkeeper blocked from research issue API" test "$CODE" = "403"
+
+# Confirm no ASC Codification dump table / corpus
+ASC_BODY=$(sqlite3 data/ledger.db "SELECT COUNT(*) FROM accounting_sources WHERE source_type='FASB_ASC' AND content_rights='PUBLIC' AND body_text IS NOT NULL AND length(body_text)>200")
+assert "no PUBLIC FASB_ASC body corpus" test "$ASC_BODY" = "0"
+
 echo
 echo "Result: $PASS passed, $FAIL failed"
 if [ "$FAIL" -ne 0 ]; then
   exit 1
 fi
+

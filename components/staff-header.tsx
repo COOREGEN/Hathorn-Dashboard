@@ -31,6 +31,7 @@ export default function StaffHeader({
     { href: "/planning", label: "Planning" },
     { href: "/documents", label: "Documents" },
     { href: "/tax", label: "Tax" },
+    { href: "/guidance", label: "Guidance" },
     { href: "/upload", label: "Upload" },
     ...(links || []),
   ];

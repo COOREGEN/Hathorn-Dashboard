@@ -138,4 +138,6 @@ export const LIMITS = {
   taxRule: { max: 60, windowMinutes: 60 },
   taxAnalyze: { max: 20, windowMinutes: 60 },
   taxFetch: { max: 20, windowMinutes: 60 },
+  researchIssue: { max: 60, windowMinutes: 60 },
+  researchAnalyze: { max: 20, windowMinutes: 60 },
 };

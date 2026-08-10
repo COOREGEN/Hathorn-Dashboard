@@ -176,6 +176,12 @@ export const TRANSFER_ORDER = [
   "tax_rule_runs",
   "tax_scenarios",
   "tax_scenario_runs",
+  "accounting_sources",
+  "accounting_source_chunks",
+  "accounting_research_issues",
+  "accounting_issue_facts",
+  "accounting_issue_sources",
+  "accounting_analysis_versions",
   "audit_logs",
 ] as const;
 

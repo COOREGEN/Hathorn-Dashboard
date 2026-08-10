@@ -67,6 +67,12 @@ const WIPE = [
   "tax_issues",
   "tax_source_snapshots",
   "tax_authorities",
+  "accounting_analysis_versions",
+  "accounting_issue_sources",
+  "accounting_issue_facts",
+  "accounting_research_issues",
+  "accounting_source_chunks",
+  "accounting_sources",
 ];
 for (const t of WIPE) {
   try { db.exec(`DELETE FROM ${t}`); } catch { /* table may not exist yet on first migrate */ }

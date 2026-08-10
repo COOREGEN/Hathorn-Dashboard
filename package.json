@@ -16,7 +16,8 @@
     "proof": "bash scripts/workflow-proof.sh",
     "fpa:test": "tsx scripts/fpa-unit.ts",
     "documents:test": "tsx scripts/documents-unit.ts",
-    "tax:test": "tsx scripts/tax-unit.ts"
+    "tax:test": "tsx scripts/tax-unit.ts",
+    "research:test": "tsx scripts/research-unit.ts"
   },
   "dependencies": {
     "@types/pdfkit": "^0.17.6",

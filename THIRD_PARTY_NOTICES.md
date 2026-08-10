@@ -65,3 +65,22 @@ Configuration hooks: `IRS_FACT_GRAPH_ENABLED` (default `0`), `IRS_FACT_GRAPH_MOD
 
 **Not a runtime dependency.** Studied only as architectural reference (interview /
 incomplete-information patterns). No Direct File source was vendored.
+
+## RAGFlow — Apache-2.0 (evaluated, not integrated)
+
+**Not incorporated into this repository and not a runtime dependency.**
+
+RAGFlow was evaluated as an optional retrieval layer for Accounting Guidance.
+Status: **DEFERRED**. Hathorn ships a native chunk + keyword retriever
+(`lib/research/retrieval.ts`) behind a `ResearchRetriever` interface. Configuration
+hook `RAGFLOW_ENABLED` defaults to `0`. Do not claim RAGFlow is integrated.
+
+Upstream: https://github.com/infiniflow/ragflow
+
+## FASB Accounting Standards Codification
+
+**No unauthorized ASC corpus was ingested.** Hathorn does not scrape, bulk-copy, or
+mirror the Codification. Pilot sources are firm INTERNAL guidance, bibliographic
+public ASU metadata, and synthetic examples. Licensed or user-provided excerpts may
+be attached only with explicit content-rights metadata.
+

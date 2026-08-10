@@ -153,6 +153,19 @@ export const config = {
       String(process.env.IRS_FACT_GRAPH_ENABLED ?? "0").toLowerCase(),
     ),
   },
+
+  /**
+   * Accounting Guidance (native research). RAGFlow is separately gated and DEFERRED.
+   * Default on; set ACCOUNTING_GUIDANCE_ENABLED=0 to disable writes.
+   */
+  accountingGuidance: {
+    enabled: !["0", "false", "no", "off", ""].includes(
+      String(process.env.ACCOUNTING_GUIDANCE_ENABLED ?? "1").toLowerCase(),
+    ),
+    ragflowEnabled: !["0", "false", "no", "off", ""].includes(
+      String(process.env.RAGFLOW_ENABLED ?? "0").toLowerCase(),
+    ),
+  },
 };
 
 /** Human-readable startup report — surfaced on the admin page so nothing is a mystery. */
@@ -180,5 +193,9 @@ export function integrationStatus() {
       hint: config.taxIntelligence.factGraphEnabled
         ? "IRS Fact Graph flag on — native §179 rules remain the supported path until an artifact is wired."
         : "Native §179 TY2025 pilot + source-backed research. Fact Graph pilot blocked/off. Not IRS-endorsed." },
+    { name: "Accounting Guidance", enabled: config.accountingGuidance.enabled,
+      hint: config.accountingGuidance.ragflowEnabled
+        ? "RAGFlow flag on — native retrieval remains the supported path until a service is wired."
+        : "Native source-backed technical research (leases pilot). RAGFlow deferred. No unauthorized ASC corpus." },
   ];
 }

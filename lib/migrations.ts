@@ -846,6 +846,103 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 22,
+    name: "accounting_guidance",
+    up: (db) => {
+      /**
+       * Accounting Guidance — technical research issues, rights-aware sources,
+       * native retrieval chunks, versioned analyses. No unauthorized ASC corpus.
+       */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS accounting_sources (
+          id TEXT PRIMARY KEY,
+          source_type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          citation TEXT NOT NULL,
+          publisher TEXT NOT NULL,
+          source_url TEXT DEFAULT NULL,
+          content_rights TEXT NOT NULL,
+          scope TEXT NOT NULL DEFAULT 'FIRM',
+          client_id TEXT DEFAULT NULL,
+          reporting_period TEXT DEFAULT NULL,
+          published_date TEXT DEFAULT NULL,
+          effective_date TEXT DEFAULT NULL,
+          retrieved_at TEXT DEFAULT NULL,
+          content_hash TEXT DEFAULT NULL,
+          document_id TEXT DEFAULT NULL,
+          body_text TEXT DEFAULT NULL,
+          status TEXT NOT NULL DEFAULT 'ACTIVE'
+        );
+        CREATE INDEX IF NOT EXISTS idx_acct_src_scope ON accounting_sources(scope, client_id);
+
+        CREATE TABLE IF NOT EXISTS accounting_source_chunks (
+          id TEXT PRIMARY KEY,
+          source_id TEXT NOT NULL,
+          section TEXT DEFAULT NULL,
+          page INTEGER DEFAULT NULL,
+          content TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          metadata_json TEXT DEFAULT '{}',
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_acct_chunks_src ON accounting_source_chunks(source_id);
+
+        CREATE TABLE IF NOT EXISTS accounting_research_issues (
+          id TEXT PRIMARY KEY,
+          client_id TEXT DEFAULT NULL,
+          title TEXT NOT NULL,
+          description TEXT DEFAULT '',
+          category TEXT NOT NULL,
+          reporting_period TEXT DEFAULT NULL,
+          entity_context TEXT NOT NULL DEFAULT 'PRIVATE_COMPANY',
+          status TEXT NOT NULL DEFAULT 'OPEN',
+          created_by TEXT NOT NULL,
+          assigned_to TEXT DEFAULT NULL,
+          reviewed_by TEXT DEFAULT NULL,
+          reviewed_at TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_acct_issues_client ON accounting_research_issues(client_id, updated_at DESC);
+
+        CREATE TABLE IF NOT EXISTS accounting_issue_facts (
+          id TEXT PRIMARY KEY,
+          issue_id TEXT NOT NULL,
+          fact_key TEXT NOT NULL,
+          fact_value TEXT NOT NULL,
+          fact_type TEXT NOT NULL,
+          provenance TEXT NOT NULL,
+          source_document_id TEXT DEFAULT NULL,
+          verified INTEGER DEFAULT 0,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(issue_id, fact_key)
+        );
+
+        CREATE TABLE IF NOT EXISTS accounting_issue_sources (
+          id TEXT PRIMARY KEY,
+          issue_id TEXT NOT NULL,
+          source_id TEXT NOT NULL,
+          UNIQUE(issue_id, source_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS accounting_analysis_versions (
+          id TEXT PRIMARY KEY,
+          issue_id TEXT NOT NULL,
+          version INTEGER NOT NULL,
+          facts_snapshot TEXT NOT NULL,
+          source_refs TEXT NOT NULL,
+          analysis_json TEXT NOT NULL,
+          model TEXT NOT NULL,
+          model_version TEXT NOT NULL,
+          created_by TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_acct_analysis_issue ON accounting_analysis_versions(issue_id, version DESC);
+      `);
+    },
+  },
 ];
 
 /**
