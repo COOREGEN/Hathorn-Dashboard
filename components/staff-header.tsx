@@ -1,28 +1,17 @@
 import BrandMark from "@/components/brand-mark";
 import LogoutButton from "@/components/logout-button";
+import StaffRail from "@/components/staff-rail";
 import Link from "next/link";
 
 /**
- * Shared staff chrome — dark masthead, clickable mark, consistent destinations.
+ * Shared staff chrome — left practice rail + short top bar.
  *
- * Primary masthead stays short so hierarchy is readable. Full module set lives on
- * Today’s practice footer and the dashboard rail — not duplicated as 17 top links.
- *
- * Naming (deliberate — these used to collide as "The Book"):
- *   Attention → /portfolio (who needs you)
- *   Clients   → /clients
- *   Firm      → /firm (profile, branding, team) · Ops → /admin
+ * Full module set lives in the rail (GHL-style placement, Hathorn type).
+ * Top bar keeps only the page context, user, and one or two shortcuts.
  */
-const PRIMARY_NAV = [
-  { href: "/", label: "Today" },
-  { href: "/ask", label: "Ask Hathorn" },
-  { href: "/portfolio", label: "Attention" },
-  { href: "/clients", label: "Clients" },
-  { href: "/close", label: "Close" },
-  { href: "/documents", label: "Documents" },
-  { href: "/upload", label: "Upload" },
-  { href: "/firm", label: "Firm" },
-  { href: "/admin", label: "Ops" },
+const TOP_LINKS = [
+  { href: "/today", label: "Today" },
+  { href: "/ask", label: "Ask" },
 ] as const;
 
 export default function StaffHeader({
@@ -31,43 +20,64 @@ export default function StaffHeader({
   userName,
   role,
   links,
+  children,
 }: {
   sub: string;
   maxWidth?: number | string;
   userName?: string;
   role?: string;
-  /** Extra right-side links beyond the standard set. */
+  /** Extra right-side links beyond the short top set. */
   links?: { href: string; label: string }[];
+  /** When provided, wraps page content in the staff shell. */
+  children?: React.ReactNode;
 }) {
-  const nav = [...PRIMARY_NAV, ...(links || [])];
+  const top = [...TOP_LINKS, ...(links || [])];
+
+  const chrome = (
+    <>
+      <StaffRail role={role} />
+      <header className="masthead staff-masthead">
+        <div className="masthead-inner" style={{ maxWidth }}>
+          <BrandMark href="/today" tone="ink" sub={sub} />
+          <nav
+            aria-label="Shortcuts"
+            className="ml-auto flex items-center flex-wrap"
+            style={{ justifyContent: "flex-end", gap: "10px 18px" }}
+          >
+            {top.map((l) => (
+              <Link
+                key={l.href + l.label}
+                href={l.href}
+                className="prepared-by"
+                style={{ textDecoration: "none" }}
+              >
+                {l.label}
+              </Link>
+            ))}
+            {userName && (
+              <span className="prepared-by">
+                {userName}{role ? ` · ${role}` : ""}
+              </span>
+            )}
+            <LogoutButton />
+          </nav>
+        </div>
+      </header>
+    </>
+  );
+
+  if (children) {
+    return (
+      <div className="staff-app">
+        {chrome}
+        <div className="staff-app-main">{children}</div>
+      </div>
+    );
+  }
 
   return (
-    <header className="masthead">
-      <div className="masthead-inner" style={{ maxWidth }}>
-        <BrandMark href="/" tone="ink" sub={sub} />
-        <nav
-          aria-label="Practice"
-          className="ml-auto flex items-center flex-wrap"
-          style={{ justifyContent: "flex-end", gap: "10px 18px" }}
-        >
-          {nav.map((l) => (
-            <Link
-              key={l.href + l.label}
-              href={l.href}
-              className="prepared-by"
-              style={{ textDecoration: "none" }}
-            >
-              {l.label}
-            </Link>
-          ))}
-          {userName && (
-            <span className="prepared-by">
-              {userName}{role ? ` · ${role}` : ""}
-            </span>
-          )}
-          <LogoutButton />
-        </nav>
-      </div>
-    </header>
+    <div className="staff-app staff-app--header-only">
+      {chrome}
+    </div>
   );
 }
