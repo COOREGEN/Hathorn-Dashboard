@@ -9,7 +9,7 @@ import { fmtMoney } from "./HeroChart";
 
 echarts.use([PieChart, TooltipComponent, CanvasRenderer]);
 
-const COLORS = ["#6FBF9A", "#7A8FB8", "#C4A35A", "#C97B63", "#8A8376", "#5A8F7B"];
+const COLORS = ["#2C504D", "#4A6B8A", "#DB5928", "#B54A28", "#7A7468", "#2F6B4F"];
 
 export default function ExpenseDonut({
   slices, total,
@@ -24,9 +24,9 @@ export default function ExpenseDonut({
     backgroundColor: "transparent",
     tooltip: {
       trigger: "item" as const,
-      backgroundColor: "rgba(22,20,18,0.96)",
-      borderColor: "rgba(255,255,255,0.08)",
-      textStyle: { color: "#F3EEE4", fontSize: 12 },
+      backgroundColor: "#FFFCF7",
+      borderColor: "rgba(44, 80, 77, 0.16)",
+      textStyle: { color: "#1A1A18", fontSize: 12 },
       formatter: (p: any) =>
         `${p.name}<br/><b>${fmtMoney(p.value)}</b> · ${p.percent?.toFixed?.(1) ?? p.data?.share}%`,
     },
@@ -35,7 +35,7 @@ export default function ExpenseDonut({
       radius: ["58%", "78%"],
       center: ["50%", "50%"],
       avoidLabelOverlap: true,
-      itemStyle: { borderColor: "#121110", borderWidth: 3 },
+      itemStyle: { borderColor: "#FBF8F1", borderWidth: 3 },
       label: { show: false },
       data: slices.map((s, i) => ({
         name: s.label,

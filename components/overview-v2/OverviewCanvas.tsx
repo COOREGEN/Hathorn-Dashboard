@@ -1,53 +1,49 @@
 "use client";
 /**
- * Client Financial Command Center V2
- * Institutional · cross-linked · fixture-true figures.
+ * 6-3-1 Client Intelligence — vitals, three answers, one recommendation.
+ * Presentation only; ledger math stays in overview-v2/build.
  */
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { OverviewLens, OverviewV2Model } from "@/lib/overview-v2/build";
+import type { AudienceMode } from "@/lib/overview-v2/intelligence-config";
 import HeroChart, { LENS_META, fmtMoney, fmtVal } from "./HeroChart";
 import ExpenseDonut from "./ExpenseDonut";
+import NumberInspect, { inspectFromLens, type InspectTarget } from "./NumberInspect";
 import "./overview-v2.css";
 
-const LENSES: OverviewLens[] = ["revenue", "grossProfit", "grossMarginPct", "netIncome", "cash", "arTotal"];
-const SUPPORT: OverviewLens[] = ["grossMarginPct", "netIncome", "cash", "arTotal"];
-
-function Spark({ values, up }: { values: number[]; up: boolean }) {
-  if (values.length < 2) return null;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min || 1;
-  const w = 64;
-  const h = 24;
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * w;
-    const y = h - ((v - min) / span) * (h - 4) - 2;
-    return `${x},${y}`;
-  }).join(" ");
-  return (
-    <svg className="ov2-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
-      <polyline fill="none" stroke={up ? "#6FBF9A" : "#C97B63"} strokeWidth="1.4" points={pts} />
-    </svg>
-  );
-}
+export type { AudienceMode };
 
 type DriverSel = { label: string; delta: number; kind: string } | null;
+type CompareMode = "PRIOR_YEAR" | "PRIOR_MONTH" | "NONE";
+
+const SOURCE_BADGE: Record<OverviewV2Model["recommendation"]["source"], string> = {
+  advisor_note: "Advisor note",
+  deterministic_signal: "Deterministic signal",
+  plan_variance: "Plan variance",
+};
 
 export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [lens, setLens] = useState<OverviewLens>("revenue");
   const [range, setRange] = useState<"6M" | "12M" | "24M" | "YTD" | "ALL">("12M");
-  const [compareMode, setCompareMode] = useState<"PRIOR_YEAR" | "PRIOR_MONTH" | "NONE">("PRIOR_YEAR");
+  const [compareMode, setCompareMode] = useState<CompareMode>(
+    model.intelligence.compareDefault === "PRIOR_MONTH" ? "PRIOR_MONTH" : "PRIOR_YEAR",
+  );
+  const [audience, setAudience] = useState<AudienceMode>("advisor");
   const [cmdOpen, setCmdOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [driver, setDriver] = useState<DriverSel>(null);
+  const [inspect, setInspect] = useState<InspectTarget | null>(null);
+  const [depthOpen, setDepthOpen] = useState(false);
 
   const cur = model.cur;
   const meta = LENS_META[lens];
   const heroValue = cur[lens];
+  const isClient = audience === "client";
+
   const compare = compareMode === "PRIOR_MONTH"
     ? model.compare.priorMonth[lens]
     : compareMode === "PRIOR_YEAR"
@@ -89,38 +85,92 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
       if (e.key === "Escape") {
         setCmdOpen(false);
         setDriver(null);
+        setInspect(null);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // Cross-linked Ask suggestions follow lens + period.
   const suggestions = useMemo(() => {
     const m = meta.label.toLowerCase();
+    if (isClient) {
+      return [
+        `What changed in ${cur.label}?`,
+        "What should I watch next month?",
+        `How is cash looking in ${cur.label}?`,
+      ];
+    }
     return [
       `Why did ${m} move in ${cur.label}?`,
       "What should I discuss with the client?",
       `Explain cash in ${cur.label}`,
       "Where are the largest variances?",
     ];
-  }, [meta.label, cur.label]);
-
-  const seriesFor = (l: OverviewLens) =>
-    model.periods.slice(Math.max(0, idx - 5), idx + 1).map((p) => p[l]);
+  }, [meta.label, cur.label, isClient]);
 
   const compareLabel = compareMode === "PRIOR_YEAR"
     ? `vs ${model.priorYear?.label ?? "prior year"}`
     : compareMode === "PRIOR_MONTH" ? "vs prior month" : "";
 
-  const insightTone = (l: OverviewLens, c: OverviewV2Model["compare"]["priorYear"][OverviewLens]) => {
-    if (c.points != null) return c.points >= 0 ? "up" as const : "down" as const;
-    if (c.deltaPct == null) return "flat" as const;
-    return c.deltaPct >= 0 ? "up" as const : "down" as const;
+  const openVital = (v: OverviewV2Model["vitals"][number]) => {
+    if (v.lens) setLens(v.lens);
+    setInspect({
+      key: v.key,
+      label: isClient ? v.clientLabel : v.label,
+      formatted: v.formatted,
+      value: v.value,
+      unit: v.unit,
+      lens: v.lens,
+      delta: v.delta,
+      tone: v.tone,
+    });
   };
 
+  const openHeroInspect = () => {
+    const vital = model.vitals.find((v) => v.lens === lens);
+    const label = vital
+      ? (isClient ? vital.clientLabel : vital.label)
+      : meta.label;
+    setInspect({
+      ...inspectFromLens(lens, model, label),
+      delta: vital?.delta ?? null,
+      tone: vital?.tone ?? "flat",
+    });
+  };
+
+  const inspectCompare = inspect?.lens
+    ? (compareMode === "PRIOR_MONTH"
+      ? model.compare.priorMonth[inspect.lens]
+      : compareMode === "PRIOR_YEAR"
+        ? model.compare.priorYear[inspect.lens]
+        : { delta: null, deltaPct: null, points: null })
+    : { delta: null, deltaPct: null, points: null };
+
+  const answerTitles = isClient
+    ? {
+        whatChanged: "What changed",
+        needsAttention: "What to watch",
+        happensNext: "What comes next",
+      }
+    : {
+        whatChanged: model.answers.whatChanged.title,
+        needsAttention: model.answers.needsAttention.title,
+        happensNext: model.answers.happensNext.title,
+      };
+
+  const attentionItems = model.answers.needsAttention.items.map((item) => {
+    if (!isClient || !model.agedAr) return item;
+    if (item.label === model.agedAr.label) {
+      return { ...item, label: "Collections", detail: model.agedAr.clientLabel };
+    }
+    return item;
+  });
+
+  const showBudgetCompare = model.plan.budgetAvailable || model.budget.available;
+
   return (
-    <div className="ov2 ov2-dark">
+    <div className="ov2 ov2-paper">
       <aside className="ov2-rail" aria-label="Firm navigation">
         <div className="ov2-rail-brand">
           <div className="ov2-rail-badge">H</div>
@@ -186,10 +236,27 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
               <span className={model.qboConnected ? "ov2-dot-ok" : "ov2-dot-mute"}>
                 {model.status.connection}
               </span>
+              <span className="ov2-industry">{model.intelligence.industryLabel}</span>
             </div>
             <PeriodScrubber periods={model.periods} activeId={cur.periodId} onSelect={selectPeriod} />
           </div>
           <div className="ov2-period-tools">
+            <div className="ov2-audience" role="group" aria-label="Audience">
+              <button
+                type="button"
+                className={!isClient ? "on" : ""}
+                onClick={() => setAudience("advisor")}
+              >
+                Advisor
+              </button>
+              <button
+                type="button"
+                className={isClient ? "on" : ""}
+                onClick={() => setAudience("client")}
+              >
+                Client view
+              </button>
+            </div>
             <button type="button" aria-label="Previous period" onClick={() => stepPeriod(-1)} disabled={idx <= 0}>‹</button>
             <button type="button" className="ov2-period-current">{cur.label}</button>
             <button type="button" aria-label="Next period" onClick={() => stepPeriod(1)} disabled={idx >= model.periods.length - 1}>›</button>
@@ -197,22 +264,56 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
               className="ov2-compare"
               value={compareMode}
               aria-label="Compare to"
-              onChange={(e) => setCompareMode(e.target.value as typeof compareMode)}
+              onChange={(e) => setCompareMode(e.target.value as CompareMode)}
             >
-              <option value="PRIOR_YEAR">Compare to · Prior year</option>
-              <option value="PRIOR_MONTH">Compare to · Prior month</option>
-              <option value="NONE">Compare to · Off</option>
+              <option value="PRIOR_YEAR" disabled={!model.priorYear}>Actual · Prior year</option>
+              <option value="PRIOR_MONTH" disabled={!model.priorMonth}>Actual · Prior month</option>
+              <option value="NONE">Actual only</option>
             </select>
+            {showBudgetCompare && (
+              <span className="ov2-budget-flag" title="Budget series available on revenue chart">
+                Budget on chart
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="ov2-body">
+        {/* 6 vitals */}
+        <section className="ov2-vitals" aria-label="Six vitals">
+          {model.vitals.map((v) => {
+            const on = v.lens != null && v.lens === lens;
+            return (
+              <button
+                key={v.key}
+                type="button"
+                className={`ov2-vital${on ? " on" : ""}`}
+                onClick={() => openVital(v)}
+              >
+                <span className="ov2-eyebrow">{isClient ? v.clientLabel : v.label}</span>
+                <span className="ov2-vital-v tnum">{v.formatted}</span>
+                {v.delta && (
+                  <span className={`ov2-vital-d is-${v.tone}`}>{v.delta}</span>
+                )}
+              </button>
+            );
+          })}
+        </section>
+
+        <div className="ov2-body ov2-body-single">
           <main className="ov2-canvas">
+            {/* Primary story */}
             <section className="ov2-chart-block">
               <div className="ov2-chart-head">
                 <div>
-                  <div className="ov2-eyebrow">{meta.label}</div>
-                  <div className="ov2-hero-value tnum">{fmtVal(heroValue, meta.unit)}</div>
+                  <div className="ov2-eyebrow">Primary story · {meta.label}</div>
+                  <button
+                    type="button"
+                    className="ov2-hero-value tnum"
+                    onClick={openHeroInspect}
+                    aria-label={`Inspect ${meta.label}`}
+                  >
+                    {fmtVal(heroValue, meta.unit)}
+                  </button>
                   <div className="ov2-hero-delta">
                     <Delta compare={compare} />
                     <span>{compareLabel}</span>
@@ -230,149 +331,152 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
                 </div>
               </div>
 
-              <div className="ov2-lens" role="group" aria-label="Financial lens">
-                {LENSES.map((l) => (
-                  <button key={l} type="button" className={lens === l ? "on" : ""} onClick={() => setLens(l)}>
-                    {LENS_META[l].label}
-                  </button>
-                ))}
-              </div>
-
               <HeroChart
                 periods={model.periods}
                 lens={lens}
                 activePeriodId={cur.periodId}
                 showPriorYear={compareMode === "PRIOR_YEAR"}
-                showBudget={lens === "revenue" && model.budget.available}
+                showBudget={lens === "revenue" && showBudgetCompare}
                 range={range}
               />
             </section>
 
-            <section className="ov2-metrics" aria-label="Supporting metrics">
-              {SUPPORT.map((l) => {
-                const c = model.compare.priorYear[l];
-                const tone = insightTone(l, c);
-                return (
-                  <button
-                    key={l}
-                    type="button"
-                    className={`ov2-metric${lens === l ? " on" : ""}`}
-                    onClick={() => setLens(l)}
-                  >
-                    <div className="ov2-metric-top">
-                      <span className="ov2-eyebrow">{LENS_META[l].label}</span>
-                      <Spark values={seriesFor(l)} up={tone !== "down"} />
-                    </div>
-                    <div className="ov2-metric-v tnum">{fmtVal(cur[l], LENS_META[l].unit)}</div>
-                    <div className="ov2-metric-d"><Delta compare={c} /></div>
-                  </button>
-                );
-              })}
+            {/* 3 answers */}
+            <section className="ov2-answers" aria-label="Three answers">
+              <AnswerColumn
+                title={answerTitles.whatChanged}
+                body={isClient ? model.answers.whatChanged.body : model.answers.whatChanged.body}
+                items={model.answers.whatChanged.items}
+              />
+              <AnswerColumn
+                title={answerTitles.needsAttention}
+                body={attentionItems[0]?.detail ?? model.answers.needsAttention.body}
+                items={attentionItems}
+              />
+              <AnswerColumn
+                title={answerTitles.happensNext}
+                body={model.answers.happensNext.body}
+                items={model.answers.happensNext.items}
+              />
             </section>
 
-            <section className="ov2-bottom-grid">
-              <div className="ov2-waterfall">
-                <div className="ov2-eyebrow">Why it changed</div>
-                <h2>Net income · {model.drivers.fromLabel} → {model.drivers.toLabel}</h2>
-                <ul>
-                  {model.drivers.netIncome.map((row) => {
-                    const edge = row.kind === "start" || row.kind === "end";
-                    const mag = Math.max(
-                      ...model.drivers.netIncome.filter((x) => !["start", "end"].includes(x.kind)).map((x) => Math.abs(x.delta)),
-                      1,
-                    );
-                    const w = edge ? 0 : Math.max(10, (Math.abs(row.delta) / mag) * 100);
-                    if (edge) {
-                      return (
-                        <li key={row.label} className="is-edge">
-                          <span>{row.label}</span>
-                          <strong className="tnum">{fmtMoney(row.delta)}</strong>
-                        </li>
-                      );
-                    }
-                    return (
-                      <li key={row.label}>
-                        <button type="button" className={`ov2-driver-btn${driver?.label === row.label ? " on" : ""}`} onClick={() => setDriver(row)}>
-                          <span>{row.label}</span>
-                          <i className={row.kind === "up" ? "up" : "down"} style={{ width: `${w}%` }} />
-                          <strong className="tnum">{fmtMoney(row.delta)}</strong>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="ov2-fine">
-                  Deterministic {model.drivers.mode} bridge from the ledger.
-                  Click a driver for detail — Hathorn will not invent causes beyond posted categories.
-                </p>
+            {/* 1 recommendation */}
+            <section className="ov2-recommend" aria-label="Hathorn recommends">
+              <div className="ov2-recommend-head">
+                <div className="ov2-eyebrow">Hathorn recommends</div>
+                <span className={`ov2-source-badge source-${model.recommendation.source}`}>
+                  {SOURCE_BADGE[model.recommendation.source]}
+                </span>
+                {model.recommendation.readyForClient && (
+                  <span className="ov2-source-badge source-ready">Ready for client</span>
+                )}
               </div>
-
-              <div className="ov2-expense">
-                <div className="ov2-eyebrow">Expense mix · {cur.label}</div>
-                <h2>Where cost sits</h2>
-                <ExpenseDonut slices={model.expenses} total={model.expenseTotal} />
-              </div>
+              <h2>{model.recommendation.headline}</h2>
+              <p>{isClient && !model.recommendation.readyForClient
+                ? "Your advisor is refining this recommendation for the monthly conversation."
+                : model.recommendation.body}</p>
             </section>
-          </main>
 
-          <aside className="ov2-intel" aria-label="What Hathorn sees">
-            <div className="ov2-intel-card">
-              <div className="ov2-eyebrow">What Hathorn sees</div>
-              <h2>{model.narrative.headline}</h2>
-              <p>{model.narrative.body}</p>
-              {model.narrative.signal && (
-                <div className="ov2-signal-chip">● {model.narrative.signal}</div>
-              )}
-              {model.narrative.noteBody && (
-                <p className="ov2-fine" style={{ marginTop: 12 }}>
-                  Advisor note · {model.narrative.noteHeading}: {model.narrative.noteBody}
-                </p>
-              )}
+            {/* Progressive depth */}
+            <section className="ov2-depth">
               <button
                 type="button"
-                className="ov2-ask-suggestions"
-                style={{ marginTop: 14, padding: 0, border: 0, background: "none", color: "var(--gold)", fontFamily: "var(--utility)", fontSize: 12, cursor: "pointer", textAlign: "left" }}
-                onClick={() => {
-                  const first = model.drivers.netIncome.find((d) => d.kind === "down" || d.kind === "up");
-                  if (first) setDriver(first);
-                }}
+                className="ov2-depth-toggle"
+                aria-expanded={depthOpen}
+                onClick={() => setDepthOpen((o) => !o)}
               >
-                Explore drivers →
+                <span className="ov2-eyebrow">Progressive depth</span>
+                <strong>{depthOpen ? "Hide drivers & mix" : "Show drivers, expense mix & plan"}</strong>
               </button>
-            </div>
 
-            <div className="ov2-intel-card">
-              <div className="ov2-eyebrow">Key takeaways</div>
-              <ul className="ov2-insight-list">
-                {model.insights.slice(0, 3).map((ins) => (
-                  <li key={ins.label}>
-                    <span>{ins.label}</span>
-                    <strong className={`tnum is-${ins.tone}`}>{ins.value}</strong>
-                    <em>{ins.detail}</em>
-                  </li>
-                ))}
-              </ul>
-            </div>
+              {depthOpen && (
+                <div className="ov2-depth-body">
+                  <div className="ov2-bottom-grid">
+                    <div className="ov2-waterfall">
+                      <div className="ov2-eyebrow">Why it changed</div>
+                      <h2>Net income · {model.drivers.fromLabel} → {model.drivers.toLabel}</h2>
+                      <ul>
+                        {model.drivers.netIncome.map((row) => {
+                          const edge = row.kind === "start" || row.kind === "end";
+                          const mag = Math.max(
+                            ...model.drivers.netIncome.filter((x) => !["start", "end"].includes(x.kind)).map((x) => Math.abs(x.delta)),
+                            1,
+                          );
+                          const w = edge ? 0 : Math.max(10, (Math.abs(row.delta) / mag) * 100);
+                          if (edge) {
+                            return (
+                              <li key={row.label} className="is-edge">
+                                <span>{row.label}</span>
+                                <strong className="tnum">{fmtMoney(row.delta)}</strong>
+                              </li>
+                            );
+                          }
+                          return (
+                            <li key={row.label}>
+                              <button type="button" className={`ov2-driver-btn${driver?.label === row.label ? " on" : ""}`} onClick={() => setDriver(row)}>
+                                <span>{row.label}</span>
+                                <i className={row.kind === "up" ? "up" : "down"} style={{ width: `${w}%` }} />
+                                <strong className="tnum">{fmtMoney(row.delta)}</strong>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <p className="ov2-fine">
+                        Deterministic {model.drivers.mode} bridge from the ledger.
+                        Click a driver for detail — Hathorn will not invent causes beyond posted categories.
+                      </p>
+                    </div>
 
-            <div className="ov2-intel-card">
-              <div className="ov2-eyebrow">Ask Hathorn</div>
-              <div className="ov2-ask-suggestions">
-                {suggestions.map((s) => (
-                  <button key={s} type="button" onClick={() => { setQuery(s); setCmdOpen(true); }}>{s}</button>
-                ))}
-              </div>
-              <form className="ov2-ask-inline" onSubmit={(e) => { e.preventDefault(); setCmdOpen(true); }}>
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={`${meta.label} · ${cur.label}`}
-                  aria-label="Ask Hathorn"
-                />
-                <button type="submit">Ask</button>
-              </form>
-              <p className="ov2-fine">Context: {model.client.name} · {cur.label} · {meta.label}</p>
-            </div>
-          </aside>
+                    <div className="ov2-expense">
+                      <div className="ov2-eyebrow">Expense mix · {cur.label}</div>
+                      <h2>Where cost sits</h2>
+                      <ExpenseDonut slices={model.expenses} total={model.expenseTotal} />
+                    </div>
+                  </div>
+
+                  {(model.plan.budgetAvailable || model.plan.priorYearAvailable || model.plan.forecastHint) && (
+                    <div className="ov2-plan-strip" aria-label="Plan vs reality">
+                      <div className="ov2-eyebrow">Plan vs reality</div>
+                      <div className="ov2-plan-grid">
+                        {model.plan.budgetAvailable && model.plan.budgetRevenue != null && (
+                          <div>
+                            <span>Budget revenue</span>
+                            <strong className="tnum">{fmtMoney(model.plan.budgetRevenue)}</strong>
+                            {model.plan.budgetVariance != null && (
+                              <em className={model.plan.budgetVariance >= 0 ? "is-up" : "is-down"}>
+                                {model.plan.budgetVariance >= 0 ? "+" : "−"}
+                                {fmtMoney(Math.abs(model.plan.budgetVariance))}
+                                {model.plan.budgetVariancePct != null
+                                  ? ` (${model.plan.budgetVariancePct >= 0 ? "+" : ""}${model.plan.budgetVariancePct.toFixed(1)}%)`
+                                  : ""}
+                              </em>
+                            )}
+                          </div>
+                        )}
+                        {model.plan.priorYearAvailable && model.priorYear && (
+                          <div>
+                            <span>Prior year · {model.priorYear.label}</span>
+                            <strong className="tnum">{fmtMoney(model.priorYear.revenue)}</strong>
+                            <em>Revenue basis</em>
+                          </div>
+                        )}
+                        {model.plan.forecastHint && (
+                          <div>
+                            <span>Cash outlook</span>
+                            <strong>{model.plan.forecastHint}</strong>
+                            {model.plan.cashGoesNegative && model.plan.cashLowestWeek != null && (
+                              <em className="is-down">Projected negative around week {model.plan.cashLowestWeek}</em>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          </main>
         </div>
 
         <footer className="ov2-statusbar">
@@ -394,6 +498,28 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
           </Link>
         </footer>
       </div>
+
+      {inspect && (
+        <NumberInspect
+          target={inspect}
+          model={model}
+          compare={inspectCompare}
+          compareLabel={compareLabel}
+          onClose={() => setInspect(null)}
+          onSeeTrend={(l) => setLens(l)}
+          onAsk={(prompt) => {
+            setQuery(prompt);
+            setInspect(null);
+            setCmdOpen(true);
+          }}
+          onOpenDrivers={() => {
+            setInspect(null);
+            setDepthOpen(true);
+            const first = model.drivers.netIncome.find((d) => d.kind === "down" || d.kind === "up");
+            if (first) setDriver(first);
+          }}
+        />
+      )}
 
       {driver && (
         <aside className="ov2-drawer" role="dialog" aria-label={`${driver.label} detail`}>
@@ -447,6 +573,32 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
         </div>
       )}
     </div>
+  );
+}
+
+function AnswerColumn({
+  title, body, items,
+}: {
+  title: string;
+  body: string;
+  items: { label: string; detail: string; tone: "up" | "down" | "flat" }[];
+}) {
+  return (
+    <article className="ov2-answer">
+      <div className="ov2-eyebrow">{title}</div>
+      <p className="ov2-answer-body">{body}</p>
+      <ul>
+        {items.map((it) => (
+          <li key={`${it.label}-${it.detail.slice(0, 24)}`}>
+            <span className={`ov2-tone-dot is-${it.tone}`} aria-hidden />
+            <div>
+              <strong>{it.label}</strong>
+              <em>{it.detail}</em>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </article>
   );
 }
 

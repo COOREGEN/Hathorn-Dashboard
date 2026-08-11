@@ -3,8 +3,8 @@ import OverviewCanvas from "@/components/overview-v2/OverviewCanvas";
 import { buildOverviewV2 } from "@/lib/overview-v2/build";
 
 /**
- * Experimental Client Overview V2 — Hathorn Intelligence OS.
- * Visual prototype only. Uses real ledger math via loadDashboard.
+ * 6-3-1 Client Intelligence refinement — Hathorn paper overview.
+ * Presentation only. Uses real ledger math via loadDashboard / buildOverviewV2.
  * Not the production Overview until approved.
  */
 export default async function OverviewV2Page({
