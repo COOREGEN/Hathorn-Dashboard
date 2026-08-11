@@ -34,6 +34,7 @@ jobs:
         run: |
           npm run ops:test
           npm run tenancy:test
+          npm run security:test
           npm run fpa:test
           npm run documents:test
           npm run tax:test
@@ -44,6 +45,9 @@ jobs:
           npm run copilot:test
           npm run intelligence:test
           npm run client-portal:test
+
+      - name: Dependency audit (high+)
+        run: npm audit --audit-level=high || true
 
       - name: Build
         run: npm run build

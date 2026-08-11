@@ -1,4 +1,5 @@
 import type { CopilotCitation } from "./types";
+import { sanitizeAiContext } from "../sanitize-context";
 
 export function cite(partial: CopilotCitation): CopilotCitation {
   return {
@@ -21,12 +22,7 @@ export function mergeCitations(...lists: (CopilotCitation[] | undefined)[]): Cop
   return out.slice(0, 24);
 }
 
-/** Strip HTML-ish content from untrusted document text before prompt inclusion. */
+/** Strip HTML + high-risk identity/credential patterns before prompt inclusion. */
 export function sanitizeForPrompt(text: string, max = 1200): string {
-  return String(text || "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, max);
+  return sanitizeAiContext(text, max).text;
 }

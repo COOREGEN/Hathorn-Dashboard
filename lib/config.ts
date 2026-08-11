@@ -60,6 +60,17 @@ export function assertProductionReady() {
   }
   // Staging/proof escape hatch only — never set on a real client-facing host.
   const allowLocal = process.env.LEDGER_ALLOW_LOCAL_PROD === "1";
+  // Production must not reuse AUTH_SECRET as the data-encryption key for QBO/MFA ciphertext.
+  if (appEnv === "PRODUCTION" && !allowLocal) {
+    const enc = process.env.ENCRYPTION_KEY || "";
+    if (!enc) {
+      problems.push("ENCRYPTION_KEY is not set — QBO/MFA ciphertext must not share the JWT signing secret in production.");
+    } else if (enc === secret) {
+      problems.push("ENCRYPTION_KEY must differ from AUTH_SECRET.");
+    } else if (enc.length < 32) {
+      problems.push("ENCRYPTION_KEY is too short — use at least 32 characters (openssl rand -base64 48).");
+    }
+  }
   if (appEnv === "PRODUCTION" || (isProd && appEnv !== "STAGING")) {
     if (!process.env.NEXT_PUBLIC_BASE_URL) {
       problems.push("NEXT_PUBLIC_BASE_URL is not set — email links and OAuth redirects will point at localhost.");

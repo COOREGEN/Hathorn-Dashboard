@@ -13,12 +13,19 @@ export function documentsRoot(): string {
 }
 
 /** Resolve a controlled storage path; rejects traversal. */
-export function documentFilePath(clientId: string, documentId: string, ext: string): string {
+export function documentFilePath(
+  clientId: string,
+  documentId: string,
+  ext: string,
+  opts?: { quarantine?: boolean },
+): string {
   const safeClient = sanitizeId(clientId);
   const safeDoc = sanitizeId(documentId);
   const safeExt = sanitizeExt(ext);
   const root = path.resolve(documentsRoot());
-  const dir = path.resolve(root, safeClient, safeDoc);
+  const dir = opts?.quarantine
+    ? path.resolve(root, "quarantine", safeClient, safeDoc)
+    : path.resolve(root, safeClient, safeDoc);
   if (!dir.startsWith(root + path.sep) && dir !== root) {
     throw new Error("Invalid document storage path.");
   }
@@ -52,17 +59,18 @@ export function storeDocumentFile(opts: {
   documentId: string;
   ext: string;
   bytes: Buffer;
+  quarantine?: boolean;
 }): { storageReference: string; absolutePath: string } {
-  const absolutePath = documentFilePath(opts.clientId, opts.documentId, opts.ext);
+  const absolutePath = documentFilePath(opts.clientId, opts.documentId, opts.ext, {
+    quarantine: opts.quarantine,
+  });
   mkdirSync(path.dirname(absolutePath), { recursive: true });
   writeFileSync(absolutePath, opts.bytes);
   // Relative reference stored in DB — never return absolute to clients.
-  const storageReference = path.posix.join(
-    "documents",
-    sanitizeId(opts.clientId),
-    sanitizeId(opts.documentId),
-    `original${sanitizeExt(opts.ext)}`,
-  );
+  const parts = opts.quarantine
+    ? ["documents", "quarantine", sanitizeId(opts.clientId), sanitizeId(opts.documentId), `original${sanitizeExt(opts.ext)}`]
+    : ["documents", sanitizeId(opts.clientId), sanitizeId(opts.documentId), `original${sanitizeExt(opts.ext)}`];
+  const storageReference = path.posix.join(...parts);
   return { storageReference, absolutePath };
 }
 

@@ -64,7 +64,8 @@ export async function askCopilot(
     role: "user",
     content: question,
   });
-  audit(ctx.userId, "COPILOT_QUERY", `${conversationId}:${question.slice(0, 120)}`, {
+  // Audit metadata only — never persist the question text (may contain NPI / tax identifiers).
+  audit(ctx.userId, "COPILOT_QUERY", `${conversationId}:len=${question.length}`, {
     firmId: ctx.firmId, clientId: ctx.clientId,
   });
 

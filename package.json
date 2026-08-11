@@ -35,6 +35,7 @@
     "intelligence:test": "tsx scripts/intelligence-unit.ts",
     "client-portal:test": "tsx scripts/client-portal-unit.ts",
     "ops:test": "tsx scripts/ops-unit.ts",
+    "security:test": "tsx scripts/security-unit.ts",
     "smoke": "bash scripts/rc-smoke.sh"
   },
   "dependencies": {

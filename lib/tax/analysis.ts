@@ -114,7 +114,8 @@ export async function generateTaxAnalysis(opts: {
   const fallback = draftTaxAnalysis(opts);
   if (!config.anthropic.enabled) return fallback;
 
-  const payload = {
+  const { sanitizeAiPayload } = await import("../ai/sanitize-context");
+  const payload = sanitizeAiPayload({
     issue: {
       title: opts.issue.title,
       description: opts.issue.description,
@@ -130,7 +131,7 @@ export async function generateTaxAnalysis(opts: {
     ruleResults: opts.ruleResults,
     scenarioNotes: opts.scenarioNotes || [],
     sourceExcerpts: (opts.sourceExcerpts || []).map((t) => t.slice(0, 4000)),
-  };
+  });
 
   const prompt = `${TAX_AI_RULES}
 

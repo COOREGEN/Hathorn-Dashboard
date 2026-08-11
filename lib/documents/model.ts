@@ -123,11 +123,14 @@ export async function uploadDocument(opts: {
   }
 
   const id = newDocumentId();
+  // Infected / scan-error bytes go under quarantine/ and are never offered for
+  // ordinary staff download or parser/AI processing.
   const { storageReference } = storeDocumentFile({
     clientId: opts.clientId,
     documentId: id,
     ext: validated.ext,
     bytes: validated.bytes,
+    quarantine: initialStatus === "QUARANTINED",
   });
 
   const docType = opts.documentType || "OTHER";
@@ -290,6 +293,9 @@ export function accountingFingerprint(clientId: string) {
 export function getDocumentFileBytes(documentId: string): { bytes: Buffer; filename: string; mimeType: string } {
   const r: any = db().prepare("SELECT * FROM source_documents WHERE id=?").get(documentId);
   if (!r) throw new Error("Document not found.");
+  if (r.status === "QUARANTINED") {
+    throw new Error("Document is quarantined — download is blocked pending security review.");
+  }
   const abs = resolveStoredAbsolute(r.storage_reference);
   return { bytes: readFileSync(abs), filename: r.original_filename, mimeType: r.mime_type };
 }

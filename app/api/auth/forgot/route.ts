@@ -34,8 +34,12 @@ export async function POST(req: Request) {
       if (config.email.enabled) {
         sendPasswordReset({ email: u.email, name: u.name, resetUrl });
       } else {
-        // Dev / pre-email: log the link so recovery is still testable.
-        log("warn", "password_reset.dev_link", { email: clean, resetUrl });
+        // Dev / pre-email: never log the raw token — it is a credential.
+        log("warn", "password_reset.dev_link", {
+          email: clean,
+          resetPath: "/reset?token=[REDACTED]",
+          tokenChars: rawToken.length,
+        });
       }
     }
 

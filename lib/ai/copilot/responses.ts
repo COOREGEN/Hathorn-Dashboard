@@ -5,6 +5,7 @@
 
 import { config } from "../../config";
 import { fetchWithTimeout } from "../../security";
+import { sanitizeAiPayload } from "../sanitize-context";
 import { sanitizeForPrompt } from "./citations";
 import type {
   CopilotCitation, CopilotContext, CopilotIntent, SourceStatus, ToolTrace,
@@ -227,7 +228,7 @@ export async function explainWithModel(
     };
   }
 
-  const payload = {
+  const payload = sanitizeAiPayload({
     intent: bundle.intent,
     audience: ctx.audience,
     clientId: ctx.clientId,
@@ -245,7 +246,7 @@ export async function explainWithModel(
       warnings: t.warnings,
       data: t.data,
     })),
-  };
+  });
 
   const system = `You are Ask Hathorn, the read-only accounting copilot for Hathorn Dashboard.
 You explain ONLY the structured TOOL_RESULTS JSON. You never invent numbers, ASC/IRC citations,
