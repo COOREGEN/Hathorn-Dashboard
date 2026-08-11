@@ -4,20 +4,20 @@ import {
 } from "@/lib/auth";
 import {
   beginMfaEnrollment, enrollmentQrDataUrl, confirmMfaEnrollment,
-  disableMfa, isStaffRole, userMfaStatus,
+  disableMfa, canEnrollMfa, userMfaStatus,
 } from "@/lib/mfa";
 
-/** Who may enroll: signed-in staff, or a staff user mid forced-setup. Clients never enroll. */
+/** Who may enroll: signed-in staff/client, or a staff user mid forced-setup. */
 async function actor(): Promise<{ userId: string; email: string; name: string } | null> {
   const setup = await getMfaSetupUser();
   if (setup) {
     const u: any = (await import("@/lib/db")).db()
       .prepare("SELECT role FROM users WHERE id=?").get(setup.userId);
-    if (!u || !isStaffRole(u.role)) return null;
+    if (!u || !canEnrollMfa(u.role)) return null;
     return setup;
   }
   const s = await getSession();
-  if (s && isStaffRole(s.role)) return { userId: s.userId, email: s.email, name: s.name };
+  if (s && canEnrollMfa(s.role)) return { userId: s.userId, email: s.email, name: s.name };
   return null;
 }
 
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     }
 
     if (action === "disable") {
-      const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER");
+      const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT");
       disableMfa(s.userId, s.userId);
       return NextResponse.json({ ok: true });
     }

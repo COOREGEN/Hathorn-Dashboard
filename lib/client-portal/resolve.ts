@@ -83,5 +83,7 @@ export async function resolvePortalClient(searchParams: { client?: string; previ
     nav,
     preview: !!preview && s.role !== "CLIENT",
     showCopilot: modules.showCopilot && s.role === "CLIENT",
+    allowClientAnswers: modules.allowClientAnswers && s.role === "CLIENT",
+    allowClientUploads: modules.allowClientUploads && s.role === "CLIENT",
   };
 }

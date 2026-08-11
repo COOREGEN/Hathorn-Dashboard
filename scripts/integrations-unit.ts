@@ -244,6 +244,26 @@ async function main() {
     });
   });
 
+  await check("stale SYNCING reclaim allows retry", async () => {
+    await withTempDb(async () => {
+      const { reclaimStaleSyncs } = await import("../lib/integrations/model");
+      const clientId = seedClient();
+      ensureClientIntegrations(clientId, "tester");
+      const mock = listConnections(clientId).find((c) => c.provider === "mock")!;
+      // Older than the 15-minute reclaim window (SQLite datetime space).
+      db().prepare(`
+        INSERT INTO integration_sync_runs
+          (id, connection_id, client_id, provider, sync_type, status, started_at, triggered_by)
+        VALUES (?,?,?,?,?,'RUNNING',datetime('now', '-20 minutes'),?)
+      `).run(uid(), mock.id, clientId, "mock", "MANUAL", "tester");
+      db().prepare(`UPDATE integration_connections SET status='SYNCING' WHERE id=?`).run(mock.id);
+      const n = reclaimStaleSyncs({ connectionId: mock.id, maxAgeMs: 15 * 60 * 1000 });
+      assert.ok(n >= 1);
+      const out = await syncConnection({ connectionId: mock.id, clientId, triggeredBy: "tester" });
+      assert.equal(out.run.status, "SUCCESS");
+    });
+  });
+
   console.log(`\n${passed} passed, ${failed} failed\n`);
   if (failed) process.exit(1);
 }

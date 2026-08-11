@@ -26,7 +26,7 @@ export default async function PortalDocuments({
       <DocumentsClient
         documents={documents}
         requests={requests}
-        canUpload={ctx.session.role === "CLIENT"}
+        canUpload={ctx.allowClientUploads}
       />
     </ClientPortalShell>
   );

@@ -76,8 +76,8 @@ function SecurityInner() {
         <h1 className="display-m" style={{ marginTop: 8 }}>Security</h1>
         <p className="caption" style={{ marginTop: 10, marginBottom: 28 }}>
           {enroll
-            ? "Staff accounts require an authenticator before a session is issued."
-            : "Protect staff access with an authenticator app (Authy, 1Password, Google Authenticator)."}
+            ? "An authenticator is required before a session is issued."
+            : "Protect this account with an authenticator app (Authy, 1Password, Google Authenticator). Staff and client users can both enroll."}
         </p>
 
         {status && (

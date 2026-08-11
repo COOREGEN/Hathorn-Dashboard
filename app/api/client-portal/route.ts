@@ -140,6 +140,13 @@ export async function POST(req: Request) {
     if (action === "answerQuestion") {
       const session = await requireRole("CLIENT");
       if (!session.clientId) throw new AuthError(403, "No client context.");
+      const cfg = getPortalConfig(session.clientId);
+      if (!cfg.allowClientAnswers) {
+        return NextResponse.json(
+          { ok: false, error: "Answering questions is not enabled for this portal." },
+          { status: 403 },
+        );
+      }
       const q = answerQuestion({
         questionId: String(body.questionId || ""),
         clientId: session.clientId,
@@ -297,6 +304,13 @@ async function handleUpload(req: Request) {
   try {
     const s = await requireRole("CLIENT");
     if (!s.clientId) throw new AuthError(403, "No client context.");
+    const cfg = getPortalConfig(s.clientId);
+    if (!cfg.allowClientUploads) {
+      return NextResponse.json(
+        { ok: false, error: "Document upload is not enabled for this portal." },
+        { status: 403 },
+      );
+    }
     rateLimit({ action: "documentUpload", subject: s.userId, ...LIMITS.documentUpload });
     const form = await req.formData();
     const requestId = String(form.get("requestId") || "");

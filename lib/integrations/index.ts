@@ -3,7 +3,7 @@ export { listProviderDefinitions, getProvider, providerRegistry } from "./regist
 export {
   integrationHubEnabled, ensureClientIntegrations, listConnections, getHubConnection,
   listSyncRuns, hubDashboard, publicConnection, capabilityReadiness, syncQboHubProjection,
-  recordCompletedQboSync,
+  recordCompletedQboSync, reclaimStaleSyncs, STALE_SYNC_MS,
 } from "./model";
 export { syncConnection, disconnectProvider, listClientConnections } from "./service";
 export { computeHealth, classifyProviderError, sanitizeErrorMessage } from "./health";

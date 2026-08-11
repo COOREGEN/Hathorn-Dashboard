@@ -90,16 +90,17 @@ export function provisionClient(input: {
     name.toUpperCase().slice(0, 40),
   );
 
-  // Portal config — least privilege visibility; portal sections on but no published data yet.
+  // Portal config — statement modules on; Tier-1 interactivity (Ask/answers/uploads) off.
   const showPortal = input.enablePortal !== false ? 1 : 0;
   db().prepare(`
     INSERT OR IGNORE INTO client_portal_config
       (client_id, firm_id, show_planning, show_documents, show_insights, show_copilot,
-       show_financial_statements, show_reports, updated_by)
-    VALUES (?,?,?,?,?,?,?,?,?)
+       show_financial_statements, show_reports, allow_client_answers, allow_client_uploads,
+       updated_by)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)
   `).run(
     id, input.firmId,
-    showPortal, showPortal, showPortal, showPortal, showPortal, showPortal,
+    0, showPortal, showPortal, 0, showPortal, showPortal, 0, 0,
     input.actorId,
   );
 

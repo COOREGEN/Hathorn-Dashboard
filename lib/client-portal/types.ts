@@ -16,15 +16,25 @@ export type PortalModules = {
   showCopilot: boolean;
   showFinancialStatements: boolean;
   showReports: boolean;
+  /** Client may answer management questions (opt-in; Tier-1 default off). */
+  allowClientAnswers: boolean;
+  /** Client may upload against document requests (opt-in; Tier-1 default off). */
+  allowClientUploads: boolean;
 };
 
+/**
+ * Tier-1 defaults: curated statement + month/entity, optional published modules
+ * for reading. Answers, uploads, and Ask stay off until an advisor enables them.
+ */
 export const DEFAULT_PORTAL_MODULES: PortalModules = {
-  showPlanning: true,
+  showPlanning: false,
   showDocuments: true,
   showInsights: true,
-  showCopilot: true,
+  showCopilot: false,
   showFinancialStatements: true,
   showReports: true,
+  allowClientAnswers: false,
+  allowClientUploads: false,
 };
 
 export const DEFAULT_PORTAL_METRICS: {
