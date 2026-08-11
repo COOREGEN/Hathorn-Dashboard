@@ -362,3 +362,114 @@
   .ov2-title-row { flex-direction: column; align-items: flex-start; }
   .ov2-body, .ov2-top, .ov2-title-row, .ov2-statusbar { padding-left: 16px; padding-right: 16px; }
 }
+
+/* Atmosphere + mock-closer refinements */
+.ov2-top-right { display: flex; align-items: center; gap: 10px; }
+.ov2-icon-btn {
+  appearance: none; border: 1px solid var(--line); background: rgba(255,255,255,0.03);
+  color: var(--mute); width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+}
+.ov2-avatar.sm { width: 34px; height: 34px; font-size: 12px; }
+.ov2-crumbs a { color: var(--mute); text-decoration: none; }
+.ov2-crumbs a:hover { color: var(--text); }
+.ov2-verified {
+  display: inline-grid; place-items: center;
+  width: 18px; height: 18px; margin-left: 10px; border-radius: 50%;
+  background: #3B6EF5; color: white; font-size: 11px; font-weight: 700;
+  vertical-align: middle; font-family: var(--utility);
+}
+.ov2-dot-ok::before, .ov2-dot-mute::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 7px; vertical-align: middle;
+}
+.ov2-dot-ok::before { background: var(--mint); box-shadow: 0 0 8px rgba(94,228,168,0.55); }
+.ov2-dot-mute::before { background: var(--mute); }
+.ov2-hero-amt { color: var(--mute); }
+
+.ov2-water {
+  position: relative; overflow: hidden;
+  background:
+    radial-gradient(900px 280px at 18% 0%, rgba(94,228,168,0.10), transparent 50%),
+    radial-gradient(700px 320px at 85% 30%, rgba(110,200,255,0.10), transparent 55%),
+    radial-gradient(1200px 500px at 50% 120%, rgba(20,40,70,0.55), transparent 60%),
+    linear-gradient(180deg, rgba(10,18,28,0.92), rgba(11,10,9,0.96)),
+    repeating-radial-gradient(circle at 20% 40%, rgba(255,255,255,0.015) 0 1px, transparent 1px 14px);
+}
+.ov2-water::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 40%, rgba(110,200,255,0.04) 50%, transparent 60%);
+  mix-blend-mode: screen;
+}
+
+.ov2-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.ov2-tile-add {
+  display: grid; place-items: center; gap: 6px; color: var(--mute);
+  border-style: dashed;
+}
+.ov2-tile-add span {
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line);
+  display: grid; place-items: center; font-size: 20px;
+}
+.ov2-tile-add em { font-style: normal; font-family: var(--utility); font-size: 11px; }
+
+.ov2-bottom-grid {
+  display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px;
+}
+.ov2-expense {
+  border: 1px solid var(--line); background: var(--bg-elev);
+  border-radius: 18px; padding: 18px 20px 16px;
+}
+.ov2-expense h2, .ov2-waterfall h2 {
+  margin: 8px 0 14px;
+  font-family: var(--display); font-size: 22px; font-weight: 300;
+}
+.ov2-donut-wrap { position: relative; display: grid; grid-template-columns: 160px 1fr; gap: 14px; align-items: center; }
+.ov2-donut { width: 160px; height: 160px; }
+.ov2-donut-center {
+  position: absolute; left: 0; top: 50%; width: 160px; transform: translateY(-50%);
+  text-align: center; pointer-events: none;
+}
+.ov2-donut-center strong {
+  display: block; margin-top: 4px;
+  font-family: var(--display); font-size: 20px; font-weight: 300;
+}
+.ov2-donut-legend { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.ov2-donut-legend li {
+  display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center;
+  font-family: var(--utility); font-size: 11px; color: var(--soft);
+}
+.ov2-donut-legend i { width: 8px; height: 8px; border-radius: 50%; }
+.ov2-donut-legend em { font-style: normal; color: var(--mute); }
+.ov2-donut-empty { color: var(--mute); font-family: var(--editorial); font-size: 14px; padding: 24px 0; }
+
+.ov2-ask-inline {
+  margin-top: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px;
+}
+.ov2-ask-inline input {
+  border: 1px solid var(--line); background: rgba(0,0,0,0.25);
+  border-radius: 12px; color: var(--text); padding: 10px 12px;
+  font-family: var(--editorial); font-size: 14px; outline: none;
+}
+.ov2-ask-inline button {
+  appearance: none; border: 0; border-radius: 12px; padding: 0 14px;
+  background: var(--mint); color: #0B0A09;
+  font-family: var(--utility); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  cursor: pointer;
+}
+
+.ov2-status-cta {
+  margin-left: auto; color: #0B0A09 !important; text-decoration: none;
+  background: linear-gradient(180deg, #E0C16A, #C4A35A);
+  border: 0 !important; border-radius: 999px; padding: 9px 16px !important;
+  font-weight: 600; box-shadow: 0 8px 24px rgba(196,163,90,0.28);
+}
+.ov2-status-cta:hover { filter: brightness(1.05); color: #0B0A09 !important; }
+
+@media (max-width: 1180px) {
+  .ov2-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ov2-bottom-grid { grid-template-columns: 1fr; }
+  .ov2-donut-wrap { grid-template-columns: 140px 1fr; }
+  .ov2-donut, .ov2-donut-center { width: 140px; }
+  .ov2-donut { height: 140px; }
+}

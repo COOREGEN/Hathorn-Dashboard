@@ -69,6 +69,9 @@ export type OverviewV2Model = {
     opexSlices: { label: string; delta: number }[];
   };
   insights: { label: string; value: string; detail: string; tone: "up" | "down" | "flat" }[];
+  expenses: { label: string; amount: number; share: number }[];
+  expenseTotal: number;
+  qboConnected: boolean;
   status: {
     books: string;
     close: string;
@@ -331,6 +334,30 @@ export async function buildOverviewV2(
     }
   } catch { /* keep default */ }
 
+  const expenseRows: any[] = db().prepare(`
+    SELECT label, SUM(amount) amount
+      FROM pl_lines
+     WHERE period_id=? AND category IN ('DIRECT_COST','OPEX')
+     GROUP BY label
+     ORDER BY SUM(amount) DESC
+  `).all(cur.periodId);
+  const expenseTotal = r1(expenseRows.reduce((s, r) => s + Number(r.amount || 0), 0));
+  const expenses = expenseRows.map((r) => {
+    const amount = r1(Number(r.amount || 0));
+    return {
+      label: String(r.label || "Other"),
+      amount,
+      share: expenseTotal ? r1((amount / expenseTotal) * 100) : 0,
+    };
+  });
+
+  let qboConnected = false;
+  try {
+    qboConnected = Boolean(db().prepare(
+      "SELECT 1 FROM qbo_connections WHERE client_id=? LIMIT 1",
+    ).get(clientId));
+  } catch { qboConnected = false; }
+
   return {
     firmName,
     client: { id: ctx.client.id, name: ctx.client.name, slug: ctx.client.slug },
@@ -354,10 +381,13 @@ export async function buildOverviewV2(
       opexSlices: opexBridge.slices.map((s) => ({ label: s.label, delta: s.delta })),
     },
     insights,
+    expenses,
+    expenseTotal,
+    qboConnected,
     status: {
       books,
       close: cur.status === "PUBLISHED" ? "Complete" : cur.status === "IN_REVIEW" ? "Awaiting approval" : "In progress",
-      connection: "Manual close",
+      connection: qboConnected ? "QuickBooks Online connected" : "Manual close",
       closeTrack: ops.closeTrack,
       reconDone: ops.reconDone,
       reconTotal: ops.reconTotal,

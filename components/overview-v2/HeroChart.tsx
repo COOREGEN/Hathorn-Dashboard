@@ -1,6 +1,7 @@
 "use client";
 /**
  * Dominant financial visualization — dark Intelligence OS.
+ * Atmospheric canvas; cyan glow marks; rich compare tooltip.
  */
 import { useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts/core";
@@ -20,11 +21,12 @@ echarts.use([
   DataZoomComponent, CanvasRenderer,
 ]);
 
-const MUTE = "#8B8578";
+const MUTE = "#9A9488";
 const HAIR = "rgba(255,255,255,0.06)";
 const MINT = "#5EE4A8";
-const PRIOR = "#7A7468";
-const BUDGET = "#6B8CFF";
+const CYAN = "#6EC8FF";
+const PRIOR = "#8A8478";
+const BUDGET = "#7B8CFF";
 const PAPER = "#F4EFE3";
 
 export const LENS_META: Record<OverviewLens, { label: string; unit: "money" | "pct" }> = {
@@ -99,7 +101,7 @@ export default function HeroChart({
       animationDuration: 480,
       animationEasing: "cubicOut",
       textStyle: { fontFamily: "Libre Franklin, sans-serif", color: MUTE },
-      grid: { left: 52, right: 18, top: 36, bottom: sliced.length > 14 ? 52 : 28 },
+      grid: { left: 52, right: 18, top: 36, bottom: 28 },
       legend: {
         show: hasPrior || hasBudget,
         top: 0,
@@ -113,35 +115,42 @@ export default function HeroChart({
         trigger: "axis",
         axisPointer: {
           type: "line",
-          lineStyle: { color: "rgba(94,228,168,0.45)", width: 1 },
+          lineStyle: { color: "rgba(110,200,255,0.55)", width: 1.25 },
           label: { show: false },
         },
-        backgroundColor: "rgba(22,20,18,0.96)",
-        borderColor: "rgba(255,255,255,0.08)",
+        backgroundColor: "rgba(14,16,22,0.96)",
+        borderColor: "rgba(110,200,255,0.22)",
         borderWidth: 1,
-        padding: [14, 16],
-        extraCssText: "backdrop-filter:blur(18px);box-shadow:0 22px 60px rgba(0,0,0,0.45);border-radius:14px;",
+        padding: [16, 18],
+        extraCssText: "backdrop-filter:blur(18px);box-shadow:0 24px 70px rgba(0,0,0,0.55);border-radius:16px;",
         textStyle: { color: PAPER, fontSize: 12 },
         formatter: (params: any) => {
           const list = Array.isArray(params) ? params : [params];
           const idx = list[0]?.dataIndex ?? 0;
           const p = sliced[idx];
           if (!p) return "";
-          let html = `<div style="font-family:Libre Franklin,sans-serif;letter-spacing:.16em;font-size:9px;text-transform:uppercase;color:${MUTE};margin-bottom:10px">${p.label}</div>`;
           const actualVal = p[lens];
-          html += `<div style="display:flex;justify-content:space-between;gap:28px;margin-bottom:6px"><span style="color:${MINT}">Actual</span><span style="font-variant-numeric:tabular-nums">${fmtVal(actualVal, meta.unit)}</span></div>`;
-          for (const item of list) {
-            if (item.seriesName === "Prior year" && item.value != null) {
-              const d = meta.unit === "pct" ? (actualVal - item.value) : ((actualVal - item.value) / Math.abs(item.value)) * 100;
-              html += `<div style="display:flex;justify-content:space-between;gap:28px;margin-bottom:4px;color:${MUTE}"><span>Prior year</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${fmtVal(item.value, meta.unit)}</span></div>`;
-              html += `<div style="display:flex;justify-content:space-between;gap:28px;margin-bottom:6px;color:${MUTE}"><span>vs Prior</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${meta.unit === "pct" ? `${d >= 0 ? "+" : ""}${d.toFixed(1)} pts` : `${d >= 0 ? "+" : ""}${d.toFixed(1)}%`}</span></div>`;
-            }
-            if (item.seriesName === "Budget" && item.value != null) {
-              const d = ((actualVal - item.value) / Math.abs(item.value)) * 100;
-              const varAmt = actualVal - item.value;
-              html += `<div style="display:flex;justify-content:space-between;gap:28px;margin-bottom:4px;color:${MUTE}"><span>Budget</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${fmtVal(item.value, meta.unit)}</span></div>`;
-              html += `<div style="display:flex;justify-content:space-between;gap:28px;color:${MUTE}"><span>Variance</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${varAmt >= 0 ? "+" : ""}${fmtMoney(varAmt)} · ${d >= 0 ? "+" : ""}${d.toFixed(1)}%</span></div>`;
-            }
+          let html = `<div style="font-family:Libre Franklin,sans-serif;letter-spacing:.16em;font-size:9px;text-transform:uppercase;color:${MUTE};margin-bottom:12px">${p.label.toUpperCase()}</div>`;
+          html += `<div style="display:flex;justify-content:space-between;gap:36px;margin-bottom:8px"><span style="color:${MINT}">Actual</span><span style="font-variant-numeric:tabular-nums;font-size:15px">${fmtVal(actualVal, meta.unit)}</span></div>`;
+
+          const prior = list.find((x: any) => x.seriesName === "Prior year");
+          if (prior?.value != null) {
+            const dPct = meta.unit === "pct" ? null : ((actualVal - prior.value) / Math.abs(prior.value)) * 100;
+            const dPts = meta.unit === "pct" ? actualVal - prior.value : null;
+            const dAmt = meta.unit === "money" ? actualVal - prior.value : null;
+            html += `<div style="display:flex;justify-content:space-between;gap:36px;margin-bottom:4px;color:${MUTE}"><span>Prior year</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${fmtVal(prior.value, meta.unit)}</span></div>`;
+            html += `<div style="display:flex;justify-content:space-between;gap:36px;margin-bottom:8px;color:${MUTE}"><span>vs Prior year</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${
+              dPts != null ? `${dPts >= 0 ? "+" : ""}${dPts.toFixed(1)} pts`
+                : `${dPct! >= 0 ? "+" : ""}${dPct!.toFixed(1)}%${dAmt != null ? ` · ${dAmt >= 0 ? "+" : ""}${fmtMoney(dAmt)}` : ""}`
+            }</span></div>`;
+          }
+
+          const bud = list.find((x: any) => x.seriesName === "Budget");
+          if (bud?.value != null && meta.unit === "money") {
+            const dPct = ((actualVal - bud.value) / Math.abs(bud.value)) * 100;
+            const dAmt = actualVal - bud.value;
+            html += `<div style="display:flex;justify-content:space-between;gap:36px;margin-bottom:4px;color:${MUTE}"><span>Budget</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${fmtMoney(bud.value)}</span></div>`;
+            html += `<div style="display:flex;justify-content:space-between;gap:36px;color:${MUTE}"><span>vs Budget</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${dPct >= 0 ? "+" : ""}${dPct.toFixed(1)}% · ${dAmt >= 0 ? "+" : ""}${fmtMoney(dAmt)}</span></div>`;
           }
           return html;
         },
@@ -162,29 +171,41 @@ export default function HeroChart({
           formatter: (v: number) => (meta.unit === "pct" ? `${v}%` : fmtMoney(v)),
         },
       },
-      dataZoom: sliced.length > 16 ? [{ type: "inside" }] : [],
       series: [
         {
           name: "Actual",
           type: "line",
           data: actual,
-          smooth: 0.38,
+          smooth: 0.4,
           symbol: "circle",
-          symbolSize: (_: number, params: any) => (params.dataIndex === activeIdx ? 11 : 0),
+          symbolSize: (_: number, params: any) => (params.dataIndex === activeIdx ? 12 : 7),
           showSymbol: true,
           lineStyle: {
-            width: 2.75,
-            color: MINT,
-            shadowColor: "rgba(94,228,168,0.45)",
-            shadowBlur: 16,
+            width: 2.8,
+            color: {
+              type: "linear", x: 0, y: 0, x2: 1, y2: 0,
+              colorStops: [
+                { offset: 0, color: MINT },
+                { offset: 1, color: CYAN },
+              ],
+            },
+            shadowColor: "rgba(110,200,255,0.45)",
+            shadowBlur: 18,
           },
-          itemStyle: { color: MINT, borderColor: "#0F0E0C", borderWidth: 2 },
+          itemStyle: {
+            color: CYAN,
+            borderColor: "#0B1220",
+            borderWidth: 2,
+            shadowColor: "rgba(110,200,255,0.8)",
+            shadowBlur: 12,
+          },
           areaStyle: {
             color: {
               type: "linear", x: 0, y: 0, x2: 0, y2: 1,
               colorStops: [
-                { offset: 0, color: "rgba(94,228,168,0.22)" },
-                { offset: 1, color: "rgba(94,228,168,0.00)" },
+                { offset: 0, color: "rgba(94,228,168,0.20)" },
+                { offset: 0.55, color: "rgba(110,200,255,0.06)" },
+                { offset: 1, color: "rgba(110,200,255,0.00)" },
               ],
             },
           },
