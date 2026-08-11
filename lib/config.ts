@@ -272,8 +272,8 @@ export function integrationStatus() {
       hint: "Deterministic payroll / AR / debt tie-outs with exceptions. Readiness signals only — publish gate unchanged." },
     { name: "Integration Hub", enabled: config.integrationHub.enabled,
       hint: config.qbo.enabled
-        ? "Hub wraps QuickBooks + CSV/Excel + mock. QBO tokens stay encrypted in qbo_connections."
-        : "Hub on (file + mock). Set QBO_CLIENT_ID/SECRET to enable QuickBooks OAuth." },
+        ? "Hub wraps QuickBooks + CSV/Excel (mock only when ENABLE_MOCK_INTEGRATION=1). QBO tokens stay encrypted."
+        : "Hub on (file; mock only when ENABLE_MOCK_INTEGRATION=1). Set QBO_CLIENT_ID/SECRET for QuickBooks." },
     { name: "Close Automation", enabled: config.closeAutomation.enabled,
       hint: "Month-end checklist, exceptions, readiness — feeds review/release; never auto-publishes." },
   ];

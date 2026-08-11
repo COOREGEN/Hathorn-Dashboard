@@ -9,9 +9,21 @@
  * anything. Not part of `npm run seed`, because synthetic clients in a real book would
  * be worse than useless.
  */
+import { allowDemoSeed, resolveAppEnv } from "../lib/ops/env";
 import { db, uid } from "../lib/db";
 import { setTags } from "../lib/portfolio";
 import { applyPreset } from "../lib/kpi-defaults";
+
+{
+  const env = resolveAppEnv();
+  if (!allowDemoSeed(env)) {
+    console.error(
+      `Refusing seed-demo-book (APP_ENV=${env}). Synthetic portfolio clients must not land on a live book.\n` +
+      "Requires LOCAL/TEST, or ALLOW_DEMO_SEED=1 on STAGING.",
+    );
+    process.exit(1);
+  }
+}
 
 const VERTICALS = ["home_care", "childcare", "short_term_rental", "property_management",
   "professional_services", "restaurant", "contractor", "retail"];

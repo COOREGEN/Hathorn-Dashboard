@@ -68,12 +68,38 @@ async function main() {
 
   await check("APP_ENV resolves and production seed denied by default", () => {
     const prev = process.env.APP_ENV;
+    const prevAllow = process.env.ALLOW_DEMO_SEED;
     process.env.APP_ENV = "PRODUCTION";
+    delete process.env.ALLOW_DEMO_SEED;
     assert.equal(resolveAppEnv(), "PRODUCTION");
     assert.equal(allowDemoSeed(), false);
+    process.env.APP_ENV = "STAGING";
+    assert.equal(allowDemoSeed(), false, "STAGING must not seed without ALLOW_DEMO_SEED");
+    process.env.ALLOW_DEMO_SEED = "1";
+    assert.equal(allowDemoSeed(), true);
     process.env.APP_ENV = "LOCAL";
+    delete process.env.ALLOW_DEMO_SEED;
     assert.equal(allowDemoSeed(), true);
     process.env.APP_ENV = prev;
+    if (prevAllow === undefined) delete process.env.ALLOW_DEMO_SEED;
+    else process.env.ALLOW_DEMO_SEED = prevAllow;
+  });
+
+  await check("mock integration hidden on STAGING unless ENABLE_MOCK_INTEGRATION", () => {
+    const { mockIntegrationEnabled } = require("../lib/integrations/registry") as typeof import("../lib/integrations/registry");
+    const prevEnv = process.env.APP_ENV;
+    const prevMock = process.env.ENABLE_MOCK_INTEGRATION;
+    process.env.APP_ENV = "STAGING";
+    delete process.env.ENABLE_MOCK_INTEGRATION;
+    assert.equal(mockIntegrationEnabled(), false);
+    process.env.ENABLE_MOCK_INTEGRATION = "1";
+    assert.equal(mockIntegrationEnabled(), true);
+    process.env.APP_ENV = "LOCAL";
+    delete process.env.ENABLE_MOCK_INTEGRATION;
+    assert.equal(mockIntegrationEnabled(), true);
+    process.env.APP_ENV = prevEnv;
+    if (prevMock === undefined) delete process.env.ENABLE_MOCK_INTEGRATION;
+    else process.env.ENABLE_MOCK_INTEGRATION = prevMock;
   });
 
   await check("encryption previous key decrypt", () => {

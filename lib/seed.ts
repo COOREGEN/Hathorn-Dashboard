@@ -14,17 +14,16 @@ import crypto from "crypto";
 import { runMigrations } from "./migrations";
 
 {
-  const appEnv = (process.env.APP_ENV || "").toUpperCase();
-  const prodLike =
-    process.env.NODE_ENV === "production" || appEnv === "PRODUCTION";
-  // PRODUCTION never accepts ALLOW_DEMO_SEED without LEDGER_ALLOW_LOCAL_PROD.
-  const allow =
-    process.env.ALLOW_DEMO_SEED === "1" &&
-    (appEnv !== "PRODUCTION" || process.env.LEDGER_ALLOW_LOCAL_PROD === "1");
-  if (prodLike && !allow) {
+  // Single source of truth with lib/ops/env.ts — STAGING requires ALLOW_DEMO_SEED=1
+  // even when NODE_ENV is not "production". PRODUCTION also needs LEDGER_ALLOW_LOCAL_PROD.
+  const { allowDemoSeed, resolveAppEnv } = require("./ops/env") as typeof import("./ops/env");
+  const env = resolveAppEnv();
+  if (!allowDemoSeed(env)) {
     console.error(
-      "Refusing to seed in production/APP_ENV=PRODUCTION. This wipes the book and installs demo passwords.\n" +
-      "Staging reset only: APP_ENV=STAGING ALLOW_DEMO_SEED=1 npm run seed",
+      `Refusing to seed (APP_ENV=${env}). This wipes the book and installs demo passwords.\n` +
+      "Local/test: unset APP_ENV or use LOCAL/TEST.\n" +
+      "Staging reset only: APP_ENV=STAGING ALLOW_DEMO_SEED=1 npm run seed\n" +
+      "Never seed a real client-facing host.",
     );
     process.exit(1);
   }
