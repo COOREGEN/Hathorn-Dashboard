@@ -69,11 +69,16 @@ async function main() {
   await check("APP_ENV resolves and production seed denied by default", () => {
     const prev = process.env.APP_ENV;
     const prevAllow = process.env.ALLOW_DEMO_SEED;
+    const prevLocal = process.env.LEDGER_ALLOW_LOCAL_PROD;
     process.env.APP_ENV = "PRODUCTION";
     delete process.env.ALLOW_DEMO_SEED;
     assert.equal(resolveAppEnv(), "PRODUCTION");
     assert.equal(allowDemoSeed(), false);
+    process.env.ALLOW_DEMO_SEED = "1";
+    process.env.LEDGER_ALLOW_LOCAL_PROD = "1";
+    assert.equal(allowDemoSeed(), false, "PRODUCTION never demo-seeds, even with local-prod bypass");
     process.env.APP_ENV = "STAGING";
+    delete process.env.ALLOW_DEMO_SEED;
     assert.equal(allowDemoSeed(), false, "STAGING must not seed without ALLOW_DEMO_SEED");
     process.env.ALLOW_DEMO_SEED = "1";
     assert.equal(allowDemoSeed(), true);
@@ -83,6 +88,41 @@ async function main() {
     process.env.APP_ENV = prev;
     if (prevAllow === undefined) delete process.env.ALLOW_DEMO_SEED;
     else process.env.ALLOW_DEMO_SEED = prevAllow;
+    if (prevLocal === undefined) delete process.env.LEDGER_ALLOW_LOCAL_PROD;
+    else process.env.LEDGER_ALLOW_LOCAL_PROD = prevLocal;
+  });
+
+  await check("db-target refuses production fixture load and staging without confirm", () => {
+    const {
+      assertSafeForFixtureLoad,
+      assertSafeForStagingFixturePurge,
+      assertSafeForPostgresMigrate,
+      looksLikeProductionTarget,
+      parseDatabaseUrl,
+    } = require("../lib/ops/db-target") as typeof import("../lib/ops/db-target");
+    const prev = process.env.APP_ENV;
+    const prevPurge = process.env.CONFIRM_STAGING_FIXTURE_PURGE;
+    const prevMig = process.env.CONFIRM_STAGING_MIGRATE;
+    process.env.APP_ENV = "TEST";
+    delete process.env.CONFIRM_STAGING_FIXTURE_PURGE;
+    delete process.env.CONFIRM_STAGING_MIGRATE;
+    assert.equal(looksLikeProductionTarget(parseDatabaseUrl("postgres://u:p@h/hathorn_production")), true);
+    assert.doesNotThrow(() => assertSafeForFixtureLoad("postgres://u:p@127.0.0.1/hathorn_test"));
+    assert.throws(() => assertSafeForFixtureLoad("postgres://u:p@127.0.0.1/hathorn_staging"));
+    assert.throws(() => assertSafeForPostgresMigrate("postgres://u:p@127.0.0.1/hathorn_staging"));
+    process.env.CONFIRM_STAGING_MIGRATE = "1";
+    process.env.APP_ENV = "STAGING";
+    assert.doesNotThrow(() => assertSafeForPostgresMigrate("postgres://u:p@127.0.0.1/hathorn_staging"));
+    assert.throws(() => assertSafeForStagingFixturePurge("postgres://u:p@127.0.0.1/hathorn_staging"));
+    process.env.CONFIRM_STAGING_FIXTURE_PURGE = "1";
+    assert.doesNotThrow(() => assertSafeForStagingFixturePurge("postgres://u:p@127.0.0.1/hathorn_staging"));
+    process.env.APP_ENV = "PRODUCTION";
+    assert.throws(() => assertSafeForFixtureLoad("postgres://u:p@127.0.0.1/hathorn_test"));
+    process.env.APP_ENV = prev;
+    if (prevPurge === undefined) delete process.env.CONFIRM_STAGING_FIXTURE_PURGE;
+    else process.env.CONFIRM_STAGING_FIXTURE_PURGE = prevPurge;
+    if (prevMig === undefined) delete process.env.CONFIRM_STAGING_MIGRATE;
+    else process.env.CONFIRM_STAGING_MIGRATE = prevMig;
   });
 
   await check("mock integration hidden on STAGING unless ENABLE_MOCK_INTEGRATION", () => {

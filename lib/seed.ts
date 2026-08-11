@@ -14,16 +14,18 @@ import crypto from "crypto";
 import { runMigrations } from "./migrations";
 
 {
-  // Single source of truth with lib/ops/env.ts — STAGING requires ALLOW_DEMO_SEED=1
-  // even when NODE_ENV is not "production". PRODUCTION also needs LEDGER_ALLOW_LOCAL_PROD.
+  // Single source of truth with lib/ops/env.ts.
+  // PRODUCTION never seeds. STAGING needs ALLOW_DEMO_SEED=1. Prefer seeding into
+  // DATA_DIR for hathorn_test via `npm run db:prepare-test`, not the staging book.
   const { allowDemoSeed, resolveAppEnv } = require("./ops/env") as typeof import("./ops/env");
   const env = resolveAppEnv();
   if (!allowDemoSeed(env)) {
     console.error(
       `Refusing to seed (APP_ENV=${env}). This wipes the book and installs demo passwords.\n` +
-      "Local/test: unset APP_ENV or use LOCAL/TEST.\n" +
-      "Staging reset only: APP_ENV=STAGING ALLOW_DEMO_SEED=1 npm run seed\n" +
-      "Never seed a real client-facing host.",
+      "Local/test: APP_ENV=LOCAL|TEST npm run seed\n" +
+      "Isolated Postgres fixtures: npm run db:prepare-test\n" +
+      "Staging SQLite reset only (not the pilot DB): APP_ENV=STAGING ALLOW_DEMO_SEED=1 npm run seed\n" +
+      "PRODUCTION cannot be demo-seeded through any normal configuration.",
     );
     process.exit(1);
   }

@@ -19,6 +19,10 @@ async function main() {
     process.exit(1);
   }
 
+  const { assertSafeForPostgresMigrate } = await import("../lib/ops/db-target");
+  const target = assertSafeForPostgresMigrate(url);
+  console.log(`Migrate target: ${target.database} @ ${target.host}`);
+
   const dataDir = process.env.DATA_DIR || path.join(process.cwd(), "data");
   const sqlite = new Database(path.join(dataDir, "ledger.db"), { readonly: true, fileMustExist: true });
   const pg = new Client({ connectionString: url });

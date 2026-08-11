@@ -23,12 +23,17 @@ export function isProductionLike(env: AppEnv = resolveAppEnv()): boolean {
   return env === "PRODUCTION" || env === "STAGING";
 }
 
+/**
+ * Demo/fixture seed is for LOCAL development and TEST/CI only.
+ *
+ * STAGING may reset a disposable book only with ALLOW_DEMO_SEED=1 (and should
+ * target SQLite or an isolated demo DB — never a pilot book by accident).
+ * PRODUCTION always refuses — LEDGER_ALLOW_LOCAL_PROD does not unlock seed.
+ * That flag remains for local `NODE_ENV=production` cookie/URL relaxations only.
+ */
 export function allowDemoSeed(env: AppEnv = resolveAppEnv()): boolean {
-  if (process.env.ALLOW_DEMO_SEED === "1") {
-    // Explicit escape hatch — still refused on PRODUCTION unless also LEDGER_ALLOW_LOCAL_PROD.
-    if (env === "PRODUCTION" && process.env.LEDGER_ALLOW_LOCAL_PROD !== "1") return false;
-    return true;
-  }
+  if (env === "PRODUCTION") return false;
+  if (process.env.ALLOW_DEMO_SEED === "1") return true;
   return env === "LOCAL" || env === "TEST";
 }
 
