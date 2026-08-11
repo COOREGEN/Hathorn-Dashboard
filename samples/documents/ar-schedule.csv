@@ -1,0 +1,5 @@
+Customer,Invoice,Invoice Date,Due Date,Balance,Aging Bucket
+Medicaid MCO A,INV-1001,2026-03-01,2026-03-31,12400.00,31-60
+Private Pay — Lee,INV-1002,2026-04-05,2026-04-20,3200.00,0-30
+VA Contract,INV-1003,2026-01-15,2026-02-14,8900.00,90+
+Medicaid MCO B,INV-1004,2026-04-10,2026-05-10,5600.00,0-30
