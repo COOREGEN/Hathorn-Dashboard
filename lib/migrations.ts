@@ -1762,6 +1762,32 @@ export const MIGRATIONS: Migration[] = [
       }
     },
   },
+  {
+    id: 31,
+    name: "activity_audit_monitor",
+    up: (db) => {
+      /**
+       * Extend audit_logs for a firm/platform activity monitor.
+       * Pattern (trailkit / drizzle-audit / nestjs-audit-log):
+       *   actor · action · resource · tenant · request context · append-only
+       * Does not replace existing rows — only adds columns + indexes.
+       */
+      addColumn(db, "audit_logs", "resource_type", "TEXT DEFAULT NULL");
+      addColumn(db, "audit_logs", "resource_id", "TEXT DEFAULT NULL");
+      addColumn(db, "audit_logs", "metadata_json", "TEXT DEFAULT NULL");
+      addColumn(db, "audit_logs", "ip", "TEXT DEFAULT NULL");
+      addColumn(db, "audit_logs", "user_agent", "TEXT DEFAULT NULL");
+      addColumn(db, "audit_logs", "correlation_id", "TEXT DEFAULT NULL");
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_audit_client_created
+          ON audit_logs(client_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_audit_resource
+          ON audit_logs(resource_type, resource_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_audit_created
+          ON audit_logs(created_at DESC);
+      `);
+    },
+  },
 ];
 
 /**

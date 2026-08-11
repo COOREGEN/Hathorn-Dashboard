@@ -266,7 +266,16 @@ export async function getMfaSetupUser(): Promise<{ userId: string; email: string
   return { userId: u.id, email: u.email, name: u.name };
 }
 
-export function logout() {
+export function logout(actorId?: string | null, opts?: { firmId?: string | null }) {
+  if (actorId) {
+    try {
+      audit(actorId, "LOGOUT", "session ended", {
+        firmId: opts?.firmId ?? null,
+        resourceType: "session",
+        resourceId: actorId,
+      });
+    } catch { /* never block logout */ }
+  }
   cookies().delete(COOKIE);
   cookies().delete(SETUP_COOKIE);
 }
@@ -377,14 +386,28 @@ export async function requireClientAccess(clientId: string): Promise<Session> {
 }
 
 export function audit(userId: string, action: string, detail = "", opts?: {
-  firmId?: string | null; clientId?: string | null;
+  firmId?: string | null;
+  clientId?: string | null;
+  resourceType?: string | null;
+  resourceId?: string | null;
+  metadata?: Record<string, unknown> | null;
+  ip?: string | null;
+  userAgent?: string | null;
+  correlationId?: string | null;
 }) {
-  db().prepare(
-    "INSERT INTO audit_logs (id, user_id, action, detail, firm_id, client_id) VALUES (?, ?, ?, ?, ?, ?)",
-  ).run(
-    crypto.randomUUID(), userId, action, detail,
-    opts?.firmId ?? null, opts?.clientId ?? null,
-  );
+  // Delegate to the structured trail writer (migration 31 columns are optional
+  // until applied — recordAudit falls back to the original column set).
+  const { recordAudit } = require("./audit-trail") as typeof import("./audit-trail");
+  let firmId = opts?.firmId ?? null;
+  if (!firmId && userId) {
+    try {
+      const row: any = db().prepare(
+        `SELECT firm_id FROM firm_memberships WHERE user_id=? AND status='ACTIVE' ORDER BY created_at LIMIT 1`,
+      ).get(userId);
+      firmId = row?.firm_id ?? null;
+    } catch { /* ignore */ }
+  }
+  recordAudit(userId, action, detail, { ...opts, firmId });
 }
 
 /* ------------------------------------------------------------------ */
