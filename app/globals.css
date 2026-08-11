@@ -30,7 +30,7 @@
   --gold-deep: #9A7B1E;
   --gold-label: #B68F23;
 
-  /* Type */
+  /* Type — variable axes where available (fluid optical sizing via CSS) */
   --display: "Cormorant Garamond", Georgia, serif;
   --editorial: "EB Garamond", Georgia, serif;
   --utility: "Libre Franklin", ui-sans-serif, system-ui, sans-serif;
