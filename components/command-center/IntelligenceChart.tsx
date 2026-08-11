@@ -15,37 +15,55 @@ import {
 
 type SeriesMode = "actual" | "prior" | "budget" | "all";
 
+export type ChartPointSelect = {
+  index: number;
+  periodId: string;
+  label: string;
+  value: number;
+  pixel: { x: number; y: number };
+};
+
 export default function IntelligenceChart({
   periods,
   lens,
   activePeriodId,
   hoverIndex,
+  focusIndex,
+  highlightIndices,
   onHoverIndex,
-  onSelectIndex,
+  onSelectPoint,
+  onBrushRange,
+  onReset,
   range,
   seriesMode,
   showBand,
   showAnomalies,
   brushZoom,
   annotations,
-  highlighted,
 }: {
   periods: CCPeriod[];
   lens: CCLens;
   activePeriodId: string;
   hoverIndex: number | null;
+  focusIndex: number | null;
+  highlightIndices: number[];
   onHoverIndex: (i: number | null) => void;
-  onSelectIndex: (i: number) => void;
+  onSelectPoint: (ev: ChartPointSelect) => void;
+  onBrushRange: (range: [number, number] | null) => void;
+  onReset: () => void;
   range: "6M" | "12M" | "24M" | "YTD" | "ALL";
   seriesMode: SeriesMode;
   showBand: boolean;
   showAnomalies: boolean;
   brushZoom: boolean;
   annotations: CCAnnotation[];
-  highlighted: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.EChartsType | null>(null);
+  const slicedRef = useRef<CCPeriod[]>([]);
+  const actualRef = useRef<number[]>([]);
+  const cb = useRef({ onHoverIndex, onSelectPoint, onBrushRange, onReset });
+  cb.current = { onHoverIndex, onSelectPoint, onBrushRange, onReset };
 
   useEffect(() => {
     if (!ref.current) return;
@@ -53,78 +71,147 @@ export default function IntelligenceChart({
     chartRef.current = chart;
 
     const onMove = (params: unknown) => {
-      const p = params as { batch?: { dataIndex?: number }[]; dataIndex?: number };
-      const idx = p.batch?.[0]?.dataIndex ?? p.dataIndex;
-      if (typeof idx === "number") onHoverIndex(idx);
+      const p = params as { axesInfo?: Array<{ value?: number }>; batch?: { dataIndex?: number }[]; dataIndex?: number };
+      const idx = p.axesInfo?.[0]?.value ?? p.batch?.[0]?.dataIndex ?? p.dataIndex;
+      cb.current.onHoverIndex(typeof idx === "number" ? idx : null);
     };
-    const onOut = () => onHoverIndex(null);
+    const onOut = () => cb.current.onHoverIndex(null);
     const onClick = (params: unknown) => {
-      const p = params as { dataIndex?: number };
-      if (typeof p.dataIndex === "number") onSelectIndex(p.dataIndex);
+      const p = params as { componentType?: string; dataIndex?: number };
+      if (p.componentType !== "series" || typeof p.dataIndex !== "number") return;
+      const i = p.dataIndex;
+      const period = slicedRef.current[i];
+      const value = actualRef.current[i];
+      if (!period || value == null) return;
+      const pixel = chart.convertToPixel({ xAxisIndex: 0, yAxisIndex: 0 }, [i, value]) as number[];
+      const host = ref.current!.getBoundingClientRect();
+      cb.current.onSelectPoint({
+        index: i,
+        periodId: period.id,
+        label: period.label,
+        value,
+        pixel: { x: host.left + (pixel[0] ?? 0), y: host.top + (pixel[1] ?? 0) },
+      });
     };
+    const onBrushEnd = (params: unknown) => {
+      const p = params as { areas?: Array<{ coordRange?: number[] }> };
+      const range = p.areas?.[0]?.coordRange;
+      if (!range || range.length < 2) {
+        cb.current.onBrushRange(null);
+        return;
+      }
+      const a = Math.max(0, Math.round(Math.min(range[0], range[1])));
+      const b = Math.min(slicedRef.current.length - 1, Math.round(Math.max(range[0], range[1])));
+      cb.current.onBrushRange(a <= b ? [a, b] : null);
+    };
+    const onDbl = () => cb.current.onReset();
 
     chart.on("updateAxisPointer", onMove);
     chart.on("globalout", onOut);
     chart.on("click", onClick);
+    chart.on("brushEnd", onBrushEnd);
+    ref.current.addEventListener("dblclick", onDbl);
 
-    const onResize = () => chart.resize();
-    window.addEventListener("resize", onResize);
+    const ro = new ResizeObserver(() => chart.resize());
+    ro.observe(ref.current);
 
     return () => {
-      window.removeEventListener("resize", onResize);
-      chart.off("updateAxisPointer", onMove);
-      chart.off("globalout", onOut);
-      chart.off("click", onClick);
+      ref.current?.removeEventListener("dblclick", onDbl);
+      ro.disconnect();
       chart.dispose();
       chartRef.current = null;
     };
-  }, [onHoverIndex, onSelectIndex]);
+  }, []);
 
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart) return;
+    const host = ref.current;
+    if (!chart || !host) return;
 
     const activeIdx = periods.findIndex((p) => p.id === activePeriodId);
     const sliced = slicePeriods(periods, activeIdx, range);
-    const offset = periods.length - sliced.length;
+    slicedRef.current = sliced;
+    const offset = periods.indexOf(sliced[0]!) >= 0 ? periods.indexOf(sliced[0]!) : 0;
     const labels = sliced.map((p) => p.label.replace(/ 20/, " ’"));
     const actual = seriesFor(sliced, lens);
+    actualRef.current = actual;
     const prior = priorYearSeries(sliced, lens, sliced.length - 1);
     const budget = budgetSeries(sliced, lens);
     const band = forecastBand(actual);
     const anomalies = showAnomalies ? detectAnomalies(actual, labels) : [];
     const meta = LENS_META[lens];
-    const brand = cssVar("--brand") || "#2C504D";
-    const accent = cssVar("--accent") || "#DB5928";
-    const mute = cssVar("--ink-mute") || "#6E675B";
-    const ink = cssVar("--ink") || "#0C0B0A";
-    const paper = cssVar("--paper") || "#FBF8F1";
-    const hair = cssVar("--hairline") || "#E4DCC9";
+    const brand = cssVar(host, "--brand") || "#0C9B74";
+    const accent = cssVar(host, "--accent") || "#3D8FD1";
+    const mute = cssVar(host, "--ink-mute") || "#5A6F66";
+    const ink = cssVar(host, "--ink") || "#0D1B16";
+    const paper = cssVar(host, "--paper") || "#F3F7F4";
+    const hair = cssVar(host, "--hairline") || "#D7E4DC";
+    const hiSet = new Set(highlightIndices);
 
-    const markPoints = [
-      ...anomalies.map((a) => ({
-        name: "Anomaly",
-        coord: [a.index, actual[a.index]],
-        value: a.label,
-        itemStyle: { color: accent },
-        label: { formatter: "!", color: paper, fontSize: 10, fontWeight: 700 },
-        symbolSize: 18,
-      })),
-      ...annotations
-        .map((ann) => {
-          const i = sliced.findIndex((p) => p.id === ann.periodId);
-          if (i < 0) return null;
-          return {
-            name: ann.kind,
-            coord: [i, actual[i]],
-            value: ann.label,
-            itemStyle: { color: ann.kind === "break" ? accent : brand },
-            label: { formatter: ann.kind === "break" ? "↺" : "·", color: paper, fontSize: 10 },
-            symbolSize: 16,
-          };
-        })
-        .filter(Boolean),
-    ];
+    const markPoints: echarts.MarkPointComponentOption["data"] = [];
+
+    if (showAnomalies) {
+      for (const a of anomalies.slice(0, 3)) {
+        markPoints.push({
+          name: "anomaly",
+          coord: [a.index, actual[a.index]],
+          symbol: "diamond",
+          symbolSize: 10,
+          itemStyle: { color: accent },
+          label: { show: false },
+        });
+      }
+      for (const ann of annotations) {
+        const i = sliced.findIndex((p) => p.id === ann.periodId);
+        if (i < 0) continue;
+        const glyph =
+          ann.kind === "break" ? "▲" : ann.kind === "anomaly" ? "◆" : "○";
+        const color = ann.kind === "break" ? accent : ann.kind === "anomaly" ? accent : brand;
+        markPoints.push({
+          name: ann.kind,
+          coord: [i, actual[i]],
+          symbol: "circle",
+          symbolSize: 7,
+          itemStyle: { color },
+          label: {
+            show: true,
+            formatter: glyph,
+            color,
+            fontSize: 10,
+            distance: 10,
+            fontFamily: "Libre Franklin Variable, Libre Franklin, sans-serif",
+          },
+        });
+      }
+      // Budget miss markers (revenue only)
+      if (lens === "revenue") {
+        budget.forEach((b, i) => {
+          if (b == null) return;
+          const v = actual[i]!;
+          if (v < b - 1) {
+            markPoints.push({
+              name: "budget_miss",
+              coord: [i, v],
+              symbol: "circle",
+              symbolSize: 6,
+              itemStyle: { color: accent },
+              label: { show: true, formatter: "●", color: accent, fontSize: 9, distance: 8 },
+            });
+          }
+        });
+      }
+    }
+
+    const markArea: echarts.MarkAreaComponentOption | undefined =
+      highlightIndices.length > 0
+        ? {
+            silent: true,
+            itemStyle: { color: hexAlpha(brand, 0.07) },
+            data: highlightIndices
+              .filter((i) => i >= 0 && i < sliced.length)
+              .map((i) => [{ xAxis: i - 0.42 }, { xAxis: i + 0.42 }] as [{ xAxis: number }, { xAxis: number }]),
+          }
+        : undefined;
 
     const series: echarts.SeriesOption[] = [];
 
@@ -136,32 +223,56 @@ export default function IntelligenceChart({
         data: actual,
         smooth: 0.28,
         symbol: "circle",
-        symbolSize: 8,
-        lineStyle: { width: highlighted ? 3.2 : 2.4, color: brand },
+        symbolSize: (_: number, params: { dataIndex: number }) => {
+          const i = params.dataIndex;
+          if (focusIndex === i || hoverIndex === i) return 12;
+          if (hiSet.has(i)) return 9;
+          return 6;
+        },
+        lineStyle: { width: focusIndex != null || highlightIndices.length ? 2.8 : 2.4, color: brand },
         itemStyle: {
-          color: brand,
+          color: (params: { dataIndex: number }) => {
+            const i = params.dataIndex;
+            if (focusIndex === i || hiSet.has(i)) return accent;
+            return brand;
+          },
           borderColor: paper,
           borderWidth: 2,
         },
+        emphasis: {
+          scale: false,
+          itemStyle: { color: accent, borderWidth: 2, shadowBlur: 0 },
+          lineStyle: { width: 3 },
+        },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: hexAlpha(brand, 0.22) },
+            { offset: 0, color: hexAlpha(brand, 0.18) },
             { offset: 1, color: hexAlpha(brand, 0) },
           ]),
         },
-        markPoint: markPoints.length ? { data: markPoints as echarts.MarkPointComponentOption["data"] } : undefined,
+        markPoint: markPoints.length ? { data: markPoints, animation: false } : undefined,
+        markArea,
         markLine:
-          activeIdx - offset >= 0
+          focusIndex != null
             ? {
                 symbol: "none",
                 label: { show: false },
-                lineStyle: { color: hexAlpha(ink, 0.2), type: "dashed", width: 1 },
-                data: [{ xAxis: activeIdx - offset }],
+                lineStyle: { color: hexAlpha(accent, 0.55), type: "solid", width: 1 },
+                data: [{ xAxis: focusIndex }],
               }
-            : undefined,
+            : activeIdx - offset >= 0
+              ? {
+                  symbol: "none",
+                  label: { show: false },
+                  lineStyle: { color: hexAlpha(ink, 0.18), type: "dashed", width: 1 },
+                  data: [{ xAxis: Math.min(sliced.length - 1, Math.max(0, activeIdx - offset)) }],
+                }
+              : undefined,
         universalTransition: { enabled: true, divideShape: "clone" },
-        animationDuration: 350,
+        animationDuration: 340,
+        animationDurationUpdate: 320,
         animationEasing: "cubicOut",
+        animationEasingUpdate: "cubicOut",
       });
     }
 
@@ -173,8 +284,9 @@ export default function IntelligenceChart({
         data: prior,
         smooth: 0.28,
         symbol: "none",
-        lineStyle: { width: 1.6, type: "dashed", color: hexAlpha(mute, 0.85) },
-        animationDuration: 350,
+        silent: true,
+        lineStyle: { width: 1.4, type: "dashed", color: hexAlpha(mute, 0.85) },
+        animationDuration: 340,
       });
     }
 
@@ -186,40 +298,46 @@ export default function IntelligenceChart({
         data: budget,
         smooth: 0.2,
         symbol: "none",
-        lineStyle: { width: 1.5, type: "dotted", color: accent },
-        animationDuration: 350,
+        silent: true,
+        lineStyle: { width: 1.4, type: "dotted", color: accent },
+        animationDuration: 340,
       });
     }
 
     if (showBand) {
       series.push({
-        id: "band-hi",
-        name: "Confidence",
-        type: "line",
-        data: band.hi,
-        lineStyle: { opacity: 0 },
-        stack: "band",
-        symbol: "none",
-        areaStyle: { color: hexAlpha(brand, 0.08) },
-        tooltip: { show: false },
-      });
-      series.push({
         id: "band-lo",
         name: "Confidence lo",
         type: "line",
-        data: band.lo.map((v, i) => (v != null && band.hi[i] != null ? band.hi[i]! - v : null)),
+        data: band.lo,
         lineStyle: { opacity: 0 },
         stack: "band",
         symbol: "none",
-        areaStyle: { color: hexAlpha(brand, 0.1) },
+        silent: true,
+        tooltip: { show: false },
+      });
+      series.push({
+        id: "band-hi",
+        name: "Confidence",
+        type: "line",
+        data: band.hi.map((h, i) =>
+          h != null && band.lo[i] != null ? h - (band.lo[i] as number) : null,
+        ),
+        lineStyle: { opacity: 0 },
+        stack: "band",
+        symbol: "none",
+        silent: true,
+        areaStyle: { color: hexAlpha(brand, 0.08) },
         tooltip: { show: false },
       });
     }
 
     chart.setOption(
       {
-        animationDuration: 350,
+        animationDuration: 340,
+        animationDurationUpdate: 320,
         animationEasing: "cubicOut",
+        animationEasingUpdate: "cubicOut",
         axisPointer: {
           type: "cross",
           snap: true,
@@ -227,27 +345,30 @@ export default function IntelligenceChart({
             backgroundColor: ink,
             color: paper,
             fontFamily: "Libre Franklin Variable, Libre Franklin, sans-serif",
-            fontSize: 11,
+            fontSize: 10,
+            borderRadius: 2,
+            padding: [3, 6],
             formatter: (p: { value?: string | number; axisDimension?: string }) => {
               if (p.axisDimension === "y" && typeof p.value === "number") return fmtVal(p.value, meta.unit);
               return String(p.value ?? "");
             },
           },
-          crossStyle: { color: hexAlpha(ink, 0.25), width: 1 },
-          lineStyle: { color: hexAlpha(brand, 0.45), width: 1 },
+          crossStyle: { color: hexAlpha(ink, 0.28), width: 1, type: "dashed" },
+          lineStyle: { color: hexAlpha(brand, 0.4), width: 1, type: "dashed" },
         },
         brush: brushZoom
           ? {
               toolbox: ["lineX", "clear"],
               xAxisIndex: 0,
-              brushStyle: { borderWidth: 1, color: hexAlpha(brand, 0.08), borderColor: brand },
+              brushStyle: { borderWidth: 1, color: hexAlpha(accent, 0.08), borderColor: accent },
+              outOfBrush: { colorAlpha: 0.4 },
             }
           : undefined,
         toolbox: brushZoom
           ? {
               right: 8,
               top: 0,
-              itemSize: 14,
+              itemSize: 13,
               feature: {
                 brush: { type: ["lineX", "clear"] },
                 dataZoom: { yAxisIndex: "none" },
@@ -259,25 +380,37 @@ export default function IntelligenceChart({
         dataZoom: brushZoom
           ? [
               { type: "inside", xAxisIndex: 0, filterMode: "none" },
-              { type: "slider", height: 18, bottom: 0, borderColor: hair, fillerColor: hexAlpha(brand, 0.12), handleStyle: { color: brand } },
+              {
+                type: "slider",
+                height: 16,
+                bottom: 2,
+                borderColor: hair,
+                fillerColor: hexAlpha(brand, 0.12),
+                handleStyle: { color: brand },
+              },
             ]
-          : [{ type: "inside", xAxisIndex: 0, filterMode: "none" }],
-        grid: { left: 8, right: 12, top: 28, bottom: brushZoom ? 42 : 12, containLabel: true },
+          : [{ type: "inside", xAxisIndex: 0, filterMode: "none", zoomOnMouseWheel: false, moveOnMouseMove: true }],
+        grid: { left: 4, right: 8, top: 24, bottom: brushZoom ? 40 : 8, containLabel: true },
         tooltip: {
           trigger: "axis",
-          axisPointer: { type: "cross" },
+          axisPointer: { type: "cross", snap: true },
           backgroundColor: paper,
           borderColor: hair,
-          textStyle: { color: ink, fontFamily: "Libre Franklin Variable, Libre Franklin, sans-serif", fontSize: 12 },
-          extraCssText: "border-radius:12px;box-shadow:0 12px 28px rgba(12,11,10,0.08);padding:10px 12px;",
+          borderWidth: 1,
+          textStyle: {
+            color: ink,
+            fontFamily: "EB Garamond Variable, EB Garamond, serif",
+            fontSize: 13,
+          },
+          extraCssText: "border-radius:4px;box-shadow:0 8px 24px rgba(13,27,22,0.08);padding:10px 12px;",
           formatter: (params: unknown) => {
             const ps = params as { seriesName: string; value: number | null; marker: string; dataIndex: number }[];
             const head = labels[ps[0]?.dataIndex] ?? "";
             const rows = ps
               .filter((p) => p.seriesName !== "Confidence" && p.seriesName !== "Confidence lo" && p.value != null)
-              .map((p) => `${p.marker} ${p.seriesName}: <b>${fmtVal(Number(p.value), meta.unit)}</b>`)
+              .map((p) => `${p.marker} ${p.seriesName}: <b style="font-variant-numeric:tabular-nums">${fmtVal(Number(p.value), meta.unit)}</b>`)
               .join("<br/>");
-            return `<div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;opacity:.55;margin-bottom:4px">${head}</div>${rows}`;
+            return `<div style="font-family:Libre Franklin,sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.55;margin-bottom:4px">${head}</div>${rows}`;
           },
         },
         xAxis: {
@@ -295,6 +428,7 @@ export default function IntelligenceChart({
         },
         yAxis: {
           type: "value",
+          scale: true,
           splitLine: { lineStyle: { color: hexAlpha(ink, 0.06), type: "dashed" } },
           axisLabel: {
             color: mute,
@@ -316,16 +450,17 @@ export default function IntelligenceChart({
     lens,
     activePeriodId,
     hoverIndex,
+    focusIndex,
+    highlightIndices,
     range,
     seriesMode,
     showBand,
     showAnomalies,
     brushZoom,
     annotations,
-    highlighted,
   ]);
 
-  return <div ref={ref} className="cc-chart-canvas" role="img" aria-label={`${LENS_META[lens].label} chart`} />;
+  return <div ref={ref} className="cc-chart-canvas" role="img" aria-label={`${LENS_META[lens].label} chart · double-click to reset`} />;
 }
 
 function slicePeriods(periods: CCPeriod[], activeIdx: number, range: string) {
@@ -339,9 +474,8 @@ function slicePeriods(periods: CCPeriod[], activeIdx: number, range: string) {
   return periods.slice(Math.max(0, end - n), end);
 }
 
-function cssVar(name: string) {
-  if (typeof window === "undefined") return "";
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function cssVar(el: HTMLElement, name: string) {
+  return getComputedStyle(el.closest(".cc-root") ?? el).getPropertyValue(name).trim();
 }
 
 function hexAlpha(hex: string, a: number) {
