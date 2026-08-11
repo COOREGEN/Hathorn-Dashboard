@@ -4,14 +4,13 @@ import { getSession } from "@/lib/auth";
 import { resolveActiveFirmId } from "@/lib/tenancy";
 import { loadPortfolio } from "@/lib/portfolio";
 import { readiness } from "@/lib/engagement";
-import BrandMark from "@/components/brand-mark";
-import LogoutButton from "@/components/logout-button";
+import StaffHeader from "@/components/staff-header";
 
 /**
  * The arrival — a briefing, not a register.
  *
- * One next action. A short queue beneath it. Quiet destinations at the bottom.
- * Logo always returns here.
+ * One next action. A short queue beneath it.
+ * Practice destinations live in the left rail — not a footer dump.
  */
 export const dynamic = "force-dynamic";
 
@@ -100,20 +99,13 @@ export default async function Today() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--paper)" }}>
-      <header style={{ background: "var(--ink)", padding: "0 0 1px" }}>
-        <div style={{ maxWidth: 880, margin: "0 auto", padding: "26px 32px 28px",
-          display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
-          <BrandMark href="/" tone="ink" size="lg" />
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 18 }}>
-            <span className="prepared-by">{s.name}</span>
-            <LogoutButton />
-          </div>
-        </div>
-        <div style={{ height: 1, background: "linear-gradient(90deg, transparent, var(--gold), transparent)" }} />
-      </header>
-
-      <main style={{ maxWidth: 880, margin: "0 auto", padding: "56px 32px 88px" }}>
+    <StaffHeader
+      sub="Dashboard · Today"
+      maxWidth={880}
+      userName={s.name}
+      role={s.role}
+    >
+      <main style={{ maxWidth: 880, margin: "0 auto", padding: "48px 32px 88px" }}>
         <p className="eyebrow" style={{ marginBottom: 14 }}>Today</p>
         <h1 style={{ fontFamily: "var(--display)", fontSize: 40, fontWeight: 300,
           letterSpacing: "-.015em", margin: 0, lineHeight: 1.08 }}>
@@ -128,7 +120,6 @@ export default async function Today() {
               : `${tasks.length} item${tasks.length === 1 ? "" : "s"} when you have a moment.`}
         </p>
 
-        {/* Single next move — not a register. */}
         <section style={{ marginTop: 48 }}>
           {!primary ? (
             <div style={{ padding: "36px 0", borderTop: "1px solid var(--hairline)" }}>
@@ -183,34 +174,7 @@ export default async function Today() {
             )}
           </section>
         )}
-
-        {/* Destinations as a quiet line — not a card grid. */}
-        <nav aria-label="Practice" style={{
-          marginTop: 64, paddingTop: 22, borderTop: "1px solid var(--hairline)",
-          display: "flex", flexWrap: "wrap", gap: "10px 28px",
-          fontFamily: "var(--utility)", fontSize: 11, fontWeight: 600,
-          letterSpacing: ".12em", textTransform: "uppercase",
-        }}>
-          <Link href="/portfolio" style={{ color: "var(--ink)", textDecoration: "none" }}>Attention</Link>
-          <Link href="/clients" style={{ color: "var(--ink)", textDecoration: "none" }}>Clients</Link>
-          <Link href="/intelligence" style={{ color: "var(--ink)", textDecoration: "none" }}>Intelligence</Link>
-          <Link href="/client-experience" style={{ color: "var(--ink)", textDecoration: "none" }}>Client Experience</Link>
-          <Link href="/planning" style={{ color: "var(--ink)", textDecoration: "none" }}>Planning</Link>
-          <Link href="/documents" style={{ color: "var(--ink)", textDecoration: "none" }}>Documents</Link>
-          <Link href="/tax" style={{ color: "var(--ink)", textDecoration: "none" }}>Tax</Link>
-          <Link href="/guidance" style={{ color: "var(--ink)", textDecoration: "none" }}>Guidance</Link>
-          <Link href="/reconciliations" style={{ color: "var(--ink)", textDecoration: "none" }}>Reconciliations</Link>
-          <Link href="/integrations" style={{ color: "var(--ink)", textDecoration: "none" }}>Integrations</Link>
-          <Link href="/close" style={{ color: "var(--ink)", textDecoration: "none" }}>Close</Link>
-          <Link href="/exceptions" style={{ color: "var(--ink)", textDecoration: "none" }}>Exceptions</Link>
-          <Link href="/upload" style={{ color: "var(--ink)", textDecoration: "none" }}>Upload</Link>
-          <Link href="/ask" style={{ color: "var(--ink)", textDecoration: "none" }}>Ask Hathorn</Link>
-          <Link href="/dash" style={{ color: "var(--ink)", textDecoration: "none" }}>Dashboard</Link>
-          <Link href="/firm" style={{ color: "var(--ink)", textDecoration: "none" }}>Firm</Link>
-          <Link href="/admin" style={{ color: "var(--ink)", textDecoration: "none" }}>Firm ops</Link>
-          <Link href="/account/security" style={{ color: "var(--ink-mute)", textDecoration: "none" }}>Security</Link>
-        </nav>
       </main>
-    </div>
+    </StaffHeader>
   );
 }
