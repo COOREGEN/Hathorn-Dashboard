@@ -20,6 +20,7 @@ export function CommandTrigger() {
     <button
       type="button"
       className="topbar-search"
+      title="Jump to — ⌘K, Ctrl-K or /"
       onClick={() => window.dispatchEvent(new Event(OPEN_EVENT))}
     >
       <svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor"
@@ -57,10 +58,23 @@ export default function StaffCommand({ role }: { role?: string }) {
   }, [entries, query]);
 
   useEffect(() => {
+    const typing = (t: EventTarget | null) => {
+      const el = t as HTMLElement | null;
+      if (!el) return false;
+      const tag = el.tagName;
+      return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable;
+    };
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setOpen((v) => !v);
+        return;
+      }
+      // Chrome claims Ctrl-K for its address bar whenever the page has not got
+      // the keystroke first, so "/" is offered as the shortcut that always lands.
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey && !typing(e.target)) {
+        e.preventDefault();
+        setOpen(true);
       }
     };
     const onOpen = () => setOpen(true);

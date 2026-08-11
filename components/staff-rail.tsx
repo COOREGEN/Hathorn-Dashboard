@@ -149,7 +149,7 @@ export default function StaffRail({
           </nav>
 
           <div className="staff-rail-foot">
-            <span className="staff-rail-foot-k">⌘K</span>
+            <span className="staff-rail-foot-k">/</span>
             <span className="staff-rail-text">Jump to anything</span>
           </div>
         </div>
