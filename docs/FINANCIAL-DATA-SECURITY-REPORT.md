@@ -70,6 +70,22 @@ Sources: `docs/compliance/SOURCES.md` (FTC Safeguards 16 CFR 314; IRS Pub 5708 R
 
 **Fixes just shipped (see TECHNICAL-ACTION-REGISTER DONE):** AI sanitize; quarantine download block + path; ENCRYPTION_KEY prod require; reset URL logging; Copilot audit metadata-only.
 
+### Automated evidence (this pass — synthetic / hathorn_test)
+
+| Command | Result |
+|---|---|
+| `npm run typecheck` | pass |
+| `npm run lint` | pass (existing font warning only) |
+| `npm run build` | pass |
+| `npm run security:test` | **9/9** |
+| `npm run smoke` (hathorn_test) | **11/11** |
+| `npm run proof` (hathorn_test) | **217/217** |
+| `npm run db:rls-proof` | **13/13** |
+| `npm run db:financial-proof` | **16/16** |
+| ops / tenancy / copilot / tax / documents / client-portal / intelligence / integrations / close / recon / fpa unit suites | all green |
+| `npm audit --audit-level=high` | **5 high** (Next.js / postcss — upgrade is breaking to 16.x; tracked as T-P0-07) |
+| `APP_ENV=PRODUCTION` seed | refused (exit 1) |
+
 ---
 
 ## Final gates table
