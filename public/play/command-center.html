@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="hathorn">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -9,29 +9,80 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
   <style>
+    /* ── Structure tokens (UX). Palette only swaps these values. ── */
     :root {
-      --paper: #F3F7F4;
-      --paper-2: #EAF3EE;
-      --ink: #0D1B16;
-      --ink-2: #24352E;
-      --soft: #4A5F55;
-      --mute: #7A8C83;
-      --line: rgba(13, 27, 22, 0.08);
-      --line-strong: rgba(13, 27, 22, 0.14);
-      --jade: #0C9B74;
-      --jade-deep: #087A5A;
-      --jade-soft: rgba(12, 155, 116, 0.12);
-      --lime: #B7F07C;
-      --sky: #3D8FD1;
-      --coral: #E26D5A;
-      --gold: #B8892D;
-      --gold-soft: rgba(184, 137, 45, 0.14);
       --display: "Cormorant Garamond", Georgia, serif;
       --body: "EB Garamond", Georgia, serif;
       --ui: "Libre Franklin", system-ui, sans-serif;
       --rail: 210px;
       --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --radius: 14px;
+      --radius-sm: 10px;
+
+      /* defaults = Hathorn Forest (platform-like) */
+      --paper: #F7F4EF;
+      --paper-2: #EFEAE2;
+      --ink: #1A1C1A;
+      --ink-2: #2E322E;
+      --soft: #5A5E58;
+      --mute: #8A8E86;
+      --brand: #2C504D;
+      --brand-deep: #1E3A38;
+      --accent: #DB5928;
+      --accent-deep: #B4471F;
+      --good: #2F7D57;
+      --good-deep: #226344;
+      --warn: #C45C45;
+      --chart-2: #3D6E8C;
+      --chart-3: #B8892D;
+      --chart-4: #8A8E86;
+      --on-brand: #F7F4EF;
     }
+    html[data-palette="jade"] {
+      --paper: #F3F7F4; --paper-2: #EAF3EE; --ink: #0D1B16; --ink-2: #24352E;
+      --soft: #4A5F55; --mute: #7A8C83; --brand: #0C9B74; --brand-deep: #087A5A;
+      --accent: #3D8FD1; --accent-deep: #2B6FA8; --good: #0C9B74; --good-deep: #087A5A;
+      --warn: #E26D5A; --chart-2: #3D8FD1; --chart-3: #B8892D; --chart-4: #7A8C83;
+      --on-brand: #F4FFF9;
+    }
+    html[data-palette="navy"] {
+      --paper: #F4F6FA; --paper-2: #E8ECF4; --ink: #121826; --ink-2: #243049;
+      --soft: #4A5568; --mute: #7B8598; --brand: #1D3557; --brand-deep: #13243D;
+      --accent: #E07A3D; --accent-deep: #C45F24; --good: #2A7A62; --good-deep: #1E5C49;
+      --warn: #C45C45; --chart-2: #4C7BD9; --chart-3: #C4A35A; --chart-4: #7B8598;
+      --on-brand: #F4F6FA;
+    }
+    html[data-palette="ink"] {
+      --paper: #F6F5F2; --paper-2: #ECEAE4; --ink: #141414; --ink-2: #2A2A2A;
+      --soft: #555555; --mute: #888888; --brand: #1F2933; --brand-deep: #111820;
+      --accent: #C4A35A; --accent-deep: #9A7E3E; --good: #3D7A5F; --good-deep: #2D5C47;
+      --warn: #B85C4A; --chart-2: #5B7C99; --chart-3: #C4A35A; --chart-4: #888888;
+      --on-brand: #F6F5F2;
+    }
+    html[data-palette="northbridge"] {
+      --paper: #F8F5F1; --paper-2: #F0EBE4; --ink: #1C1916; --ink-2: #3A342E;
+      --soft: #6A6158; --mute: #9A9188; --brand: #C45C26; --brand-deep: #9A4519;
+      --accent: #2C504D; --accent-deep: #1E3A38; --good: #2F7D57; --good-deep: #226344;
+      --warn: #B8443A; --chart-2: #2C504D; --chart-3: #C4A35A; --chart-4: #9A9188;
+      --on-brand: #FFF8F3;
+    }
+
+    /* derived — always from tokens */
+    :root, html[data-palette] {
+      --line: color-mix(in srgb, var(--ink) 10%, transparent);
+      --line-strong: color-mix(in srgb, var(--ink) 18%, transparent);
+      --brand-soft: color-mix(in srgb, var(--brand) 14%, transparent);
+      --brand-tint: color-mix(in srgb, var(--brand) 9%, transparent);
+      --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent);
+      --good-soft: color-mix(in srgb, var(--good) 14%, transparent);
+      --warn-soft: color-mix(in srgb, var(--warn) 12%, transparent);
+      --surface: color-mix(in srgb, #ffffff 72%, var(--paper));
+      --surface-2: color-mix(in srgb, #ffffff 55%, var(--paper-2));
+      --glow-a: color-mix(in srgb, var(--brand) 22%, transparent);
+      --glow-b: color-mix(in srgb, var(--accent) 16%, transparent);
+      --glow-c: color-mix(in srgb, var(--good) 14%, transparent);
+    }
+
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
     body {
@@ -39,17 +90,17 @@
       font-size: 16.5px;
       color: var(--ink);
       background:
-        radial-gradient(1000px 520px at 12% -8%, rgba(183, 240, 124, 0.28), transparent 55%),
-        radial-gradient(900px 480px at 92% 8%, rgba(61, 143, 209, 0.16), transparent 50%),
-        radial-gradient(700px 420px at 70% 100%, rgba(12, 155, 116, 0.14), transparent 45%),
-        linear-gradient(165deg, #F7FBF8 0%, #EEF5F1 45%, #E7F1EC 100%);
+        radial-gradient(1000px 520px at 12% -8%, var(--glow-a), transparent 55%),
+        radial-gradient(900px 480px at 92% 8%, var(--glow-b), transparent 50%),
+        radial-gradient(700px 420px at 70% 100%, var(--glow-c), transparent 45%),
+        linear-gradient(165deg, var(--paper) 0%, var(--paper-2) 100%);
       background-attachment: fixed;
       overflow-x: hidden;
+      transition: background .35s var(--ease), color .25s;
     }
     body::before {
       content: "";
-      position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      opacity: 0.35;
+      position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.28;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
       mix-blend-mode: multiply;
     }
@@ -61,10 +112,8 @@
       letter-spacing: 0.14em; text-transform: uppercase; color: var(--mute);
     }
     .shell {
-      position: relative; z-index: 1;
-      min-height: 100vh;
-      display: grid;
-      grid-template-columns: var(--rail) minmax(0, 1fr);
+      position: relative; z-index: 1; min-height: 100vh;
+      display: grid; grid-template-columns: var(--rail) minmax(0, 1fr);
     }
     @media (max-width: 980px) {
       .shell { grid-template-columns: 1fr; }
@@ -73,97 +122,113 @@
       .stage { grid-template-columns: 1fr !important; }
     }
 
-    /* ── Rail ── */
+    /* Palette dock — proves color is disposable */
+    .palette-dock {
+      position: fixed; top: 14px; right: 14px; z-index: 40;
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--line-strong);
+      box-shadow: 0 10px 24px color-mix(in srgb, var(--ink) 8%, transparent);
+      font-family: var(--ui); font-size: 11px; font-weight: 600; color: var(--soft);
+    }
+    .palette-dock span { letter-spacing: 0.06em; text-transform: uppercase; font-size: 10px; color: var(--mute); }
+    .swatches { display: flex; gap: 6px; }
+    .swatch-btn {
+      width: 22px; height: 22px; border-radius: 7px; border: 2px solid transparent;
+      display: grid; place-items: center; padding: 0; overflow: hidden;
+      transition: transform .15s var(--ease), border-color .15s;
+    }
+    .swatch-btn:hover { transform: translateY(-1px); }
+    .swatch-btn.on { border-color: var(--ink); }
+    .swatch-btn i { display: block; width: 100%; height: 100%; border-radius: 5px; }
+    .swatch-btn i::after {
+      content: ""; display: block; width: 45%; height: 100%; margin-left: auto;
+      background: var(--s2, var(--accent));
+    }
+
     .rail {
-      position: sticky; top: 0; height: 100vh;
-      padding: 22px 14px;
+      position: sticky; top: 0; height: 100vh; padding: 22px 14px;
       border-right: 1px solid var(--line);
-      background: rgba(255,255,255,0.42);
+      background: color-mix(in srgb, var(--surface) 88%, transparent);
       backdrop-filter: blur(14px);
       display: flex; flex-direction: column; gap: 8px;
     }
     .brand { display: flex; gap: 10px; align-items: center; padding: 4px 6px 22px; }
     .mark {
-      width: 36px; height: 36px; border-radius: 10px;
+      width: 36px; height: 36px; border-radius: var(--radius-sm);
       display: grid; place-items: center;
-      background: linear-gradient(145deg, var(--jade) 0%, #0A6F54 100%);
-      color: #F4FFF9; font-family: var(--display); font-size: 18px; font-weight: 700;
-      box-shadow: 0 8px 18px rgba(12, 155, 116, 0.25);
+      background: var(--brand); color: var(--on-brand);
+      font-family: var(--display); font-size: 18px; font-weight: 700;
     }
     .brand-name { font-family: var(--display); font-size: 20px; font-weight: 600; line-height: 1; }
-    .brand-sub { font-family: var(--ui); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--jade-deep); margin-top: 3px; font-weight: 600; }
+    .brand-sub {
+      font-family: var(--ui); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--brand-deep); margin-top: 3px; font-weight: 600;
+    }
     .nav-btn {
       display: flex; align-items: center; gap: 10px; width: 100%;
-      padding: 11px 12px; border-radius: 10px; text-align: left;
+      padding: 11px 12px; border-radius: var(--radius-sm); text-align: left;
       font-family: var(--ui); font-size: 13px; font-weight: 500; color: var(--soft);
-      transition: background .2s var(--ease), color .2s var(--ease), transform .2s var(--ease);
+      transition: background .2s var(--ease), color .2s, transform .2s var(--ease);
     }
-    .nav-btn:hover { background: rgba(12,155,116,0.08); color: var(--ink); transform: translateX(2px); }
+    .nav-btn:hover { background: var(--brand-tint); color: var(--ink); transform: translateX(2px); }
     .nav-btn.on {
-      background: linear-gradient(90deg, rgba(12,155,116,0.16), rgba(183,240,124,0.12));
-      color: var(--ink);
-      box-shadow: inset 3px 0 0 var(--jade);
+      background: linear-gradient(90deg, var(--brand-soft), var(--accent-soft));
+      color: var(--ink); box-shadow: inset 3px 0 0 var(--brand);
     }
     .nav-ico {
       width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
-      background: rgba(13,27,22,0.04); font-size: 12px; font-family: var(--ui); font-weight: 700;
+      background: color-mix(in srgb, var(--ink) 5%, transparent);
+      font-size: 12px; font-family: var(--ui); font-weight: 700;
     }
-    .nav-btn.on .nav-ico { background: var(--jade); color: #fff; }
+    .nav-btn.on .nav-ico { background: var(--brand); color: var(--on-brand); }
     .rail-foot { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); }
     .pulse-row {
       display: flex; align-items: center; gap: 8px;
       font-family: var(--ui); font-size: 11px; color: var(--soft); margin-bottom: 12px;
     }
     .pulse {
-      width: 8px; height: 8px; border-radius: 50%; background: var(--jade);
-      box-shadow: 0 0 0 0 rgba(12,155,116,0.45);
+      width: 8px; height: 8px; border-radius: 50%; background: var(--good);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 45%, transparent);
       animation: pulse 1.8s infinite;
     }
     @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(12,155,116,0.4); }
-      70% { box-shadow: 0 0 0 10px rgba(12,155,116,0); }
-      100% { box-shadow: 0 0 0 0 rgba(12,155,116,0); }
+      0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 40%, transparent); }
+      70% { box-shadow: 0 0 0 10px transparent; }
+      100% { box-shadow: 0 0 0 0 transparent; }
     }
-    .user {
-      display: flex; gap: 10px; align-items: center;
-      font-family: var(--ui); font-size: 12px;
-    }
+    .user { display: flex; gap: 10px; align-items: center; font-family: var(--ui); font-size: 12px; }
     .avatar {
-      width: 34px; height: 34px; border-radius: 50%;
-      display: grid; place-items: center;
-      background: linear-gradient(135deg, #B7F07C, #0C9B74);
-      color: var(--ink); font-weight: 700;
+      width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--brand));
+      color: var(--on-brand); font-weight: 700;
     }
 
-    /* ── Main ── */
     .main { min-width: 0; padding: 0 0 48px; }
     .topbar {
       display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      padding: 16px 28px; position: sticky; top: 0; z-index: 20;
-      background: rgba(243,247,244,0.78); backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--line);
+      padding: 16px 28px; padding-right: 220px; position: sticky; top: 0; z-index: 20;
+      background: color-mix(in srgb, var(--paper) 82%, transparent);
+      backdrop-filter: blur(16px); border-bottom: 1px solid var(--line);
     }
     .crumbs { font-family: var(--ui); font-size: 12px; color: var(--mute); display: flex; gap: 8px; align-items: center; }
     .crumbs b { color: var(--ink); font-weight: 600; }
     .top-actions { display: flex; gap: 8px; align-items: center; }
     .ask-chip {
       font-family: var(--ui); font-size: 12px; font-weight: 500; color: var(--soft);
-      border: 1px solid var(--line-strong); background: rgba(255,255,255,0.7);
-      border-radius: 10px; padding: 9px 14px; min-width: 220px; text-align: left;
+      border: 1px solid var(--line-strong); background: var(--surface);
+      border-radius: var(--radius-sm); padding: 9px 14px; min-width: 220px; text-align: left;
       transition: border-color .2s, transform .2s var(--ease);
     }
-    .ask-chip:hover { border-color: var(--jade); color: var(--ink); transform: translateY(-1px); }
+    .ask-chip:hover { border-color: var(--brand); color: var(--ink); transform: translateY(-1px); }
     .icon-btn {
-      width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line);
-      background: rgba(255,255,255,0.7); display: grid; place-items: center;
+      width: 38px; height: 38px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+      background: var(--surface); display: grid; place-items: center;
       font-family: var(--ui); font-size: 12px; font-weight: 700; color: var(--soft);
     }
-    .icon-btn:hover { border-color: var(--jade); color: var(--jade-deep); }
+    .icon-btn:hover { border-color: var(--brand); color: var(--brand-deep); }
 
-    .hero-band {
-      padding: 22px 28px 8px;
-      display: grid; gap: 18px;
-    }
+    .hero-band { padding: 22px 28px 8px; display: grid; gap: 18px; }
     .title-row {
       display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: end;
     }
@@ -174,41 +239,39 @@
     }
     .live-tag {
       font-family: var(--ui); font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--jade-deep);
-      background: linear-gradient(90deg, rgba(183,240,124,0.55), rgba(12,155,116,0.18));
-      border: 1px solid rgba(12,155,116,0.25); border-radius: 8px; padding: 6px 9px;
+      text-transform: uppercase; color: var(--brand-deep);
+      background: linear-gradient(90deg, var(--brand-soft), var(--accent-soft));
+      border: 1px solid color-mix(in srgb, var(--brand) 28%, transparent);
+      border-radius: 8px; padding: 6px 9px;
     }
     .meta {
       margin-top: 8px; font-family: var(--ui); font-size: 12px; color: var(--soft);
       display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center;
     }
-    .dot-ok::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--jade); margin-right: 6px; }
+    .dot-ok::before {
+      content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+      background: var(--good); margin-right: 6px;
+    }
     .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .seg {
       display: flex; gap: 3px; padding: 3px; border-radius: 11px;
-      background: rgba(255,255,255,0.7); border: 1px solid var(--line);
+      background: var(--surface); border: 1px solid var(--line);
     }
     .seg button {
-      font-family: var(--ui); font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+      font-family: var(--ui); font-size: 11px; font-weight: 600;
       color: var(--mute); padding: 8px 11px; border-radius: 8px;
       transition: background .2s, color .2s, transform .15s var(--ease);
     }
     .seg button:hover { color: var(--ink); }
-    .seg button.on {
-      background: var(--ink); color: #F4FFF9;
-      transform: translateY(-1px);
-    }
-    .seg.jade button.on { background: var(--jade); color: #fff; }
+    .seg button.on { background: var(--ink); color: var(--paper); transform: translateY(-1px); }
+    .seg.brand button.on { background: var(--brand); color: var(--on-brand); }
     select.ctl {
-      height: 38px; border-radius: 10px; border: 1px solid var(--line);
-      background: rgba(255,255,255,0.75); padding: 0 12px;
+      height: 38px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+      background: var(--surface); padding: 0 12px;
       font-family: var(--ui); font-size: 12px; font-weight: 600; color: var(--ink-2);
     }
 
-    .scrub {
-      display: flex; gap: 4px; overflow-x: auto; padding: 4px 0 2px;
-      scrollbar-width: none;
-    }
+    .scrub { display: flex; gap: 4px; overflow-x: auto; padding: 4px 0 2px; scrollbar-width: none; }
     .scrub::-webkit-scrollbar { display: none; }
     .month {
       position: relative; min-width: 58px; padding: 10px 8px 12px; border-radius: 12px;
@@ -217,18 +280,17 @@
     }
     .month .y { display: block; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; }
     .month .m { display: block; font-size: 13px; font-weight: 600; margin-top: 2px; }
-    .month:hover { background: rgba(12,155,116,0.08); color: var(--ink); transform: translateY(-2px); }
+    .month:hover { background: var(--brand-tint); color: var(--ink); transform: translateY(-2px); }
     .month.on {
-      background: linear-gradient(180deg, rgba(12,155,116,0.18), rgba(183,240,124,0.25));
-      color: var(--ink);
-      box-shadow: inset 0 -3px 0 var(--jade);
+      background: linear-gradient(180deg, var(--brand-soft), var(--accent-soft));
+      color: var(--ink); box-shadow: inset 0 -3px 0 var(--brand);
     }
     .month .spark-mini {
       position: absolute; left: 8px; right: 8px; bottom: 4px; height: 3px; border-radius: 2px;
-      background: rgba(12,155,116,0.15); overflow: hidden;
+      background: color-mix(in srgb, var(--brand) 15%, transparent); overflow: hidden;
     }
     .month .spark-mini i {
-      display: block; height: 100%; background: var(--jade); border-radius: 2px;
+      display: block; height: 100%; background: var(--brand); border-radius: 2px;
       transition: width .35s var(--ease);
     }
 
@@ -236,95 +298,82 @@
       display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px;
       padding: 8px 28px 0;
     }
-
     .panel {
-      background: rgba(255,255,255,0.72);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 18px;
-      backdrop-filter: blur(10px);
+      background: var(--surface); border: 1px solid var(--line); border-radius: 18px;
+      padding: 18px; backdrop-filter: blur(10px);
       transition: transform .25s var(--ease), border-color .25s;
     }
-    .panel:hover { border-color: rgba(12,155,116,0.28); }
+    .panel:hover { border-color: color-mix(in srgb, var(--brand) 30%, transparent); }
     .panel.hero { padding: 20px 20px 12px; }
 
     .hero-top {
       display: flex; justify-content: space-between; gap: 16px; align-items: end; flex-wrap: wrap;
     }
-    .hero-label { margin-bottom: 4px; }
     .hero-fig {
       font-family: var(--display); font-size: clamp(52px, 7vw, 76px);
       font-weight: 700; letter-spacing: -0.03em; line-height: 0.92; margin: 0;
-      background: linear-gradient(120deg, var(--ink) 20%, var(--jade-deep) 90%);
+      color: var(--ink);
+      background: linear-gradient(120deg, var(--ink) 25%, var(--brand-deep) 92%);
       -webkit-background-clip: text; background-clip: text; color: transparent;
       transition: transform .35s var(--ease);
     }
     .hero-fig.bump { transform: scale(1.03); }
     .hero-delta {
       margin-top: 8px; font-family: var(--ui); font-size: 13px; font-weight: 600;
-      display: inline-flex; gap: 8px; align-items: center; color: var(--jade-deep);
-      background: var(--jade-soft); border-radius: 8px; padding: 6px 10px;
+      display: inline-flex; gap: 8px; align-items: center; color: var(--good-deep);
+      background: var(--good-soft); border-radius: 8px; padding: 6px 10px;
     }
-    .hero-delta.down { color: #A84434; background: rgba(226,109,90,0.12); }
-    .hero-delta.flat { color: var(--soft); background: rgba(13,27,22,0.05); }
+    .hero-delta.down { color: var(--warn); background: var(--warn-soft); }
+    .hero-delta.flat { color: var(--soft); background: color-mix(in srgb, var(--ink) 5%, transparent); }
     .range { display: flex; gap: 4px; flex-wrap: wrap; }
     .range button {
       font-family: var(--ui); font-size: 11px; font-weight: 700; color: var(--mute);
       padding: 7px 10px; border-radius: 8px; border: 1px solid transparent;
     }
-    .range button.on { color: var(--jade-deep); border-color: rgba(12,155,116,0.3); background: var(--jade-soft); }
-
-    .lenses {
-      display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 6px;
+    .range button.on {
+      color: var(--brand-deep); border-color: color-mix(in srgb, var(--brand) 30%, transparent);
+      background: var(--brand-soft);
     }
+
+    .lenses { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0 6px; }
     .lenses button {
       font-family: var(--ui); font-size: 12px; font-weight: 600; color: var(--soft);
-      padding: 9px 12px; border-radius: 999px; border: 1px solid var(--line);
-      background: rgba(255,255,255,0.55);
-      transition: all .2s var(--ease);
+      padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+      background: var(--surface-2); transition: all .2s var(--ease);
     }
     .lenses button:hover { color: var(--ink); border-color: var(--line-strong); transform: translateY(-1px); }
     .lenses button.on {
-      color: #fff; border-color: transparent;
-      background: linear-gradient(120deg, var(--jade) 0%, #12B887 100%);
-      box-shadow: 0 8px 16px rgba(12,155,116,0.22);
+      color: var(--on-brand); border-color: transparent; background: var(--brand);
     }
 
     #heroChart { width: 100%; height: 300px; cursor: crosshair; }
-
     .scenario {
       display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
       margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--line);
       font-family: var(--ui); font-size: 12px; color: var(--soft);
     }
-    .scenario input[type="range"] {
-      width: min(220px, 40vw); accent-color: var(--jade);
-    }
+    .scenario input[type="range"] { width: min(220px, 40vw); accent-color: var(--brand); }
     .scenario b { color: var(--ink); font-weight: 700; }
 
-    .metrics {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px;
-    }
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
     @media (max-width: 720px) { .metrics { grid-template-columns: 1fr 1fr; } }
     .metric {
-      text-align: left; padding: 14px; border-radius: 14px;
-      border: 1px solid var(--line); background: rgba(255,255,255,0.55);
+      text-align: left; padding: 14px; border-radius: var(--radius);
+      border: 1px solid var(--line); background: var(--surface-2);
       transition: transform .2s var(--ease), border-color .2s, background .2s;
     }
-    .metric:hover { transform: translateY(-3px); border-color: rgba(12,155,116,0.35); }
+    .metric:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--brand) 35%, transparent); }
     .metric.on {
-      background: linear-gradient(160deg, rgba(183,240,124,0.35), rgba(12,155,116,0.12));
-      border-color: rgba(12,155,116,0.4);
+      background: linear-gradient(160deg, var(--brand-soft), var(--accent-soft));
+      border-color: color-mix(in srgb, var(--brand) 40%, transparent);
     }
     .metric-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .metric-v { font-family: var(--display); font-size: 28px; font-weight: 700; line-height: 1; }
-    .metric-d { margin-top: 6px; font-family: var(--ui); font-size: 11px; font-weight: 600; color: var(--jade-deep); }
-    .metric-d.down { color: #A84434; }
+    .metric-d { margin-top: 6px; font-family: var(--ui); font-size: 11px; font-weight: 600; color: var(--good-deep); }
+    .metric-d.down { color: var(--warn); }
     .metric-d.flat { color: var(--mute); }
 
-    .split {
-      display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; margin-top: 12px;
-    }
+    .split { display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px; margin-top: 12px; }
     @media (max-width: 860px) { .split { grid-template-columns: 1fr; } }
     h2 {
       font-family: var(--display); font-size: 24px; font-weight: 700; margin: 6px 0 12px;
@@ -333,54 +382,52 @@
     .bridge { list-style: none; margin: 0; padding: 0; }
     .bridge li {
       display: grid; grid-template-columns: 1fr 90px auto; gap: 10px; align-items: center;
-      padding: 11px 8px; border-radius: 10px; border-bottom: 1px solid var(--line);
+      padding: 11px 8px; border-radius: var(--radius-sm); border-bottom: 1px solid var(--line);
       transition: background .2s;
     }
-    .bridge li.is-edge { font-weight: 700; background: rgba(13,27,22,0.03); }
+    .bridge li.is-edge { font-weight: 700; background: color-mix(in srgb, var(--ink) 3%, transparent); }
     .bridge button { display: contents; cursor: pointer; }
-    .bridge li:not(.is-edge):hover { background: rgba(12,155,116,0.07); }
+    .bridge li:not(.is-edge):hover { background: var(--brand-tint); }
     .bar-track {
-      height: 7px; border-radius: 4px; background: rgba(13,27,22,0.06); overflow: hidden;
+      height: 7px; border-radius: 4px; background: color-mix(in srgb, var(--ink) 6%, transparent); overflow: hidden;
     }
     .bar-track i {
       display: block; height: 100%; border-radius: 4px;
-      background: linear-gradient(90deg, #12B887, #B7F07C);
-      transform-origin: left center;
-      animation: grow .55s var(--ease) both;
+      background: linear-gradient(90deg, var(--brand), var(--accent));
+      transform-origin: left center; animation: grow .55s var(--ease) both;
     }
-    .bar-track.down i { background: linear-gradient(90deg, #E26D5A, #F0A090); }
+    .bar-track.down i { background: linear-gradient(90deg, var(--warn), color-mix(in srgb, var(--warn) 60%, white)); }
     @keyframes grow { from { transform: scaleX(0.15); } to { transform: scaleX(1); } }
-    .amt { font-family: var(--ui); font-size: 12px; font-weight: 700; color: var(--jade-deep); text-align: right; }
-    .amt.down { color: #A84434; }
+    .amt { font-family: var(--ui); font-size: 12px; font-weight: 700; color: var(--good-deep); text-align: right; }
+    .amt.down { color: var(--warn); }
     .fine { font-family: var(--ui); font-size: 11px; color: var(--mute); margin-top: 10px; }
 
     #donut { width: 100%; height: 230px; }
-    .expense-legend {
-      display: grid; gap: 6px; margin-top: 4px; font-family: var(--ui); font-size: 11px;
-    }
+    .expense-legend { display: grid; gap: 6px; margin-top: 4px; font-family: var(--ui); font-size: 11px; }
     .expense-legend button {
       display: flex; justify-content: space-between; gap: 8px; padding: 7px 8px; border-radius: 8px;
       color: var(--soft); text-align: left;
     }
-    .expense-legend button:hover, .expense-legend button.on { background: var(--jade-soft); color: var(--ink); }
-    .expense-legend .swatch { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 8px; }
+    .expense-legend button:hover, .expense-legend button.on { background: var(--brand-soft); color: var(--ink); }
+    .expense-legend .dot {
+      width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 8px;
+    }
 
     .foot {
       margin-top: 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
-      padding: 14px 16px; border-radius: 14px;
-      background: linear-gradient(105deg, rgba(12,155,116,0.12), rgba(183,240,124,0.2));
-      border: 1px solid rgba(12,155,116,0.2);
+      padding: 14px 16px; border-radius: var(--radius);
+      background: linear-gradient(105deg, var(--brand-soft), var(--accent-soft));
+      border: 1px solid color-mix(in srgb, var(--brand) 22%, transparent);
       font-family: var(--ui); font-size: 12px; color: var(--soft);
     }
     .cta {
-      margin-left: auto; background: var(--ink); color: #F4FFF9;
+      margin-left: auto; background: var(--ink); color: var(--paper);
       font-family: var(--ui); font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
       text-transform: uppercase; padding: 11px 14px; border-radius: 9px;
       transition: transform .2s var(--ease), background .2s;
     }
-    .cta:hover { background: var(--jade-deep); transform: translateY(-2px); }
+    .cta:hover { background: var(--brand-deep); transform: translateY(-2px); color: var(--on-brand); }
 
-    /* Right rail */
     .right { display: flex; flex-direction: column; gap: 12px; }
     .intel h3 {
       font-family: var(--display); font-size: 22px; font-weight: 700; margin: 8px 0;
@@ -391,12 +438,12 @@
     .chip {
       font-family: var(--ui); font-size: 11px; font-weight: 600;
       padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line);
-      background: rgba(255,255,255,0.65); color: var(--soft);
+      background: var(--surface-2); color: var(--soft);
       transition: transform .15s, border-color .15s, background .15s;
     }
-    .chip:hover { transform: translateY(-1px); border-color: var(--jade); color: var(--ink); }
-    .chip.warn { background: rgba(226,109,90,0.1); color: #A84434; border-color: rgba(226,109,90,0.25); }
-    .chip.good { background: var(--jade-soft); color: var(--jade-deep); border-color: rgba(12,155,116,0.25); }
+    .chip:hover { transform: translateY(-1px); border-color: var(--brand); color: var(--ink); }
+    .chip.warn { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 25%, transparent); }
+    .chip.good { background: var(--good-soft); color: var(--good-deep); border-color: color-mix(in srgb, var(--good) 25%, transparent); }
     .takes { list-style: none; margin: 0; padding: 0; }
     .takes li {
       display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
@@ -408,15 +455,12 @@
     .ask-list { display: grid; gap: 7px; margin: 10px 0; }
     .ask-list button {
       text-align: left; font-family: var(--ui); font-size: 12px; font-weight: 500;
-      padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line);
-      background: rgba(255,255,255,0.6); color: var(--ink-2);
+      padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--line);
+      background: var(--surface-2); color: var(--ink-2);
       transition: transform .15s var(--ease), border-color .15s;
     }
-    .ask-list button:hover { transform: translateX(3px); border-color: var(--jade); }
-
-    .activity {
-      max-height: 160px; overflow: auto; font-family: var(--ui); font-size: 11px; color: var(--soft);
-    }
+    .ask-list button:hover { transform: translateX(3px); border-color: var(--brand); }
+    .activity { max-height: 160px; overflow: auto; font-family: var(--ui); font-size: 11px; color: var(--soft); }
     .activity div {
       display: flex; justify-content: space-between; gap: 8px;
       padding: 8px 0; border-bottom: 1px dashed var(--line);
@@ -427,27 +471,32 @@
       to { opacity: 1; transform: none; }
     }
 
-    /* overlays */
+    .note {
+      margin: 0 28px 8px; padding: 10px 14px; border-radius: 10px;
+      border: 1px dashed color-mix(in srgb, var(--brand) 35%, transparent);
+      background: var(--brand-tint);
+      font-family: var(--ui); font-size: 12px; color: var(--soft);
+    }
+    .note b { color: var(--brand-deep); }
+
     .scrim {
-      position: fixed; inset: 0; background: rgba(13,27,22,0.28);
+      position: fixed; inset: 0; background: color-mix(in srgb, var(--ink) 28%, transparent);
       opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 50;
       backdrop-filter: blur(2px);
     }
     .scrim.on { opacity: 1; pointer-events: auto; }
     .drawer {
       position: fixed; top: 0; right: 0; bottom: 0; width: min(420px, 100%);
-      background: #F8FBF9; border-left: 1px solid var(--line-strong);
+      background: var(--paper); border-left: 1px solid var(--line-strong);
       padding: 28px 24px; transform: translateX(100%); transition: transform .3s var(--ease); z-index: 60;
-      box-shadow: -12px 0 40px rgba(13,27,22,0.08);
     }
     .drawer.on { transform: none; }
     .drawer .x { position: absolute; top: 16px; right: 16px; font-family: var(--ui); font-size: 12px; color: var(--mute); }
     .modal {
       position: fixed; left: 50%; top: 14%; width: min(580px, calc(100% - 28px));
       transform: translate(-50%, -10px) scale(0.98);
-      background: #FBFEFC; border: 1px solid var(--line-strong); border-radius: 18px;
+      background: var(--paper); border: 1px solid var(--line-strong); border-radius: 18px;
       padding: 22px; opacity: 0; pointer-events: none; transition: .22s var(--ease); z-index: 70;
-      box-shadow: 0 24px 60px rgba(13,27,22,0.12);
     }
     .modal.on { opacity: 1; pointer-events: auto; transform: translate(-50%, 0) scale(1); }
     .modal label {
@@ -455,26 +504,26 @@
       letter-spacing: 0.12em; text-transform: uppercase; color: var(--mute); margin-bottom: 8px;
     }
     .modal input {
-      width: 100%; border: 0; border-bottom: 2px solid rgba(12,155,116,0.35);
+      width: 100%; border: 0; border-bottom: 2px solid color-mix(in srgb, var(--brand) 40%, transparent);
       background: transparent; outline: none; padding: 8px 0 12px;
       font-family: var(--display); font-size: 26px; font-weight: 600; color: var(--ink);
     }
     .hints { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
     .hints button {
       font-family: var(--ui); font-size: 11px; font-weight: 600; color: var(--soft);
-      padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: #fff;
+      padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
     }
-    .hints button:hover { border-color: var(--jade); color: var(--ink); }
+    .hints button:hover { border-color: var(--brand); color: var(--ink); }
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(12px);
-      background: var(--ink); color: #F4FFF9; font-family: var(--ui); font-size: 12px; font-weight: 600;
-      padding: 11px 16px; border-radius: 10px; opacity: 0; transition: .2s; z-index: 80; pointer-events: none;
+      background: var(--ink); color: var(--paper); font-family: var(--ui); font-size: 12px; font-weight: 600;
+      padding: 11px 16px; border-radius: var(--radius-sm); opacity: 0; transition: .2s; z-index: 80; pointer-events: none;
     }
     .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
     .help {
       position: fixed; left: 28px; bottom: 20px; z-index: 30;
       font-family: var(--ui); font-size: 11px; color: var(--mute);
-      background: rgba(255,255,255,0.75); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+      background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 10px;
     }
     .help kbd {
       font-family: var(--ui); font-size: 10px; font-weight: 700;
@@ -483,6 +532,11 @@
   </style>
 </head>
 <body>
+  <div class="palette-dock" title="Colors are tokens — UX stays the same">
+    <span>Palette</span>
+    <div class="swatches" id="palettes"></div>
+  </div>
+
   <div class="shell">
     <aside class="rail" aria-label="Firm">
       <div class="brand">
@@ -498,7 +552,7 @@
       <button class="nav-btn" data-nav="reports"><span class="nav-ico">R</span>Reports</button>
       <button class="nav-btn" data-nav="ask" id="navAsk"><span class="nav-ico">A</span>Ask Hathorn</button>
       <div class="rail-foot">
-        <div class="pulse-row"><span class="pulse"></span> Live play session</div>
+        <div class="pulse-row"><span class="pulse"></span> UX locked · colors swap</div>
         <div class="user">
           <div class="avatar">R</div>
           <div>
@@ -519,10 +573,12 @@
         </div>
       </header>
 
+      <p class="note"><b>Focus:</b> structure &amp; interaction — not paint. Top-right palette mimics Brand Studio (`brand` + `accent`). Client portals already do this in-app.</p>
+
       <section class="hero-band">
         <div class="title-row">
           <div>
-            <h1>Northbridge Care <span class="live-tag">Alive</span></h1>
+            <h1>Northbridge Care <span class="live-tag" id="paletteTag">Hathorn</span></h1>
             <div class="meta">
               <span id="curLabel">Apr 2026</span>
               <span class="dot-ok">Books tied</span>
@@ -531,7 +587,7 @@
             </div>
           </div>
           <div class="controls">
-            <div class="seg jade" id="entitySeg">
+            <div class="seg brand" id="entitySeg">
               <button class="on" data-entity="all">All</button>
               <button data-entity="home">Home care</button>
               <button data-entity="day">Adult day</button>
@@ -556,7 +612,7 @@
           <section class="panel hero" id="heroPanel">
             <div class="hero-top">
               <div>
-                <div class="eyebrow hero-label" id="heroLabel">Revenue</div>
+                <div class="eyebrow" id="heroLabel">Revenue</div>
                 <p class="hero-fig tnum" id="heroFig">$190.9K</p>
                 <div class="hero-delta" id="heroDelta">+4.7% vs prior year</div>
               </div>
@@ -578,7 +634,7 @@
             </div>
             <div id="heroChart"></div>
             <div class="scenario" id="scenarioRow" hidden>
-              <div>Energy lever · scale the selected lens <b id="scenarioVal">100%</b></div>
+              <div>Scenario lever · scale selected lens <b id="scenarioVal">100%</b></div>
               <input type="range" id="scenario" min="80" max="120" value="100" />
             </div>
           </section>
@@ -590,7 +646,7 @@
               <div class="eyebrow">Why it changed</div>
               <h2>Net income bridge</h2>
               <ul class="bridge" id="bridge"></ul>
-              <p class="fine">Click a driver · bars animate from the ledger bridge (play sample).</p>
+              <p class="fine">Click a driver · structure stays; palette only recolors.</p>
             </div>
             <div class="panel">
               <div class="eyebrow">Expense mix</div>
@@ -609,8 +665,8 @@
         <aside class="right">
           <div class="panel intel">
             <div class="eyebrow">What Hathorn sees</div>
-            <h3 id="insightTitle">Top line held. Collections is the conversation.</h3>
-            <p id="insightBody">Revenue kept the year-over-year lift and labor stayed inside the band. Aged AR is what to open in the room — not the headline figure.</p>
+            <h3>Top line held. Collections is the conversation.</h3>
+            <p>Revenue kept the year-over-year lift and labor stayed inside the band. Aged AR is what to open in the room — not the headline figure.</p>
             <div class="chips">
               <button class="chip good" data-chip="labor">Labor in band</button>
               <button class="chip good" data-chip="cash">9.1 wks cover</button>
@@ -635,7 +691,7 @@
   </div>
 
   <div class="help" id="help">
-    <kbd>←</kbd><kbd>→</kbd> period · <kbd>1</kbd>–<kbd>6</kbd> lens · <kbd>⌘K</kbd> ask · <kbd>F</kbd> focus · <kbd>Esc</kbd>
+    <kbd>←</kbd><kbd>→</kbd> period · <kbd>1</kbd>–<kbd>6</kbd> lens · <kbd>⌘K</kbd> ask · <kbd>F</kbd> focus · <kbd>P</kbd> palette · <kbd>Esc</kbd>
   </div>
 
   <div class="scrim" id="scrim"></div>
@@ -663,6 +719,14 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    const PALETTES = [
+      { id: "hathorn", name: "Hathorn", brand: "#2C504D", accent: "#DB5928" },
+      { id: "northbridge", name: "Northbridge", brand: "#C45C26", accent: "#2C504D" },
+      { id: "jade", name: "Jade", brand: "#0C9B74", accent: "#3D8FD1" },
+      { id: "navy", name: "Navy", brand: "#1D3557", accent: "#E07A3D" },
+      { id: "ink", name: "Ink", brand: "#1F2933", accent: "#C4A35A" },
+    ];
+
     const BASE = [
       { id:"2025-05", label:"May", year:"2025", revenue:162.4, gp:48.1, margin:29.6, ni:21.2, cash:118.0, ar:74.2 },
       { id:"2025-06", label:"Jun", year:"2025", revenue:168.9, gp:50.4, margin:29.8, ni:22.0, cash:121.5, ar:76.1 },
@@ -678,12 +742,12 @@
       { id:"2026-04", label:"Apr", year:"2026", revenue:190.9, gp:57.4, margin:30.1, ni:25.6, cash:136.8, ar:88.4 },
     ];
     const ENTITY_MULT = { all: 1, home: 0.78, day: 0.22 };
-    const EXPENSES = [
-      { name: "Direct care labor", value: 98.4, color: "#0C9B74" },
-      { name: "Attendant labor", value: 22.1, color: "#3D8FD1" },
-      { name: "Payroll taxes & WC", value: 14.6, color: "#B8892D" },
-      { name: "Occupancy", value: 6.8, color: "#7A8C83" },
-      { name: "Admin & other", value: 8.2, color: "#E26D5A" },
+    const EXPENSE_KEYS = [
+      { name: "Direct care labor", value: 98.4, token: "--brand" },
+      { name: "Attendant labor", value: 22.1, token: "--chart-2" },
+      { name: "Payroll taxes & WC", value: 14.6, token: "--chart-3" },
+      { name: "Occupancy", value: 6.8, token: "--chart-4" },
+      { name: "Admin & other", value: 8.2, token: "--warn" },
     ];
     const DRIVERS = [
       { id: "start", label: "Mar net income", amt: 24.8, edge: true },
@@ -707,16 +771,50 @@
       focus: false,
       expense: null,
       drawer: null,
+      palette: localStorage.getItem("cc-play-palette") || "hathorn",
     };
 
     let heroChart, donutChart, animToken = 0;
+    const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const tok = () => ({
+      brand: css("--brand"),
+      accent: css("--accent"),
+      good: css("--good"),
+      warn: css("--warn"),
+      ink: css("--ink"),
+      mute: css("--mute"),
+      paper: css("--paper"),
+      chart2: css("--chart-2"),
+      chart3: css("--chart-3"),
+      chart4: css("--chart-4"),
+      line: css("--line"),
+    });
+
+    function setPalette(id) {
+      const p = PALETTES.find((x) => x.id === id) || PALETTES[0];
+      state.palette = p.id;
+      document.documentElement.setAttribute("data-palette", p.id);
+      localStorage.setItem("cc-play-palette", p.id);
+      document.getElementById("paletteTag").textContent = p.name;
+      document.querySelectorAll(".swatch-btn").forEach((b) => b.classList.toggle("on", b.dataset.id === p.id));
+      logActivity(`Palette → ${p.name}`);
+      renderAll();
+    }
+
+    function renderPalettes() {
+      document.getElementById("palettes").innerHTML = PALETTES.map((p) => `
+        <button class="swatch-btn${p.id === state.palette ? " on" : ""}" data-id="${p.id}" title="${p.name}" aria-label="${p.name}">
+          <i style="background:${p.brand};--s2:${p.accent}"></i>
+        </button>`).join("");
+      document.querySelectorAll(".swatch-btn").forEach((b) => b.addEventListener("click", () => setPalette(b.dataset.id)));
+    }
 
     function months() {
       const m = ENTITY_MULT[state.entity];
       return BASE.map((row) => {
         const out = { ...row };
         ["revenue", "gp", "ni", "cash", "ar"].forEach((k) => { out[k] = +(row[k] * m).toFixed(1); });
-        out.margin = row.margin; // ratio unchanged
+        out.margin = row.margin;
         if (state.mode === "budget") {
           out.revenue = +(out.revenue * 0.96).toFixed(1);
           out.gp = +(out.gp * 0.95).toFixed(1);
@@ -745,10 +843,8 @@
     }
 
     function animateNumber(el, nextText) {
-      el.classList.remove("bump");
-      void el.offsetWidth;
-      el.textContent = nextText;
-      el.classList.add("bump");
+      el.classList.remove("bump"); void el.offsetWidth;
+      el.textContent = nextText; el.classList.add("bump");
     }
 
     function sliceRows(rows) {
@@ -779,9 +875,10 @@
     }
 
     function spark(values, up) {
+      const c = tok();
       const w = 72, h = 26, min = Math.min(...values), max = Math.max(...values), span = max - min || 1;
       const pts = values.map((v, i) => `${(i / (values.length - 1)) * w},${h - ((v - min) / span) * (h - 4) - 2}`).join(" ");
-      return `<svg width="72" height="26" viewBox="0 0 72 26" aria-hidden><polyline fill="none" stroke="${up ? "#0C9B74" : "#E26D5A"}" stroke-width="2" stroke-linecap="round" points="${pts}"/></svg>`;
+      return `<svg width="72" height="26" viewBox="0 0 72 26" aria-hidden><polyline fill="none" stroke="${up ? c.good : c.warn}" stroke-width="2" stroke-linecap="round" points="${pts}"/></svg>`;
     }
 
     function renderPeriods(rows) {
@@ -816,58 +913,53 @@
     }
 
     function renderChart(rows) {
+      const c = tok();
       const data = sliceRows(rows);
       const labels = data.map((r) => r.label);
       const actual = data.map((r) => r[state.lens]);
       const prior = data.map((r) => BASE.find((x) => x.label === r.label && Number(x.year) === Number(r.year) - 1)?.[state.lens] ?? null);
-      if (!heroChart) heroChart = echarts.init(document.getElementById("heroChart"), null, { renderer: "canvas" });
+      if (!heroChart) heroChart = echarts.init(document.getElementById("heroChart"));
       const series = [{
         name: state.mode === "budget" ? "Budget" : "Actual",
         type: "line", data: actual, smooth: 0.35, symbol: "circle", symbolSize: 8,
-        lineStyle: { width: 3, color: "#0C9B74" },
-        itemStyle: { color: "#0C9B74", borderColor: "#fff", borderWidth: 2 },
+        lineStyle: { width: 3, color: c.brand },
+        itemStyle: { color: c.brand, borderColor: c.paper, borderWidth: 2 },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: "rgba(12,155,116,0.28)" },
-            { offset: 0.7, color: "rgba(183,240,124,0.12)" },
-            { offset: 1, color: "rgba(183,240,124,0)" },
+            { offset: 0, color: c.brand + "48" },
+            { offset: 1, color: c.brand + "00" },
           ]),
         },
-        emphasis: { focus: "series", scale: true },
         markPoint: state.focus ? {
-          data: [{ type: "max", name: "Peak" }],
-          symbolSize: 42,
-          label: { formatter: "Peak", color: "#0D1B16", fontFamily: "Libre Franklin", fontSize: 10 },
-          itemStyle: { color: "#B7F07C" },
+          data: [{ type: "max", name: "Peak" }], symbolSize: 42,
+          label: { formatter: "Peak", color: c.ink, fontFamily: "Libre Franklin", fontSize: 10 },
+          itemStyle: { color: c.accent },
         } : undefined,
       }];
       if (state.compare === "py") {
         series.push({
           name: "Prior year", type: "line", data: prior, smooth: 0.35, symbol: "none",
-          lineStyle: { width: 2, type: "dashed", color: "rgba(61,143,209,0.75)" },
+          lineStyle: { width: 2, type: "dashed", color: c.chart2 },
         });
       }
       heroChart.setOption({
-        animationDuration: 480,
-        animationEasing: "cubicOut",
+        animationDuration: 450, animationEasing: "cubicOut",
         grid: { left: 6, right: 10, top: 28, bottom: 8, containLabel: true },
         tooltip: {
-          trigger: "axis",
-          backgroundColor: "rgba(253,255,254,0.96)",
-          borderColor: "rgba(12,155,116,0.25)",
-          textStyle: { color: "#0D1B16", fontFamily: "Libre Franklin", fontSize: 12 },
-          extraCssText: "border-radius:12px;box-shadow:0 12px 28px rgba(13,27,22,0.08);",
+          trigger: "axis", backgroundColor: c.paper, borderColor: c.brand + "40",
+          textStyle: { color: c.ink, fontFamily: "Libre Franklin", fontSize: 12 },
           formatter: (ps) => ps.map((p) => `${p.marker} ${p.seriesName}: <b>${p.value == null ? "—" : fmtVal(state.lens, p.value)}</b>`).join("<br/>"),
         },
         xAxis: {
           type: "category", data: labels, boundaryGap: false, axisTick: { show: false },
-          axisLine: { lineStyle: { color: "rgba(13,27,22,0.1)" } },
-          axisLabel: { color: "#7A8C83", fontFamily: "Libre Franklin", fontSize: 10, fontWeight: 600 },
+          axisLine: { lineStyle: { color: c.line || "#00000018" } },
+          axisLabel: { color: c.mute, fontFamily: "Libre Franklin", fontSize: 10, fontWeight: 600 },
         },
         yAxis: {
-          type: "value", splitLine: { lineStyle: { color: "rgba(13,27,22,0.06)", type: "dashed" } },
+          type: "value",
+          splitLine: { lineStyle: { color: c.line || "#00000010", type: "dashed" } },
           axisLabel: {
-            color: "#7A8C83", fontFamily: "Libre Franklin", fontSize: 10,
+            color: c.mute, fontFamily: "Libre Franklin", fontSize: 10,
             formatter: (v) => state.lens === "margin" ? v + "%" : "$" + v + "K",
           },
         },
@@ -888,9 +980,7 @@
         </button>`;
       }).join("");
       document.querySelectorAll("#metrics .metric").forEach((b) => b.addEventListener("click", () => {
-        state.lens = b.dataset.lens;
-        logActivity(`Lens → ${LABELS[state.lens]}`);
-        renderAll();
+        state.lens = b.dataset.lens; logActivity(`Lens → ${LABELS[state.lens]}`); renderAll();
       }));
     }
 
@@ -903,49 +993,44 @@
         return `<li><button data-id="${d.id}"><span>${d.label}</span><span class="bar-track ${d.amt < 0 ? "down" : ""}"><i style="width:${w}%"></i></span><strong class="amt tnum ${d.amt < 0 ? "down" : ""}">${d.amt >= 0 ? "+" : "−"}$${Math.abs(d.amt).toFixed(1)}K</strong></button></li>`;
       }).join("");
       document.querySelectorAll("#bridge button").forEach((b) => b.addEventListener("click", () => openDrawer(b.dataset.id)));
-      // re-trigger bar animation
       requestAnimationFrame(() => {
         if (token !== animToken) return;
         document.querySelectorAll(".bar-track i").forEach((i) => { i.style.animation = "none"; void i.offsetWidth; i.style.animation = ""; });
       });
     }
 
+    function expenseData() {
+      const m = ENTITY_MULT[state.entity];
+      return EXPENSE_KEYS.map((e) => ({ name: e.name, value: +(e.value * m).toFixed(1), color: css(e.token) }));
+    }
+
     function renderDonut() {
       if (!donutChart) donutChart = echarts.init(document.getElementById("donut"));
-      const m = ENTITY_MULT[state.entity];
-      const data = EXPENSES.map((e) => ({ ...e, value: +(e.value * m).toFixed(1) }));
+      const data = expenseData();
+      const c = tok();
       donutChart.setOption({
         color: data.map((d) => d.color),
         tooltip: {
-          trigger: "item",
-          backgroundColor: "rgba(253,255,254,0.96)",
-          borderColor: "rgba(12,155,116,0.25)",
-          textStyle: { color: "#0D1B16", fontFamily: "Libre Franklin", fontSize: 12 },
+          trigger: "item", backgroundColor: c.paper, borderColor: c.brand + "40",
+          textStyle: { color: c.ink, fontFamily: "Libre Franklin", fontSize: 12 },
           formatter: (p) => `${p.name}<br/><b>${fmtK(p.value)}</b> · ${p.percent}%`,
         },
         series: [{
           type: "pie", radius: ["42%", "68%"], center: ["50%", "46%"],
-          selectedMode: "single",
-          label: { show: false },
+          selectedMode: "single", label: { show: false },
           data: data.map((e) => ({ name: e.name, value: e.value, selected: state.expense === e.name })),
-          emphasis: { scale: true, scaleSize: 6, itemStyle: { shadowBlur: 12, shadowColor: "rgba(12,155,116,0.25)" } },
+          emphasis: { scale: true, scaleSize: 6 },
         }],
       });
       donutChart.off("click");
       donutChart.on("click", (p) => {
         state.expense = state.expense === p.name ? null : p.name;
         logActivity(`Expense → ${p.name}`);
-        renderDonut();
-        renderLegend(data);
-        toast(`${p.name} · ${fmtK(p.value)}`);
+        renderDonut(); toast(`${p.name} · ${fmtK(p.value)}`);
       });
-      renderLegend(data);
-    }
-
-    function renderLegend(data) {
       document.getElementById("expenseLegend").innerHTML = data.map((e) => `
         <button class="${state.expense === e.name ? "on" : ""}" data-name="${e.name}">
-          <span><i class="swatch" style="background:${e.color}"></i>${e.name}</span>
+          <span><i class="dot" style="background:${e.color}"></i>${e.name}</span>
           <b class="tnum">${fmtK(e.value)}</b>
         </button>`).join("");
       document.querySelectorAll("#expenseLegend button").forEach((b) => b.addEventListener("click", () => {
@@ -956,6 +1041,7 @@
 
     function renderTakes(rows) {
       const m = rows[state.periodIdx];
+      const c = tok();
       const items = [
         { label: "Labor ratio", value: "68.2%", detail: "Inside 65–72% band", tone: "good" },
         { label: "Cash cover", value: `${(m.cash / 15).toFixed(1)} wks`, detail: "Operating runway", tone: "good" },
@@ -964,7 +1050,7 @@
       document.getElementById("takes").innerHTML = items.map((i) => `
         <li>
           <span>${i.label}</span>
-          <strong class="tnum" style="color:${i.tone === "warn" ? "#A84434" : "var(--jade-deep)"}">${i.value}</strong>
+          <strong class="tnum" style="color:${i.tone === "warn" ? c.warn : c.good}">${i.value}</strong>
           <em>${i.detail}</em>
         </li>`).join("");
     }
@@ -979,8 +1065,7 @@
       ];
       document.getElementById("suggestions").innerHTML = qs.map((q) => `<button data-q="${q}">${q}</button>`).join("");
       document.querySelectorAll("#suggestions button").forEach((b) => b.addEventListener("click", () => {
-        document.getElementById("askInput").value = b.dataset.q;
-        openAsk();
+        document.getElementById("askInput").value = b.dataset.q; openAsk();
       }));
     }
 
@@ -992,7 +1077,6 @@
       document.getElementById("compare").value = state.compare;
       document.getElementById("scenarioRow").hidden = state.mode !== "scenario";
       document.getElementById("scenarioVal").textContent = state.scenario + "%";
-      document.getElementById("heroPanel").style.transform = state.focus ? "scale(1.01)" : "";
     }
 
     function renderAll() {
@@ -1052,8 +1136,11 @@
       document.getElementById("scrim").classList.add("on");
       document.getElementById("askInput").focus();
     }
+    function cyclePalette() {
+      const i = PALETTES.findIndex((p) => p.id === state.palette);
+      setPalette(PALETTES[(i + 1) % PALETTES.length].id);
+    }
 
-    // wiring
     document.querySelectorAll("#lensSeg button").forEach((b) => b.addEventListener("click", () => { state.lens = b.dataset.lens; logActivity(`Lens → ${LABELS[state.lens]}`); renderAll(); }));
     document.querySelectorAll("#rangeSeg button").forEach((b) => b.addEventListener("click", () => { state.range = b.dataset.range; renderAll(); }));
     document.querySelectorAll("#entitySeg button").forEach((b) => b.addEventListener("click", () => { state.entity = b.dataset.entity; logActivity(`Entity → ${state.entity}`); renderAll(); }));
@@ -1081,10 +1168,7 @@
     document.getElementById("focusMode").addEventListener("click", () => {
       state.focus = !state.focus; renderAll(); toast(state.focus ? "Focus on" : "Focus off");
     });
-    document.getElementById("helpBtn").addEventListener("click", () => {
-      document.getElementById("help").scrollIntoView({ behavior: "smooth" });
-      toast("← → period · 1–6 lens · ⌘K ask · F focus");
-    });
+    document.getElementById("helpBtn").addEventListener("click", () => toast("← → period · 1–6 lens · ⌘K ask · F focus · P palette"));
     document.querySelectorAll(".hints button").forEach((b) => b.addEventListener("click", () => { document.getElementById("askInput").value = b.dataset.q; }));
     document.getElementById("askInput").addEventListener("keydown", (e) => {
       if (e.key === "Enter") { toast("Ask would open with this context"); closeOverlays(); logActivity("Ask submitted"); }
@@ -1094,17 +1178,15 @@
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openAsk(); }
       if (e.key === "ArrowLeft") { state.periodIdx = Math.max(0, state.periodIdx - 1); renderAll(); }
       if (e.key === "ArrowRight") { state.periodIdx = Math.min(BASE.length - 1, state.periodIdx + 1); renderAll(); }
-      if (e.key.toLowerCase() === "f" && !e.metaKey && !e.ctrlKey && document.activeElement.tagName !== "INPUT") {
-        state.focus = !state.focus; renderAll();
-      }
-      if (/^[1-6]$/.test(e.key) && document.activeElement.tagName !== "INPUT") {
-        state.lens = LENS_ORDER[+e.key - 1]; renderAll();
-      }
+      if (e.key.toLowerCase() === "f" && !e.metaKey && document.activeElement.tagName !== "INPUT") { state.focus = !state.focus; renderAll(); }
+      if (e.key.toLowerCase() === "p" && !e.metaKey && document.activeElement.tagName !== "INPUT") cyclePalette();
+      if (/^[1-6]$/.test(e.key) && document.activeElement.tagName !== "INPUT") { state.lens = LENS_ORDER[+e.key - 1]; renderAll(); }
     });
     window.addEventListener("resize", () => { heroChart?.resize(); donutChart?.resize(); });
 
+    renderPalettes();
+    setPalette(state.palette);
     logActivity("Session started");
-    renderAll();
   </script>
 </body>
 </html>
