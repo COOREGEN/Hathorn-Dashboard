@@ -1,13 +1,17 @@
 # Incident response — Hathorn Dashboard
 
-Lightweight process. Not a regulatory notification playbook.
+Lightweight technical process. **Not** a counsel-approved regulatory notification playbook.
+
+For classification forks (customer information, tax return information, ransomware) and the **FTC Safeguards notification event path (customer information involving 500+ consumers — FTC breach notice requirements effective May 2024)**, use:
+
+`docs/compliance/BREACH-RESPONSE-DECISION-TREE.md` — **LEGAL REVIEW REQUIRED** before any regulator or client legal notice. Engineering must not unilaterally declare “FTC notified” or “no notice required.”
 
 ## Severity
 
 | Sev | Examples |
 |---|---|
-| SEV1 | Cross-tenant data exposure; data corruption; authentication bypass |
-| SEV2 | Major outage; all integrations down; client portal unavailable |
+| SEV1 | Cross-tenant data exposure; data corruption; authentication bypass; ransomware; confirmed tax/PII breach |
+| SEV2 | Major outage; all integrations down; client portal unavailable; suspected but unconfirmed breach |
 | SEV3 | Single optional feature degraded (AI, Docling, email) |
 
 ## Lifecycle
@@ -96,4 +100,15 @@ Rotate any shared secrets the person could access. Prefer individual accounts �
 
 ## Security events (high value)
 
-Watch audit / logs for: MFA disabled, admin created, role elevated, integration credentials changed, repeated auth failures. No fake “AI security score”.
+Watch audit / logs for: MFA disabled, admin created, role elevated, integration credentials changed, repeated auth failures, mass document downloads, quarantine spikes, AI kill-switch flips. No fake “AI security score”.
+
+## Regulatory / legal escalation (pointer only)
+
+| Situation | Next doc |
+|---|---|
+| Possible customer information breach | `docs/compliance/BREACH-RESPONSE-DECISION-TREE.md` |
+| Possible tax return information disclosure | Same + `docs/compliance/SECTION-7216-DATA-FLOW-REVIEW.md` |
+| FTC 500+ consumer information notification event | Breach tree Step 3 — **LEGAL REVIEW REQUIRED** |
+| PHI discovered in uploads | `docs/compliance/HIPAA-SCOPE.md` + counsel |
+
+Do **not** claim GLBA, IRS, SOC 2, or HIPAA compliance in incident communications.
