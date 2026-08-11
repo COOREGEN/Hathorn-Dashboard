@@ -1,0 +1,8 @@
+entity,category,label,amount
+Northbridge In-Home Health,REVENUE,Personal care services,100.0
+Consumer Directed Services,REVENUE,CDS reimbursement,70.0
+Northbridge In-Home Health,DIRECT_COST,Direct care labor,80.0
+Consumer Directed Services,DIRECT_COST,Attendant labor,52.5
+Northbridge In-Home Health,OPEX,Overhead allocation,10.0
+Consumer Directed Services,OPEX,Overhead allocation,4.0
+Riverbend Adult Day,OPEX,Startup expenses,1.2
