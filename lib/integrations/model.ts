@@ -243,7 +243,61 @@ export function listSyncRuns(opts: { clientId: string; connectionId?: string; li
   ).all(opts.clientId, limit).map(rowRun);
 }
 
+/** Syncs older than this are treated as abandoned (crash / killed process). */
+export const STALE_SYNC_MS = 15 * 60 * 1000;
+
+/**
+ * Reclaim abandoned RUNNING/PENDING syncs and reset SYNCING connections.
+ * Called before starting a new sync so a crashed worker cannot block the hub forever.
+ */
+export function reclaimStaleSyncs(opts?: { connectionId?: string; maxAgeMs?: number }): number {
+  const maxAgeMs = opts?.maxAgeMs ?? STALE_SYNC_MS;
+  const maxMinutes = Math.max(1, Math.floor(maxAgeMs / 60_000));
+  // Compare in SQLite datetime space — ISO strings with "T" sort incorrectly against
+  // sqlite's "YYYY-MM-DD HH:MM:SS" and would treat every live run as stale.
+  const params: unknown[] = [`-${maxMinutes} minutes`];
+  let connClause = "";
+  if (opts?.connectionId) {
+    connClause = " AND connection_id=?";
+    params.push(opts.connectionId);
+  }
+  const staleRuns = db().prepare(`
+    UPDATE integration_sync_runs SET
+      status='FAILED',
+      completed_at=datetime('now'),
+      error_code=COALESCE(error_code, 'STALE_SYNC'),
+      error_message=COALESCE(error_message, 'Sync abandoned — exceeded maximum running duration')
+    WHERE status IN ('PENDING','RUNNING')
+      AND started_at < datetime('now', ?)
+      ${connClause}
+  `).run(...params);
+
+  // Connections left SYNCING with no live run → ERROR so a retry can start.
+  const connParams: unknown[] = [];
+  let only = "";
+  if (opts?.connectionId) {
+    only = " AND id=?";
+    connParams.push(opts.connectionId);
+  }
+  db().prepare(`
+    UPDATE integration_connections SET
+      status='ERROR',
+      last_error_code=COALESCE(last_error_code, 'STALE_SYNC'),
+      last_error_message=COALESCE(last_error_message, 'Previous sync did not finish; ready to retry')
+    WHERE status='SYNCING'
+      AND NOT EXISTS (
+        SELECT 1 FROM integration_sync_runs r
+        WHERE r.connection_id = integration_connections.id
+          AND r.status IN ('PENDING','RUNNING')
+      )
+      ${only}
+  `).run(...connParams);
+
+  return Number(staleRuns.changes || 0);
+}
+
 export function findActiveSync(connectionId: string): SyncRun | null {
+  reclaimStaleSyncs({ connectionId });
   const r = db().prepare(`
     SELECT * FROM integration_sync_runs
     WHERE connection_id=? AND status IN ('PENDING','RUNNING')

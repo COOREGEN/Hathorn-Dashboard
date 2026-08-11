@@ -1,9 +1,9 @@
 /**
- * Staff TOTP (authenticator-app) MFA.
+ * TOTP (authenticator-app) MFA for staff and clients.
  *
  * Secrets are encrypted at rest. Backup codes are stored as bcrypt hashes so a
- * database copy cannot mint fresh codes. Clients never enroll — the portal is
- * read-only and password recovery covers lockout.
+ * database copy cannot mint fresh codes. Staff may be forced to enroll via
+ * REQUIRE_STAFF_MFA; clients enroll voluntarily from Account → Security.
  */
 
 import { TOTP, Secret } from "otpauth";
@@ -18,6 +18,11 @@ const ISSUER = "Hathorn Dashboard";
 
 export function isStaffRole(role: string): boolean {
   return role === "ADMIN" || role === "ADVISOR" || role === "BOOKKEEPER";
+}
+
+/** Roles that may enroll in MFA (staff + client portal owners). */
+export function canEnrollMfa(role: string): boolean {
+  return isStaffRole(role) || role === "CLIENT";
 }
 
 export function userMfaStatus(userId: string): { enabled: boolean; enrolledAt: string | null } {

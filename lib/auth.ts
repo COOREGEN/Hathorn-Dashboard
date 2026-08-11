@@ -193,7 +193,8 @@ export async function login(email: string, password: string): Promise<LoginResul
   const staff = isStaffRole(u.role);
   const mfaOn = Boolean(u.mfa_enabled);
 
-  if (staff && mfaOn) {
+  // Any role with MFA enabled must complete a challenge — including clients.
+  if (mfaOn) {
     const challenge = await issueChallenge(u.id, "mfa");
     return { kind: "mfa", challenge };
   }

@@ -42,6 +42,8 @@ export default function ReviewPanel({
   );
   const [publishMsg, setPublishMsg] = useState("");
   const [saved, setSaved] = useState("");
+  const [dialog, setDialog] = useState<null | "amend" | "withdraw" | "draft">(null);
+  const [reasonDraft, setReasonDraft] = useState("");
   const router = useRouter();
 
   async function saveNote(n: Note) {
@@ -102,10 +104,9 @@ export default function ReviewPanel({
     setTimeout(() => router.push("/today"), 1400);
   }
 
-  async function amend() {
-    const reason = prompt("Why is this month being amended? The reason travels with the new version.");
-    if (!reason?.trim()) return;
-    setBusy(true); setBlockers([]);
+  async function amend(reason: string) {
+    if (!reason.trim()) return;
+    setBusy(true); setBlockers([]); setDialog(null);
     const res = await fetch("/api/approve", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ periodId, action: "amend", reason }),
@@ -117,9 +118,13 @@ export default function ReviewPanel({
     router.refresh();
   }
 
-  async function draftStory() {
+  async function draftStory(confirmed = false) {
     const hasWork = notes.some((n) => n.body && !n.heading.startsWith("Draft —"));
-    if (hasWork && !confirm("Replace the current commentary with a fresh draft?")) return;
+    if (hasWork && !confirmed) {
+      setDialog("draft");
+      return;
+    }
+    setDialog(null);
     setDrafting(true); setDraftMsg("");
     const res = await fetch("/api/story/draft", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -135,10 +140,9 @@ export default function ReviewPanel({
     router.refresh();
   }
 
-  async function withdraw() {
-    const reason = prompt("Why withdraw this locked statement? Required.");
-    if (!reason?.trim()) return;
-    if (!confirm("Withdraw this lock? The month returns to draft for call prep.")) return;
+  async function withdraw(reason: string) {
+    if (!reason.trim()) return;
+    setDialog(null);
     setBusy(true);
     const res = await fetch("/api/admin/unpublish", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -186,7 +190,7 @@ export default function ReviewPanel({
             </button>
             {status !== "PUBLISHED" && (
               <button className="tag" style={{ background: "transparent", color: "var(--gold)", cursor: "pointer", padding: "5px 11px" }}
-                disabled={drafting} onClick={draftStory}
+                disabled={drafting} onClick={() => draftStory()}
                 title={storyAgentEnabled
                   ? "Draft commentary for the advisory call"
                   : "No API key set — will draft from threshold signals"}>
@@ -198,11 +202,12 @@ export default function ReviewPanel({
             </button>
             {status === "PUBLISHED" && (
               <>
-                <button className="tag" style={{ background: "transparent", color: "#E08B6B", cursor: "pointer", padding: "5px 11px" }} onClick={amend}>
+                <button className="tag" style={{ background: "transparent", color: "#E08B6B", cursor: "pointer", padding: "5px 11px" }}
+                  onClick={() => { setReasonDraft(""); setDialog("amend"); }}>
                   Amend
                 </button>
                 <button className="tag" style={{ background: "transparent", color: "#E08B6B", cursor: "pointer", padding: "5px 11px" }}
-                  disabled={busy} onClick={withdraw}>
+                  disabled={busy} onClick={() => { setReasonDraft(""); setDialog("withdraw"); }}>
                   Withdraw
                 </button>
               </>
@@ -244,6 +249,59 @@ export default function ReviewPanel({
         {draftMsg && (
           <div className="caption" style={{ marginTop: 10, padding: "9px 12px", border: "1px solid var(--hairline-dark)", color: "var(--gold-label)" }}>
             {draftMsg}
+          </div>
+        )}
+
+        {dialog && (
+          <div className="mt-3" style={{ border: "1px solid var(--hairline-dark)", padding: "12px 14px", background: "rgba(0,0,0,0.25)" }}>
+            {dialog === "draft" && (
+              <>
+                <div className="caption" style={{ color: "#C9C2B6", marginBottom: 10 }}>
+                  Replace the current commentary with a fresh draft?
+                </div>
+                <div className="flex gap-2">
+                  <button className="tag" style={{ cursor: "pointer", color: "var(--gold)" }}
+                    disabled={drafting} onClick={() => draftStory(true)}>
+                    Replace draft
+                  </button>
+                  <button className="tag" style={{ cursor: "pointer", color: "#A8A196" }}
+                    onClick={() => setDialog(null)}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+            {(dialog === "amend" || dialog === "withdraw") && (
+              <>
+                <div className="caption" style={{ color: "#C9C2B6", marginBottom: 8 }}>
+                  {dialog === "amend"
+                    ? "Why is this month being amended? The reason travels with the new version."
+                    : "Why withdraw this locked statement? The month returns to draft for call prep."}
+                </div>
+                <textarea
+                  value={reasonDraft}
+                  onChange={(e) => setReasonDraft(e.target.value)}
+                  rows={2}
+                  style={{
+                    width: "100%", fontFamily: "var(--editorial)", fontSize: 13,
+                    background: "transparent", border: "1px solid var(--hairline-dark)",
+                    padding: "7px 9px", color: "#DCD6CB", marginBottom: 10,
+                  }}
+                  placeholder="Required reason"
+                />
+                <div className="flex gap-2">
+                  <button className="tag" style={{ cursor: "pointer", color: "#E08B6B" }}
+                    disabled={busy || reasonDraft.trim().length < 3}
+                    onClick={() => dialog === "amend" ? amend(reasonDraft) : withdraw(reasonDraft)}>
+                    {dialog === "amend" ? "Open amendment" : "Withdraw lock"}
+                  </button>
+                  <button className="tag" style={{ cursor: "pointer", color: "#A8A196" }}
+                    onClick={() => setDialog(null)}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 

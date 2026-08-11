@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { login, AuthError } from "@/lib/auth";
+import { jsonObject, ValidationError } from "@/lib/validate";
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    const body = await jsonObject(req);
+    const email = body.email;
+    const password = body.password;
     const result = await login(email, password);
 
     if (result.kind === "invalid") {
@@ -17,6 +20,9 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ ok: true, role: result.session.role });
   } catch (e: any) {
+    if (e instanceof ValidationError) {
+      return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+    }
     if (e instanceof AuthError) {
       return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
     }

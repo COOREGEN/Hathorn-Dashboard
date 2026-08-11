@@ -60,7 +60,27 @@ export async function syncConnection(opts: {
     _runId: run.id,
   };
 
-  const result = await provider.sync(req, connection);
+  let result;
+  try {
+    result = await provider.sync(req, connection);
+  } catch (err: any) {
+    // A thrown provider must never leave the connection stuck in SYNCING.
+    completeSyncRun({
+      runId: run.id,
+      connectionId: connection.id,
+      status: "FAILED",
+      recordsReceived: 0,
+      recordsCreated: 0,
+      recordsUpdated: 0,
+      recordsSkipped: 0,
+      errorCode: "SYNC_CRASH",
+      errorMessage: err?.message || "Sync failed unexpectedly",
+      metadata: {},
+    });
+    audit(opts.triggeredBy, "INTEGRATION_SYNC_FAILED", `${connection.provider} ${run.id} FAILED`);
+    throw err;
+  }
+
   const failed = Boolean(result.errorMessage);
   const status: SyncRunStatus = failed
     ? "FAILED"

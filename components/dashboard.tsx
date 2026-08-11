@@ -135,12 +135,15 @@ export type Advisory = {
 
 export default function Dashboard({ client, periods, goals, selectedId, userRole = "CLIENT",
   allComments = [], advisoryByPeriod = {},
-  comparabilityByPair = {}, confidenceByPeriod = {}, perDayByPeriod = {} }:
+  comparabilityByPair = {}, confidenceByPeriod = {}, perDayByPeriod = {},
+  embedded = false }:
   { client: ClientMeta; periods: PeriodMetrics[]; goals: GoalRow[]; selectedId?: string;
     userRole?: string; allComments?: any[]; advisoryByPeriod?: Record<string, Advisory>;
     comparabilityByPair?: Record<string, ComparabilityResult>;
     confidenceByPeriod?: Record<string, Confidence>;
-    perDayByPeriod?: Record<string, { days: number; revenuePerDay: number; hoursPerDay: number } | null> }) {
+    perDayByPeriod?: Record<string, { days: number; revenuePerDay: number; hoursPerDay: number } | null>;
+    /** Inside ClientPortalShell — hide duplicate masthead brand; keep period controls. */
+    embedded?: boolean }) {
   const [periodId, setPeriodId] = useState(selectedId || periods[periods.length - 1]?.periodId);
   const [entityId, setEntityId] = useState<string>("ALL");
   const [mode, setMode] = useState<ComparisonMode>("PRIOR_MONTH");
@@ -241,6 +244,7 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
   return (
     <div className={`tpl-${client.template}`} style={palette.vars as any}>
       {/* ── Masthead: client's mark, Hathorn's craft ─────────────────────── */}
+      {!embedded ? (
       <header className="masthead">
         <div className="masthead-inner">
           <Link href={userRole === "CLIENT" ? "/portal" : "/"} aria-label="Home"
@@ -286,18 +290,48 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
           </div>
         </div>
       </header>
+      ) : (
+      <div className="no-print" style={{
+        display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "flex-end",
+        padding: "8px 0 0", marginBottom: 8,
+      }}>
+        <ConfidenceBadge confidence={confidence} onOpen={() => setShowConfidence((v) => !v)} />
+        <PeriodControls
+          periods={periods} periodId={periodId} onPeriod={setPeriodId}
+          mode={mode} onMode={setMode}
+          entities={cur.entities.map((e) => ({ id: e.id, name: e.name }))}
+          entityId={entityId} onEntity={setEntityId}
+          availableModes={availableModes} />
+        <a className="tag" style={{ cursor: "pointer", textDecoration: "none" }}
+          href={`/api/portal/pdf?periodId=${encodeURIComponent(periodId)}`}
+          title="Download the published release as PDF">
+          Download PDF
+        </a>
+        <button type="button" className="tag" style={{ cursor: "pointer" }}
+          onClick={() => window.print()} title="Print this page">
+          Print
+        </button>
+      </div>
+      )}
 
-      <main className="sheet">
+      <main className={embedded ? undefined : "sheet"}>
         {/* ── Title block ────────────────────────────────────────────────── */}
-        <div style={{ paddingTop: 52, paddingBottom: 30 }}>
+        <div style={{ paddingTop: embedded ? 12 : 52, paddingBottom: 30 }}>
           <div className="eyebrow" style={{ color: "var(--gold-label)" }}>
             {cur.status === "PUBLISHED" ? "Monthly Statement" : "Draft — not yet published"}
           </div>
           <h1 className="display-xl enter" style={{ marginTop: 10 }}>{cur.label}</h1>
+          {!embedded && (
           <p className="prose" style={{ marginTop: 10, maxWidth: 520 }}>
             {client.name}
             {activeEntities.length > 1 && ` · ${activeEntities.length} operating businesses`}
           </p>
+          )}
+          {embedded && activeEntities.length > 1 && (
+          <p className="prepared-by" style={{ marginTop: 8 }}>
+            {activeEntities.length} operating businesses
+          </p>
+          )}
           <hr className="rule-accent" style={{ marginTop: 22 }} />
           <ConfidencePanel confidence={confidence} open={showConfidence}
             onClose={() => setShowConfidence(false)} />

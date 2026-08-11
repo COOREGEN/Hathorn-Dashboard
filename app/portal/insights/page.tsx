@@ -26,7 +26,7 @@ export default async function PortalInsights({
       <InsightsClient
         insights={insights}
         questions={questions}
-        canAnswer={ctx.session.role === "CLIENT"}
+        canAnswer={ctx.allowClientAnswers}
       />
     </ClientPortalShell>
   );

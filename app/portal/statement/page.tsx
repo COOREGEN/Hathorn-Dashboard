@@ -102,6 +102,7 @@ export default async function PortalStatement({
         comparabilityByPair={comparabilityByPair}
         confidenceByPeriod={confidenceByPeriod}
         perDayByPeriod={perDayByPeriod}
+        embedded
       />
       {ctx.showCopilot && (
         <div className="no-print" style={{ marginTop: 32 }}>

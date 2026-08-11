@@ -70,7 +70,9 @@ export default function InsightsClient({
       <section>
         <h2 className="eyebrow">Questions for management</h2>
         <p className="prepared-by" style={{ marginTop: 8 }}>
-          Your responses help your advisor prepare — they are not posted to the books automatically.
+          {canAnswer
+            ? "Your responses help your advisor prepare — they are not posted to the books automatically."
+            : "Management questions are read-only on this portal. Your advisor can enable responses when needed."}
         </p>
         {error && <p style={{ color: "#8a2b2b", marginTop: 8 }}>{error}</p>}
         <div style={{ display: "grid", gap: 18, marginTop: 16 }}>
@@ -84,7 +86,9 @@ export default function InsightsClient({
               ) : canAnswer ? (
                 <AnswerForm disabled={pending} onSubmit={(body) => answer(q.id, body)} />
               ) : (
-                <p className="prepared-by" style={{ marginTop: 8 }}>Awaiting client response</p>
+                <p className="prepared-by" style={{ marginTop: 8 }}>
+                  Responses are not enabled for this portal.
+                </p>
               )}
             </div>
           ))}

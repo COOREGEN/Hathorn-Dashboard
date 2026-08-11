@@ -7,6 +7,11 @@ import {
   type PortalModules,
 } from "./types";
 
+function boolCol(r: any, key: string, fallback: boolean): boolean {
+  if (r == null || r[key] === undefined || r[key] === null) return fallback;
+  return !!r[key];
+}
+
 export function getPortalConfig(clientId: string): PortalModules {
   const r: any = db().prepare(
     "SELECT * FROM client_portal_config WHERE client_id=?",
@@ -19,6 +24,8 @@ export function getPortalConfig(clientId: string): PortalModules {
     showCopilot: !!r.show_copilot,
     showFinancialStatements: !!r.show_financial_statements,
     showReports: !!r.show_reports,
+    allowClientAnswers: boolCol(r, "allow_client_answers", DEFAULT_PORTAL_MODULES.allowClientAnswers),
+    allowClientUploads: boolCol(r, "allow_client_uploads", DEFAULT_PORTAL_MODULES.allowClientUploads),
   };
 }
 
@@ -34,8 +41,9 @@ export function upsertPortalConfig(
   db().prepare(`
     INSERT INTO client_portal_config
       (client_id, firm_id, show_planning, show_documents, show_insights,
-       show_copilot, show_financial_statements, show_reports, updated_by)
-    VALUES (?,?,?,?,?,?,?,?,?)
+       show_copilot, show_financial_statements, show_reports,
+       allow_client_answers, allow_client_uploads, updated_by)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(client_id) DO UPDATE SET
       show_planning=excluded.show_planning,
       show_documents=excluded.show_documents,
@@ -43,6 +51,8 @@ export function upsertPortalConfig(
       show_copilot=excluded.show_copilot,
       show_financial_statements=excluded.show_financial_statements,
       show_reports=excluded.show_reports,
+      allow_client_answers=excluded.allow_client_answers,
+      allow_client_uploads=excluded.allow_client_uploads,
       updated_by=excluded.updated_by,
       updated_at=datetime('now')
   `).run(
@@ -53,6 +63,8 @@ export function upsertPortalConfig(
     next.showCopilot ? 1 : 0,
     next.showFinancialStatements ? 1 : 0,
     next.showReports ? 1 : 0,
+    next.allowClientAnswers ? 1 : 0,
+    next.allowClientUploads ? 1 : 0,
     actorId,
   );
   audit(actorId, "PORTAL_CONFIG_UPDATE", clientId, {

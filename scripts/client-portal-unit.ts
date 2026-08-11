@@ -204,6 +204,10 @@ test("portal config defaults", () => {
     const cfg = getPortalConfig(clientId);
     assert.equal(cfg.showInsights, true);
     assert.equal(cfg.showReports, true);
+    assert.equal(cfg.showCopilot, false);
+    assert.equal(cfg.allowClientAnswers, false);
+    assert.equal(cfg.allowClientUploads, false);
+    assert.equal(cfg.showPlanning, false);
   });
 });
 

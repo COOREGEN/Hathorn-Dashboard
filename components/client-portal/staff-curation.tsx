@@ -88,6 +88,39 @@ export default function StaffCurationWorkspace({ clients }: { clients: Client[] 
       )}
 
       <section style={{ marginBottom: 28, borderTop: "1px solid var(--hairline)", paddingTop: 16 }}>
+        <h2 className="eyebrow">Portal interactivity (Tier-1)</h2>
+        <p className="prepared-by" style={{ marginTop: 8, marginBottom: 10 }}>
+          Defaults stay read-only. Turn these on only when the engagement needs client answers, uploads, or Ask.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button type="button" className="chip" disabled={pending}
+            onClick={() => post({ action: "updateConfig", config: { allowClientAnswers: true } })}>
+            Enable answers
+          </button>
+          <button type="button" className="chip" disabled={pending}
+            onClick={() => post({ action: "updateConfig", config: { allowClientAnswers: false } })}>
+            Disable answers
+          </button>
+          <button type="button" className="chip" disabled={pending}
+            onClick={() => post({ action: "updateConfig", config: { allowClientUploads: true } })}>
+            Enable uploads
+          </button>
+          <button type="button" className="chip" disabled={pending}
+            onClick={() => post({ action: "updateConfig", config: { allowClientUploads: false } })}>
+            Disable uploads
+          </button>
+          <button type="button" className="chip" disabled={pending}
+            onClick={() => post({ action: "updateConfig", config: { showCopilot: true } })}>
+            Enable Ask
+          </button>
+          <button type="button" className="chip" disabled={pending}
+            onClick={() => post({ action: "updateConfig", config: { showCopilot: false } })}>
+            Disable Ask
+          </button>
+        </div>
+      </section>
+
+      <section style={{ marginBottom: 28, borderTop: "1px solid var(--hairline)", paddingTop: 16 }}>
         <h2 className="eyebrow">Monthly Advisory Review</h2>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
           <button

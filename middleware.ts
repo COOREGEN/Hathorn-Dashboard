@@ -33,7 +33,9 @@ const GUARDS: [string, string[]][] = [
   ["/api/intelligence", ["ADMIN", "ADVISOR"]],
   ["/api/client-portal", ["ADMIN", "ADVISOR", "CLIENT"]],
   ["/api/portal/pdf", ["ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT"]],
-  ["/api/auth/mfa/setup", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
+  // Mutating logo upload/delete — GET /api/assets/[id] is exempted below (public marks).
+  ["/api/assets", ["ADMIN", "ADVISOR"]],
+  ["/api/auth/mfa/setup", ["ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT"]],
   // Pages — internal advisory book. Portal is staff preview of a locked statement.
   ["/firm", ["ADMIN", "ADVISOR", "BOOKKEEPER"]],
   ["/platform", ["ADMIN"]],
@@ -110,6 +112,12 @@ export async function middleware(req: NextRequest) {
   // proof of intent, not a session cookie. Guarding it would break the handshake.
   if (pathname.startsWith("/api/qbo/callback")) return withCorr(NextResponse.next());
 
+  // Client logos are public marks served into <img> tags — GET by id stays open.
+  // POST/DELETE on /api/assets remain role-guarded via GUARDS.
+  if (req.method === "GET" && /^\/api\/assets\/[^/]+$/.test(pathname)) {
+    return withCorr(NextResponse.next());
+  }
+
   // Password recovery and MFA challenge verification are unauthenticated by design.
   if (
     pathname.startsWith("/api/auth/forgot") ||
@@ -180,7 +188,7 @@ export const config = {
     "/api/close/:path*", "/api/exceptions/:path*",
     "/api/firm/:path*", "/api/platform/:path*", "/api/ops/:path*", "/api/copilot/:path*", "/api/intelligence/:path*",
     "/api/client-portal/:path*",
-    "/api/portal/:path*", "/api/auth/:path*",
+    "/api/portal/:path*", "/api/assets", "/api/assets/:path*", "/api/auth/:path*",
     "/api/health", "/api/health/:path*",
   ],
 };

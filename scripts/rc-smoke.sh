@@ -58,11 +58,14 @@ assert "client blocked from /close" bash -c "test \"$CODE\" = \"307\" -o \"$CODE
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/api/ops/jobs")
 assert "client blocked from ops" bash -c "test \"$CODE\" = \"403\" -o \"$CODE\" = \"401\""
 
-# Firm B isolation smoke
+# Firm B isolation smoke (requires `npm run seed` so admin@example-cpa.test exists)
 curl -sf -c "$COOKIE_DIR/ex.jar" -X POST "$BASE/api/login" \
   -H 'content-type: application/json' \
   -d '{"email":"admin@example-cpa.test","password":"ledger2026"}' \
   > "$COOKIE_DIR/ex-login.json" || true
+if ! grep -q '"ok":true' "$COOKIE_DIR/ex-login.json" 2>/dev/null; then
+  echo "  · skip: Firm B user missing — run npm run seed for isolation smoke"
+else
 CLIENT_ID=$(python3 - <<'PY'
 import os, subprocess
 flag = (os.environ.get("POSTGRES_RUNTIME_ENABLED") or "").lower()
@@ -86,6 +89,7 @@ if [ -n "$CLIENT_ID" ]; then
   CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/ex.jar" \
     "$BASE/api/intelligence?clientId=$CLIENT_ID")
   assert "Firm B blocked from Firm A intelligence" bash -c "test \"$CODE\" = \"403\" -o \"$CODE\" = \"400\""
+fi
 fi
 
 rm -rf "$COOKIE_DIR"

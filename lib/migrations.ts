@@ -1788,6 +1788,21 @@ export const MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    id: 32,
+    name: "portal_tier1_interactivity_flags",
+    up: (db) => {
+      /**
+       * Tier-1 portal = curated statement + month/entity. Answers, uploads, and
+       * Ask are opt-in interactivity — default off so a new engagement stays read-only.
+       */
+      addColumn(db, "client_portal_config", "allow_client_answers", "INTEGER NOT NULL DEFAULT 0");
+      addColumn(db, "client_portal_config", "allow_client_uploads", "INTEGER NOT NULL DEFAULT 0");
+      // Existing rows often inherited show_copilot=1 from the table default — turn Ask off
+      // unless an advisor explicitly re-enables it after this migration.
+      db.exec(`UPDATE client_portal_config SET show_copilot=0 WHERE show_copilot=1`);
+    },
+  },
 ];
 
 /**

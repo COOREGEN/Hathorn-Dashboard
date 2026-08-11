@@ -722,6 +722,30 @@ assert "hub list ok" grep -q '"ok":true' "$COOKIE_DIR/hub.json"
 assert "hub lists quickbooks provider" grep -q 'quickbooks' "$COOKIE_DIR/hub.json"
 assert "hub lists file provider" grep -q '"file"' "$COOKIE_DIR/hub.json"
 assert "hub lists mock provider" grep -q '"mock"' "$COOKIE_DIR/hub.json"
+
+# Clear any abandoned SYNCING left by a prior interrupted proof on this DB.
+python3 - <<'PYC'
+import os, sqlite3
+flag = (os.environ.get("POSTGRES_RUNTIME_ENABLED") or "").lower()
+if flag in ("1", "true", "yes"):
+    raise SystemExit(0)
+path = os.path.join(os.environ.get("DATA_DIR", "data"), "ledger.db")
+c = sqlite3.connect(path)
+c.execute("""
+  UPDATE integration_sync_runs SET status='FAILED', completed_at=datetime('now'),
+    error_code=COALESCE(error_code,'STALE_SYNC'),
+    error_message=COALESCE(error_message,'Cleared before proof')
+  WHERE status IN ('PENDING','RUNNING')
+""")
+c.execute("""
+  UPDATE integration_connections SET status='ERROR',
+    last_error_code=COALESCE(last_error_code,'STALE_SYNC'),
+    last_error_message=COALESCE(last_error_message,'Cleared before proof')
+  WHERE status='SYNCING'
+""")
+c.commit()
+PYC
+
 SECRET_LEAK=$(python3 -c "
 import json
 s=json.dumps(json.load(open('$COOKIE_DIR/hub.json'))).lower()
