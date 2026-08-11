@@ -9,6 +9,10 @@ import { lockedStatements } from "../statement";
 export async function resolvePortalClient(searchParams: { client?: string; preview?: string }) {
   const s = await getSession();
   if (!s) redirect("/login");
+  try {
+    const { bindRlsFromSession } = await import("@/lib/db-context");
+    bindRlsFromSession(s);
+  } catch { /* sqlite */ }
 
   let clientId = s.clientId;
   const preview = s.role !== "CLIENT" && (searchParams.preview === "1" || !!searchParams.client);

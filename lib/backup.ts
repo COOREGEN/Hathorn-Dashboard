@@ -16,7 +16,9 @@
 import Database from "better-sqlite3";
 import { readdirSync, statSync, unlinkSync, mkdirSync, existsSync, copyFileSync } from "fs";
 import path from "path";
-import { db, closeDb, log } from "./db";
+import { spawnSync } from "child_process";
+import { db, closeDb, log, dbEngine } from "./db";
+import { isPostgresRuntimeEnabled } from "./db-pg";
 
 export type BackupFile = {
   name: string; path: string; sizeBytes: number; createdAt: string;
@@ -47,6 +49,10 @@ const stamp = () => new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
 /* ------------------------------------------------------------------ */
 
 export async function createBackup(reason = "manual"): Promise<BackupFile> {
+  if (isPostgresRuntimeEnabled() || dbEngine() === "postgres") {
+    return createPostgresBackup(reason);
+  }
+
   const dir = ensureDir();
   const name = `ledger-${stamp()}-${reason}.db`;
   const target = path.join(dir, name);
@@ -63,12 +69,52 @@ export async function createBackup(reason = "manual"): Promise<BackupFile> {
   }
 
   const size = statSync(target).size;
-  log("info", "backup.created", { name, reason, sizeBytes: size });
+  log("info", "backup.created", { name, reason, sizeBytes: size, engine: "sqlite" });
 
   return {
     name, path: target, sizeBytes: size,
     createdAt: new Date().toISOString(),
     verified: true, note: verification.note,
+  };
+}
+
+/** Custom-format pg_dump snapshot for Postgres runtime. */
+export function createPostgresBackup(reason = "manual"): BackupFile {
+  const dir = ensureDir();
+  const name = `ledger-${stamp()}-${reason}.pg.dump`;
+  const target = path.join(dir, name);
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL required for Postgres backup");
+
+  const r = spawnSync("pg_dump", ["--format=custom", "--file", target, url], {
+    encoding: "utf8",
+  });
+  if (r.status !== 0) {
+    try { unlinkSync(target); } catch { /* ignore */ }
+    throw new Error(`pg_dump failed: ${r.stderr || r.stdout || r.status}`);
+  }
+  const verification = verifyPostgresBackup(target);
+  if (!verification.ok) {
+    unlinkSync(target);
+    throw new Error(`Postgres backup failed verification: ${verification.note}`);
+  }
+  const size = statSync(target).size;
+  log("info", "backup.created", { name, reason, sizeBytes: size, engine: "postgres" });
+  return {
+    name, path: target, sizeBytes: size,
+    createdAt: new Date().toISOString(),
+    verified: true, note: verification.note,
+  };
+}
+
+export function verifyPostgresBackup(file: string): { ok: boolean; note: string } {
+  if (!existsSync(file)) return { ok: false, note: "file missing" };
+  const r = spawnSync("pg_restore", ["--list", file], { encoding: "utf8" });
+  if (r.status !== 0) return { ok: false, note: r.stderr || "pg_restore --list failed" };
+  const lines = (r.stdout || "").split("\n").filter((l) => l.includes("TABLE DATA"));
+  return {
+    ok: lines.length > 0,
+    note: `pg_restore list ok, ${lines.length} table-data entries`,
   };
 }
 
@@ -121,7 +167,7 @@ export function verifyBackup(file: string): { ok: boolean; note: string; rows: R
 export function listBackups(): BackupFile[] {
   const dir = ensureDir();
   return readdirSync(dir)
-    .filter((f) => f.endsWith(".db"))
+    .filter((f) => f.endsWith(".db") || f.endsWith(".pg.dump"))
     .map((name) => {
       const full = path.join(dir, name);
       const st = statSync(full);

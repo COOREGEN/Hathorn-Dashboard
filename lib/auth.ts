@@ -92,7 +92,7 @@ async function issueSessionCookie(session: Session) {
   cookies().set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: config.isProd,
+    secure: config.cookieSecure,
     path: "/",
     maxAge: config.sessionTtl,
   });
@@ -182,6 +182,14 @@ export async function login(email: string, password: string): Promise<LoginResul
 
   clearFailures(clean);
 
+  // Bind RLS before membership resolution and audit insert (Postgres runtime).
+  try {
+    const { setRlsUserId, setRlsFirmId, setPlatformAdmin } = require("./db-context") as typeof import("./db-context");
+    setRlsUserId(u.id);
+    setPlatformAdmin(false);
+    setRlsFirmId(null);
+  } catch { /* sqlite */ }
+
   const staff = isStaffRole(u.role);
   const mfaOn = Boolean(u.mfa_enabled);
 
@@ -195,7 +203,7 @@ export async function login(email: string, password: string): Promise<LoginResul
     cookies().set(SETUP_COOKIE, setupToken, {
       httpOnly: true,
       sameSite: "lax",
-      secure: config.isProd,
+      secure: config.cookieSecure,
       path: "/",
       maxAge: 20 * 60,
     });
@@ -203,8 +211,12 @@ export async function login(email: string, password: string): Promise<LoginResul
   }
 
   const session = sessionFromUser(u);
+  try {
+    const { setRlsFirmId } = require("./db-context") as typeof import("./db-context");
+    setRlsFirmId(session.firmId);
+  } catch { /* sqlite */ }
   await issueSessionCookie(session);
-  audit(u.id, "LOGIN");
+  audit(u.id, "LOGIN", "", { firmId: session.firmId, clientId: session.clientId });
   return { kind: "session", session };
 }
 
@@ -265,6 +277,13 @@ export async function getSession(): Promise<Session | null> {
   try {
     const { payload } = await jwtVerify(token, SECRET);
     const session = payload as unknown as Session;
+    // Bind RLS user context before membership/client lookups (Postgres runtime).
+    try {
+      const { setRlsUserId, setRlsFirmId, setPlatformAdmin } = require("./db-context") as typeof import("./db-context");
+      setRlsUserId(session.userId);
+      setPlatformAdmin(false);
+      setRlsFirmId(session.firmId ?? null);
+    } catch { /* db-context unavailable */ }
     const row: any = db().prepare(
       "SELECT token_version, is_platform_admin, role, client_id, email, name FROM users WHERE id=?",
     ).get(session.userId);
@@ -282,6 +301,12 @@ export async function getSession(): Promise<Session | null> {
       tv: session.tv,
     };
     enriched.firmId = resolveSessionFirmId(enriched);
+    try {
+      const { setRlsFirmId, setPlatformAdmin } = require("./db-context") as typeof import("./db-context");
+      setRlsFirmId(enriched.firmId);
+      // Platform bypass is opt-in via requirePlatformAdmin(), never ambient.
+      setPlatformAdmin(false);
+    } catch { /* db-context unavailable */ }
     return enriched;
   } catch {
     return null;
@@ -317,6 +342,10 @@ export async function requireRole(...roles: Role[] | string[]): Promise<Session>
   const s = await getSession();
   if (!s) throw new AuthError(401);
   if (!roles.includes(s.role)) throw new AuthError(403);
+  try {
+    const { bindRlsFromSession } = require("./db-context") as typeof import("./db-context");
+    bindRlsFromSession(s);
+  } catch { /* sqlite */ }
   return s;
 }
 
@@ -330,13 +359,16 @@ export async function requireRole(...roles: Role[] | string[]): Promise<Session>
 export async function requireClientAccess(clientId: string): Promise<Session> {
   if (!clientId) throw new AuthError(403, "Resource not found.");
   const s = await requireRole("ADMIN", "ADVISOR", "BOOKKEEPER", "CLIENT");
-  const owner: any = db().prepare("SELECT firm_id FROM clients WHERE id=?").get(clientId);
-  if (!owner?.firm_id) throw new AuthError(403, "Resource not found.");
 
+  // CLIENT: identity is the session client_id — do not depend on a firm-scoped
+  // clients SELECT (Postgres RLS) before the ownership check.
   if (s.role === "CLIENT") {
     if (s.clientId !== clientId) throw new AuthError(403, "Resource not found.");
     return s;
   }
+
+  const owner: any = db().prepare("SELECT firm_id FROM clients WHERE id=?").get(clientId);
+  if (!owner?.firm_id) throw new AuthError(403, "Resource not found.");
   const membership: any = db().prepare(
     `SELECT 1 FROM firm_memberships WHERE user_id=? AND firm_id=? AND status='ACTIVE'`,
   ).get(s.userId, owner.firm_id);

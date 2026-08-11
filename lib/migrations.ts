@@ -1788,7 +1788,7 @@ export function runMigrations(db: BetterSqlite3.Database) {
   }
 }
 
-export function schemaVersion(db: BetterSqlite3.Database): number {
+export function schemaVersion(db: { prepare: (sql: string) => { get: (...args: any[]) => any } }): number {
   const row: any = db.prepare("SELECT MAX(id) v FROM schema_migrations").get();
   return row?.v ?? 0;
 }

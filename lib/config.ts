@@ -81,6 +81,11 @@ export function assertProductionReady() {
   }
 }
 
+const allowLocalProd = process.env.LEDGER_ALLOW_LOCAL_PROD === "1";
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+/** Secure cookies require HTTPS. Staging-on-localhost must not set Secure. */
+const cookieSecure = isProd && !allowLocalProd && /^https:/i.test(baseUrl);
+
 export const config = {
   isProd,
   appEnv,
@@ -90,7 +95,10 @@ export const config = {
   authSecret: required("AUTH_SECRET", DEFAULT_AUTH_SECRET),
 
   /** Public base URL — used in emails and OAuth redirects. */
-  baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
+  baseUrl,
+
+  /** httpOnly session cookie Secure flag. */
+  cookieSecure,
 
   /** Session lifetime in seconds. */
   sessionTtl: 8 * 3600,

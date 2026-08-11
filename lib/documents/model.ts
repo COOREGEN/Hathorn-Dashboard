@@ -13,6 +13,7 @@ import {
   storeDocumentFile, sanitizeExt,
 } from "./storage";
 import { validateUpload } from "./validate";
+import { malwareScanEnabled, scanBytes } from "./malware";
 import type {
   DocumentStatus, DocumentType, ExtractionRun, SourceDocument, StructuredDraft,
 } from "./types";
@@ -108,6 +109,19 @@ export async function uploadDocument(opts: {
   const sha256 = sha256Buffer(validated.bytes);
   const duplicates = findDuplicates(opts.clientId, sha256);
 
+  // Quarantine → scan → only then parse. Infected/error never reach Docling/AI.
+  let initialStatus: DocumentStatus = "UPLOADED";
+  let scanNote: string | null = null;
+  if (malwareScanEnabled()) {
+    const scan = scanBytes(validated.bytes, validated.filename);
+    if (scan.status === "infected" || scan.status === "error") {
+      initialStatus = "QUARANTINED";
+      scanNote = `${scan.status}: ${scan.detail}`;
+    } else if (scan.status === "clean") {
+      scanNote = scan.detail;
+    }
+  }
+
   const id = newDocumentId();
   const { storageReference } = storeDocumentFile({
     clientId: opts.clientId,
@@ -122,14 +136,19 @@ export async function uploadDocument(opts: {
   db().prepare(`
     INSERT INTO source_documents
       (id, client_id, period_id, document_type, original_filename, mime_type, file_size,
-       storage_reference, sha256, status, uploaded_by, uploaded_at)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+       storage_reference, sha256, status, uploaded_by, uploaded_at, notes)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).run(
     id, opts.clientId, opts.periodId || null, docType, validated.filename, validated.mimeType,
-    validated.size, storageReference, sha256, "UPLOADED", opts.uploadedBy, uploadedAt,
+    validated.size, storageReference, sha256, initialStatus, opts.uploadedBy, uploadedAt,
+    scanNote,
   );
 
   let extraction: ExtractionRun | undefined;
+  if (initialStatus === "QUARANTINED") {
+    return { document: getDocument(id)!, duplicates, extraction };
+  }
+
   const st = documentIntelligenceStatus();
   const shouldParse = opts.autoParse !== false && (
     st.enabled ||
@@ -151,6 +170,9 @@ export async function processDocument(
 ): Promise<ExtractionRun> {
   const docRow: any = db().prepare("SELECT * FROM source_documents WHERE id=?").get(documentId);
   if (!docRow) throw new Error("Document not found.");
+  if (docRow.status === "QUARANTINED") {
+    throw new Error("Document is quarantined — parser and AI processing are blocked.");
+  }
 
   setStatus(documentId, "PROCESSING");
   const extractionId = uid();

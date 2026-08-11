@@ -19,6 +19,7 @@ export type DocumentType =
 
 export type DocumentStatus =
   | "UPLOADED"
+  | "QUARANTINED"
   | "PROCESSING"
   | "PARSED"
   | "NEEDS_REVIEW"

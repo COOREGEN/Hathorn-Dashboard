@@ -157,6 +157,13 @@ export async function requireFirmContext(preferredFirmId?: string | null): Promi
     firmId = resolveActiveFirmId(session);
   }
   if (!firmId) throw new AuthError(403, "Resource not found.");
+  // Set RLS firm before reading firm-scoped rows (Postgres defense-in-depth).
+  try {
+    const { setRlsFirmId, setPlatformAdmin } = require("./db-context") as typeof import("./db-context");
+    setRlsFirmId(firmId);
+    // Firm-scoped routes are never cross-tenant, even for platform admins.
+    setPlatformAdmin(false);
+  } catch { /* sqlite / unavailable */ }
   const firm = getFirm(firmId);
   if (!firm || firm.status !== "ACTIVE") throw new AuthError(403, "Resource not found.");
 
@@ -172,6 +179,10 @@ export async function requirePlatformAdmin(): Promise<Session> {
   const session = await getSession();
   if (!session) throw new AuthError(401);
   if (!session.isPlatformAdmin) throw new AuthError(403, "Resource not found.");
+  try {
+    const { setPlatformAdmin } = require("./db-context") as typeof import("./db-context");
+    setPlatformAdmin(true);
+  } catch { /* sqlite / unavailable */ }
   return session;
 }
 

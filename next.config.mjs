@@ -55,7 +55,19 @@ const nextConfig = {
   poweredByHeader: false,
   // Native / font-heavy packages must not be bundled into the server graph.
   experimental: {
-    serverComponentsExternalPackages: ["better-sqlite3", "pdfkit", "otpauth"],
+    serverComponentsExternalPackages: [
+      "better-sqlite3",
+      "pdfkit",
+      "otpauth",
+      "pg",
+      "pg-native",
+      "deasync",
+    ],
+  },
+  // Keep the Postgres worker script as a plain CJS file on disk (Atomics bridge).
+  webpack: (config) => {
+    config.externals = config.externals || [];
+    return config;
   },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
