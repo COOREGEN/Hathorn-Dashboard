@@ -130,9 +130,10 @@ body {
 .kpi-drill-row { display: flex; justify-content: space-between; font-family: var(--utility);
                  font-size: 11px; padding: 3px 0; }
 
-/* ── Panel: for charts and tables. Ivory, hairline, square. ──────────────── */
-.panel { background: var(--panel); border: 1px solid var(--hairline); padding: 20px 22px; }
-.panel-white { background: #FFFDF8; border: 1px solid var(--hairline); padding: 20px 22px; }
+/* ── Panel: for charts and tables. Ivory, hairline, softened corners so the
+      surfaces agree with the cards and controls rather than mixing eras. ──── */
+.panel { background: var(--panel); border: 1px solid var(--hairline); padding: 20px 22px; border-radius: 12px; }
+.panel-white { background: #FFFDF8; border: 1px solid var(--hairline); padding: 20px 22px; border-radius: 12px; }
 .panel-title { font-family: var(--utility); font-size: 11px; font-weight: 600; letter-spacing: .1em;
                text-transform: uppercase; color: var(--ink); }
 .panel-sub   { font-family: var(--utility); font-size: 10.5px; color: var(--ink-mute); margin-top: 2px; }
@@ -190,7 +191,8 @@ body {
 .linkish:hover { color: var(--accent-deep); }
 
 .input { font-family: var(--utility); font-size: 12.5px; width: 100%;
-         border: 1px solid var(--hairline); background: #FFFDF8; padding: 9px 11px; color: var(--ink); }
+         border: 1px solid var(--hairline); background: #FFFDF8; padding: 9px 11px; color: var(--ink);
+         border-radius: 8px; }
 .input:focus { outline: 1px solid var(--brand); outline-offset: -1px; border-color: var(--brand); }
 
 .tag { font-family: var(--utility); font-size: 9px; font-weight: 600; letter-spacing: .12em;
@@ -504,6 +506,11 @@ p.sec-q { font-family: var(--editorial); font-style: italic; font-size: 13.5px;
   .section { break-inside: avoid; page-break-inside: avoid; margin-top: 24pt; }
   .section:nth-of-type(3) { break-before: page; }
   .panel, .panel-white { background: #fff; border: 0.5pt solid #999; }
+  /* Rounded corners are a screen affordance; on paper they read as a mistake. */
+  .panel, .panel-white, .btn, .chip, .input, .today-card { border-radius: 0 !important; }
+  .staff-rail, .staff-rail-burger, .to-top, .staff-progress, .topbar-search { display: none !important; }
+  .staff-topbar { position: static; }
+  body:has(.staff-app) { padding-left: 0; background: #fff; }
   .kpi { border-top: 0.5pt solid #666; }
   .kpi-value { font-size: 20pt; }
   .display-xl { font-size: 26pt; }
@@ -548,6 +555,7 @@ p.sec-q { font-family: var(--editorial); font-style: italic; font-size: 13.5px;
   padding: 5px 11px; border: 1px solid var(--hairline); background: transparent;
   color: var(--ink-mute); cursor: pointer; transition: all .12s; white-space: nowrap;
   display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+  border-radius: 999px;
 }
 .chip:hover { border-color: var(--ink-mute); color: var(--ink); }
 .chip.on { background: var(--ink); border-color: var(--ink); color: var(--paper); }
@@ -850,6 +858,28 @@ body:has(.staff-app) {
 /* Pages that render the chrome as a sibling of their own <main>. */
 .staff-app--header-only { min-height: 0; }
 
+/* Without :has() the body cannot know the shell is there, so fall back to
+   shifting the shell and its siblings. Inline `margin: 0 auto` still wins on a
+   few pages in that case — accepted, because the alternative is no rail space
+   at all. */
+@supports not selector(:has(*)) {
+  .staff-app { padding-left: var(--staff-rail-w); }
+  .staff-app--header-only { padding-left: 0; }
+  .staff-app--header-only ~ main,
+  .staff-app--header-only ~ .sheet,
+  .staff-app--header-only ~ div { margin-left: var(--staff-rail-w); }
+  .staff-app--header-only .staff-topbar {
+    margin-left: var(--staff-rail-w);
+    width: calc(100% - var(--staff-rail-w));
+  }
+  @media (max-width: 960px) {
+    .staff-app, .staff-app--header-only ~ main,
+    .staff-app--header-only ~ .sheet,
+    .staff-app--header-only ~ div { margin-left: 0; padding-left: 0; }
+    .staff-app--header-only .staff-topbar { margin-left: 0; width: 100%; }
+  }
+}
+
 /* ── Rail ─────────────────────────────────────────────────────────────────── */
 .staff-rail {
   position: fixed;
@@ -1052,7 +1082,8 @@ body:has(.staff-app) {
   padding: 17px 32px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  flex-wrap: wrap;
+  gap: 10px 18px;
   transition: padding .2s ease;
 }
 :root[data-scrolled="true"] .staff-topbar-inner { padding-top: 11px; padding-bottom: 11px; }
@@ -1072,12 +1103,15 @@ body:has(.staff-app) {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  flex-wrap: wrap;
+  overflow: hidden;
 }
 .topbar-crumb {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--utility);
   font-size: 10.5px;
   font-weight: 500;
@@ -1091,7 +1125,23 @@ body:has(.staff-app) {
 .topbar-crumb[data-last="true"] { color: var(--ink); font-weight: 600; }
 .topbar-crumb-sep { color: var(--hairline); font-weight: 400; }
 
-.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+/* Everything in the bar keeps its words on one line. Left to itself the flex
+   row broke "Sign out" and "Jump to" in half on narrow canvases. */
+.topbar-crumbs { flex: 1 1 auto; }
+.topbar-right {
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 12px;
+}
+.topbar-right > * { flex: 0 0 auto; }
+.staff-topbar .topbar-search,
+.staff-topbar .topbar-link,
+.staff-topbar .topbar-kbd,
+.staff-topbar .eyebrow { white-space: nowrap; }
 .topbar-divider { width: 1px; height: 22px; background: var(--hairline); }
 
 .topbar-search {

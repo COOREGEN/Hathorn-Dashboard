@@ -39,7 +39,14 @@ export default function StaffHeader({
   /** When provided, wraps page content in the staff shell. */
   children?: React.ReactNode;
 }) {
-  const top = [...TOP_LINKS, ...(links || [])];
+  // A page passing its own shortcut that the short set already carries had it
+  // listed twice ("Ask" and "Ask Hathorn" side by side on /ask).
+  const seen = new Set<string>();
+  const top = [...TOP_LINKS, ...(links || [])].filter((l) => {
+    if (seen.has(l.href)) return false;
+    seen.add(l.href);
+    return true;
+  });
   const crumbs = sub.split("·").map((s) => s.trim()).filter(Boolean);
 
   const chrome = (

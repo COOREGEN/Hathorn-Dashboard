@@ -1066,8 +1066,29 @@ echo "$HTML" > "$COOKIE_DIR/portal-insights-preview.html"
 assert "insights preview has exit" grep -qi 'Exit preview' "$COOKIE_DIR/portal-insights-preview.html"
 HTML=$(curl -s -b "$COOKIE_DIR/client.jar" "$BASE/portal")
 echo "$HTML" > "$COOKIE_DIR/portal-client.html"
-assert "real client has no exit preview" ! grep -qi 'Exit preview' "$COOKIE_DIR/portal-client.html"
-assert "real client has no back to today" ! grep -qi 'Back to Today' "$COOKIE_DIR/portal-client.html"
+refute() { local name="$1"; shift; if "$@"; then echo "  ✗ $name"; FAIL=$((FAIL + 1)); else echo "  ✓ $name"; PASS=$((PASS + 1)); fi; }
+refute "real client has no exit preview" grep -qi 'Exit preview' "$COOKIE_DIR/portal-client.html"
+refute "real client has no back to today" grep -qi 'Back to Today' "$COOKIE_DIR/portal-client.html"
+
+echo
+echo "20b. Staff shell chrome"
+HTML=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/today")
+echo "$HTML" > "$COOKIE_DIR/today.html"
+assert "today renders the practice rail" grep -q 'staff-rail' "$COOKIE_DIR/today.html"
+assert "today renders the context bar" grep -q 'staff-topbar' "$COOKIE_DIR/today.html"
+assert "rail carries grouped destinations" grep -q 'staff-rail-group-label' "$COOKIE_DIR/today.html"
+assert "rail marks the active destination" grep -q 'staff-rail-link is-active' "$COOKIE_DIR/today.html"
+assert "jump-to is offered" grep -q 'topbar-search' "$COOKIE_DIR/today.html"
+assert "scroll progress is present" grep -q 'staff-progress' "$COOKIE_DIR/today.html"
+# The rail owns the wordmark now; the top bar must not repeat it.
+assert "wordmark is not said twice" test "$(grep -o 'staff-rail-mark-h' "$COOKIE_DIR/today.html" | wc -l)" = "1"
+# Dense staff pages must reserve the rail's space, or content hides under it.
+HTML=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/portfolio")
+echo "$HTML" > "$COOKIE_DIR/portfolio.html"
+assert "attention renders the rail" grep -q 'staff-rail' "$COOKIE_DIR/portfolio.html"
+assert "attention names its clients" grep -qi 'Northbridge' "$COOKIE_DIR/portfolio.html"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/today")
+assert "client cannot reach the staff shell" test "$CODE" = "307" -o "$CODE" = "401" -o "$CODE" = "403"
 
 echo
 echo "21. Platform operations"
