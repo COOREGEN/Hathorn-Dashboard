@@ -161,11 +161,7 @@
 .cc-floating {
   display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center;
   margin: 0.4rem 0 0.7rem;
-  opacity: 0.55; transition: opacity 160ms ease;
 }
-.cc-hero:hover .cc-floating,
-.cc-hero:focus-within .cc-floating,
-.cc-hero[data-highlighted="true"] .cc-floating { opacity: 1; }
 
 .cc-seg {
   display: flex; gap: 0.12rem; padding: 0.15rem;
@@ -199,16 +195,17 @@
 }
 
 .cc-chart-shell { position: relative; margin: 0 -0.25rem; }
-.cc-chart-canvas { width: 100%; height: clamp(280px, 38vh, 380px); }
+.cc-chart-canvas {
+  width: 100%;
+  min-height: 320px;
+  height: clamp(320px, 42vh, 420px);
+  background: color-mix(in srgb, var(--panel) 45%, transparent);
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
 .cc-chart-actions {
   display: flex; flex-wrap: wrap; gap: 0.45rem;
-  opacity: 0; transform: translateY(4px);
-  transition: opacity 160ms ease, transform 180ms ease;
-  padding: 0.35rem 0.25rem 0.8rem;
-}
-.cc-chart-shell:hover .cc-chart-actions,
-.cc-hero[data-highlighted="true"] .cc-chart-actions {
-  opacity: 1; transform: none;
+  padding: 0.45rem 0.25rem 0.9rem;
 }
 
 .cc-metrics {

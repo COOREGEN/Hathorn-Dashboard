@@ -67,7 +67,10 @@ export default function CommandCenter({ model }: { model: CommandCenterModel }) 
   }, [model.periods, idx, range, cur.year]);
 
   const priorYear = model.periods.find((p) => p.month === cur.month && p.year === cur.year - 1);
-  const priorVal = priorYear ? Number(priorYear[meta.key]) : null;
+  const priorMonth = idx > 0 ? model.periods[idx - 1] : null;
+  const compareBasis = priorYear ?? priorMonth;
+  const compareLabel = priorYear ? "vs prior year" : priorMonth ? "vs prior month" : null;
+  const priorVal = compareBasis ? Number(compareBasis[meta.key]) : null;
   const dPct = deltaPct(heroValue, priorVal);
 
   const suggestions = useMemo(
@@ -208,7 +211,9 @@ export default function CommandCenter({ model }: { model: CommandCenterModel }) 
                   <AnimatedNumber value={hoverValue ?? heroValue} format={(n) => fmtVal(n, meta.unit)} />
                 </div>
                 <div className={cn("cc-hero-delta", dPct != null && dPct < 0 && "down")}>
-                  {dPct == null ? "No prior year" : `${dPct >= 0 ? "+" : "−"}${Math.abs(dPct).toFixed(1)}% vs prior year`}
+                  {dPct == null || !compareLabel
+                    ? "No compare basis"
+                    : `${dPct >= 0 ? "+" : "−"}${Math.abs(dPct).toFixed(1)}% ${compareLabel}`}
                   {hoverLabel ? <span className="cc-hover-chip">Scrubbing {hoverLabel}</span> : null}
                 </div>
               </div>
@@ -305,7 +310,7 @@ export default function CommandCenter({ model }: { model: CommandCenterModel }) 
               {support.map((l) => {
                 const m = LENS_META[l];
                 const v = Number(cur[m.key]);
-                const py = priorYear ? Number(priorYear[m.key]) : null;
+                const py = compareBasis ? Number(compareBasis[m.key]) : null;
                 const d = deltaPct(v, py);
                 const spark = seriesFor(model.periods.slice(Math.max(0, idx - 5), idx + 1), l);
                 return (

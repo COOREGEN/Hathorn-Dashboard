@@ -62,6 +62,7 @@ export const LENS_META: Record<CCLens, { label: string; unit: "money" | "pct"; k
 
 export function fixtureCommandCenter(): CommandCenterModel {
   const periods: CCPeriod[] = [
+    { id: "2025-04", label: "Apr 2025", year: 2025, month: 4, revenue: 158.2, gp: 46.8, margin: 29.6, ni: 20.1, cash: 114.0, ar: 72.4, budgetRevenue: 155 },
     { id: "2025-05", label: "May 2025", year: 2025, month: 5, revenue: 162.4, gp: 48.1, margin: 29.6, ni: 21.2, cash: 118.0, ar: 74.2, budgetRevenue: 160 },
     { id: "2025-06", label: "Jun 2025", year: 2025, month: 6, revenue: 168.9, gp: 50.4, margin: 29.8, ni: 22.0, cash: 121.5, ar: 76.1, budgetRevenue: 165 },
     { id: "2025-07", label: "Jul 2025", year: 2025, month: 7, revenue: 171.2, gp: 49.8, margin: 29.1, ni: 20.4, cash: 119.8, ar: 79.4, budgetRevenue: 168 },
@@ -101,7 +102,7 @@ export function fixtureCommandCenter(): CommandCenterModel {
     insights: [
       { label: "Labor ratio", value: "68.2%", detail: "Inside agreed band", tone: "up" },
       { label: "Cash cover", value: "9.1 wks", detail: "Operating runway", tone: "flat" },
-      { label: "AR 61+", value: "$31K", detail: "Name the payer", tone: "down" },
+      { label: "AR 61+", value: "31.0K", detail: "Name the payer · $31K", tone: "down" },
     ],
     narrative: {
       headline: "Top line held. Collections is the conversation.",
