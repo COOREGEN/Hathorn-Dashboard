@@ -31,13 +31,15 @@ export default function StaffRail({
     document.documentElement.dataset.rail = saved ? "collapsed" : "open";
   }, []);
 
+  // The document attribute is written here, synchronously, and every collapsed
+  // style hangs off it. Writing it while React caught up separately left the
+  // rail narrow for a frame with the labels still in place, so every one of them
+  // truncated to its first letter on the way in.
   const toggleCollapsed = useCallback(() => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      window.localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
-      document.documentElement.dataset.rail = next ? "collapsed" : "open";
-      return next;
-    });
+    const next = document.documentElement.dataset.rail !== "collapsed";
+    document.documentElement.dataset.rail = next ? "collapsed" : "open";
+    window.localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+    setCollapsed(next);
   }, []);
 
   // A drawer that survives navigation is a drawer covering the page you asked for.
