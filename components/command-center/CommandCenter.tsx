@@ -2,7 +2,7 @@
 
 /**
  * Hathorn Command Center — premium financial intelligence surface.
- * Hathorn palette only. Data should feel alive.
+ * UX structure locked; palettes swap CSS tokens (Brand Studio model).
  */
 
 import Link from "next/link";
@@ -23,20 +23,29 @@ import IntelligenceChart from "./IntelligenceChart";
 import VarianceWaterfall from "./VarianceWaterfall";
 import ContributionTable from "./ContributionTable";
 import CommandPalette from "./CommandPalette";
+import PaletteDock from "./PaletteDock";
 import { AnimatedNumber, MicroSpark } from "./MotionBits";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import type { CCDriver, CCLens, CommandCenterModel } from "@/lib/command-center/model";
 import { LENS_META } from "@/lib/command-center/model";
 import { askContext, deltaPct, fmtMoney, fmtVal, seriesFor } from "@/lib/command-center/intelligence";
+import { CC_PALETTES, CC_PALETTE_STORAGE_KEY, type CCPaletteId } from "@/lib/command-center/palettes";
 import { cn } from "@/lib/utils";
 import "./command-center.css";
 
 type Range = "6M" | "12M" | "24M" | "YTD" | "ALL";
 type SeriesMode = "actual" | "prior" | "budget" | "all";
 
+function readPalette(): CCPaletteId {
+  if (typeof window === "undefined") return "hathorn";
+  const raw = window.localStorage.getItem(CC_PALETTE_STORAGE_KEY);
+  return CC_PALETTES.some((p) => p.id === raw) ? (raw as CCPaletteId) : "hathorn";
+}
+
 export default function CommandCenter({ model }: { model: CommandCenterModel }) {
   const [, startTransition] = useTransition();
+  const [palette, setPalette] = useState<CCPaletteId>("hathorn");
   const [periodId, setPeriodId] = useState(model.periodId);
   const [lens, setLens] = useState<CCLens>("revenue");
   const [range, setRange] = useState<Range>("12M");
@@ -80,6 +89,15 @@ export default function CommandCenter({ model }: { model: CommandCenterModel }) 
 
   const support: CCLens[] = ["margin", "ni", "cash", "ar"];
 
+  const applyPalette = useCallback((id: CCPaletteId) => {
+    setPalette(id);
+    try { window.localStorage.setItem(CC_PALETTE_STORAGE_KEY, id); } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    applyPalette(readPalette());
+  }, [applyPalette]);
+
   const selectPeriod = useCallback((id: string) => {
     startTransition(() => {
       if (typeof document !== "undefined" && "startViewTransition" in document) {
@@ -107,17 +125,24 @@ export default function CommandCenter({ model }: { model: CommandCenterModel }) 
         setLens((Object.keys(LENS_META) as CCLens[])[+e.key - 1]);
       }
       if (e.key.toLowerCase() === "f" && (e.target as HTMLElement).tagName !== "INPUT") setFocus((v) => !v);
-      if (e.key.toLowerCase() === "\\") setDrawerOpen((v) => !v);
+      if (e.key.toLowerCase() === "\\" ) setDrawerOpen((v) => !v);
+      if (e.key.toLowerCase() === "p" && (e.target as HTMLElement).tagName !== "INPUT") {
+        const i = CC_PALETTES.findIndex((p) => p.id === palette);
+        applyPalette(CC_PALETTES[(i + 1) % CC_PALETTES.length].id);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [idx, model.periods, periodId, selectPeriod]);
+  }, [idx, model.periods, periodId, selectPeriod, palette, applyPalette]);
 
   const hoverLabel = hoverIndex != null ? sliced[hoverIndex]?.label : null;
   const hoverValue = hoverIndex != null ? Number(sliced[hoverIndex]?.[meta.key]) : null;
 
   return (
-    <div className={cn("cc-root", focus && "is-focus", !drawerOpen && "drawer-collapsed")}>
+    <div
+      className={cn("cc-root", focus && "is-focus", !drawerOpen && "drawer-collapsed")}
+      data-palette={palette}
+    >
       <aside className="cc-rail" aria-label="Firm">
         <div className="cc-brand">
           <div className="cc-mark">H</div>
@@ -153,6 +178,7 @@ export default function CommandCenter({ model }: { model: CommandCenterModel }) 
             {model.demo ? <em className="cc-demo">Demo fixture</em> : null}
           </div>
           <div className="cc-top-actions">
+            <PaletteDock value={palette} onChange={applyPalette} />
             <Button variant="hairline" onClick={() => setCmdOpen(true)} className="cc-ask-trigger">
               <Sparkle size={14} weight="bold" />
               Ask Hathorn
@@ -259,6 +285,7 @@ export default function CommandCenter({ model }: { model: CommandCenterModel }) 
 
               <div className="cc-chart-shell">
                 <IntelligenceChart
+                  key={palette}
                   periods={model.periods}
                   lens={lens}
                   activePeriodId={periodId}
@@ -432,6 +459,10 @@ export default function CommandCenter({ model }: { model: CommandCenterModel }) 
           if (k === "anomalies") setShowAnomalies((v) => !v);
           if (k === "brush") setBrushZoom((v) => !v);
           if (k === "focus") setFocus((v) => !v);
+          if (k === "palette") {
+            const i = CC_PALETTES.findIndex((p) => p.id === palette);
+            applyPalette(CC_PALETTES[(i + 1) % CC_PALETTES.length].id);
+          }
         }}
       />
 

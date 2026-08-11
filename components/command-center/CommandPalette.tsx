@@ -21,7 +21,7 @@ export default function CommandPalette({
   suggestions: string[];
   onAsk: (q: string) => void;
   onLens: (l: CCLens) => void;
-  onToggle: (key: "band" | "anomalies" | "brush" | "focus") => void;
+  onToggle: (key: "band" | "anomalies" | "brush" | "focus" | "palette") => void;
 }) {
   const [q, setQ] = useState("");
 
@@ -42,6 +42,7 @@ export default function CommandPalette({
       { id: "anom", label: "Toggle anomaly markers", hint: "Chart", run: () => onToggle("anomalies") },
       { id: "brush", label: "Toggle brush / semantic zoom", hint: "Chart", run: () => onToggle("brush") },
       { id: "focus", label: "Toggle fullscreen focus", hint: "View", run: () => onToggle("focus") },
+      { id: "palette", label: "Cycle color palette (or press P)", hint: "Theme", run: () => onToggle("palette") },
     ];
     const query = q.trim().toLowerCase();
     if (!query) return base;

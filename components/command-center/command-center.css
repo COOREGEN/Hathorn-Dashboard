@@ -1,5 +1,108 @@
 /* Hathorn Command Center — proprietary intelligence surface.
-   Palette = platform Hathorn tokens only. Structure over paint. */
+   Structure over paint. Palettes swap tokens on .cc-root[data-palette]. */
+
+/* Palette tokens — structure unchanged; paint swaps */
+.cc-root[data-palette="hathorn"] {
+  --paper: #FBF8F1;
+  --panel: #F4EFE3;
+  --ink: #0C0B0A;
+  --ink-soft: #3A352E;
+  --ink-mute: #6E675B;
+  --hairline: #E4DCC9;
+  --brand: #2C504D;
+  --brand-deep: #1D342F;
+  --brand-tint: rgba(44, 80, 77, 0.10);
+  --accent: #DB5928;
+  --accent-deep: #9E3F1D;
+  --accent-tint: rgba(219, 89, 40, 0.12);
+}
+.cc-root[data-palette="northbridge"] {
+  --paper: #F8F5F1;
+  --panel: #F0EBE4;
+  --ink: #1C1916;
+  --ink-soft: #3A342E;
+  --ink-mute: #6A6158;
+  --hairline: #E6DED4;
+  --brand: #C45C26;
+  --brand-deep: #9A4519;
+  --brand-tint: rgba(196, 92, 38, 0.10);
+  --accent: #2C504D;
+  --accent-deep: #1E3A38;
+  --accent-tint: rgba(44, 80, 77, 0.12);
+}
+.cc-root[data-palette="jade"] {
+  --paper: #F3F7F4;
+  --panel: #EAF3EE;
+  --ink: #0D1B16;
+  --ink-soft: #24352E;
+  --ink-mute: #5A6F66;
+  --hairline: #D7E4DC;
+  --brand: #0C9B74;
+  --brand-deep: #087A5A;
+  --brand-tint: rgba(12, 155, 116, 0.10);
+  --accent: #3D8FD1;
+  --accent-deep: #2B6FA8;
+  --accent-tint: rgba(61, 143, 209, 0.12);
+}
+.cc-root[data-palette="navy"] {
+  --paper: #F4F6FA;
+  --panel: #E8ECF4;
+  --ink: #121826;
+  --ink-soft: #243049;
+  --ink-mute: #5A6578;
+  --hairline: #D5DCE8;
+  --brand: #1D3557;
+  --brand-deep: #13243D;
+  --brand-tint: rgba(29, 53, 87, 0.10);
+  --accent: #E07A3D;
+  --accent-deep: #C45F24;
+  --accent-tint: rgba(224, 122, 61, 0.12);
+}
+.cc-root[data-palette="ink"] {
+  --paper: #F6F5F2;
+  --panel: #ECEAE4;
+  --ink: #141414;
+  --ink-soft: #2A2A2A;
+  --ink-mute: #6A6A6A;
+  --hairline: #DDDAD2;
+  --brand: #1F2933;
+  --brand-deep: #111820;
+  --brand-tint: rgba(31, 41, 51, 0.10);
+  --accent: #C4A35A;
+  --accent-deep: #9A7E3E;
+  --accent-tint: rgba(196, 163, 90, 0.14);
+}
+
+.cc-palette-dock {
+  display: flex; align-items: center; gap: 0.55rem;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--hairline);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--panel) 70%, transparent);
+}
+.cc-palette-label {
+  font-family: var(--utility); font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute);
+}
+.cc-swatches { display: flex; gap: 0.3rem; }
+.cc-swatch {
+  width: 1.25rem; height: 1.25rem; padding: 0; border-radius: 0.35rem;
+  border: 2px solid transparent; background: none; cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+.cc-swatch:hover { transform: translateY(-1px); }
+.cc-swatch.on { border-color: var(--ink); }
+.cc-swatch i {
+  display: block; width: 100%; height: 100%; border-radius: 0.22rem; overflow: hidden;
+}
+.cc-swatch i::after {
+  content: ""; display: block; width: 45%; height: 100%; margin-left: auto;
+  background: var(--s2);
+}
+.cc-palette-name {
+  font-family: var(--utility); font-size: 0.7rem; font-style: normal; font-weight: 600;
+  color: var(--ink-soft); min-width: 4.5rem;
+}
 
 .cc-root {
   --cc-pad: clamp(1.1rem, 2.2vw, 2rem);
