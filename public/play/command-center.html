@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hathorn · Command Center — play</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Libre+Franklin:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --ink: #e8e6e1;
+      --ink-mute: #9a968c;
+      --ink-faint: #6a665c;
+      --paper: #0c0c0b;
+      --panel: #121210;
+      --line: rgba(232, 230, 225, 0.08);
+      --line-strong: rgba(232, 230, 225, 0.16);
+      --gold: #c4a35a;
+      --gold-soft: rgba(196, 163, 90, 0.14);
+      --mint: #7eb8a2;
+      --mint-soft: rgba(126, 184, 162, 0.12);
+      --warn: #c47a5a;
+      --display: "Cormorant Garamond", Georgia, serif;
+      --body: "EB Garamond", Georgia, serif;
+      --ui: "Libre Franklin", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--paper); color: var(--ink); }
+    body {
+      font-family: var(--body);
+      font-size: 17px;
+      line-height: 1.45;
+      background:
+        radial-gradient(1200px 600px at 70% -10%, rgba(126, 184, 162, 0.06), transparent 55%),
+        radial-gradient(900px 500px at 10% 100%, rgba(196, 163, 90, 0.04), transparent 50%),
+        var(--paper);
+    }
+    button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+    .nums { font-variant-numeric: tabular-nums lining-nums; }
+    .banner {
+      font-family: var(--ui);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      background: rgba(196, 163, 90, 0.08);
+      border-bottom: 1px solid var(--line);
+      padding: 8px 18px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .banner strong { color: var(--gold); font-weight: 600; }
+    .shell { display: grid; grid-template-columns: 72px 1fr 300px; min-height: calc(100vh - 34px); }
+    @media (max-width: 1100px) { .shell { grid-template-columns: 64px 1fr; } .aside { display: none; } }
+    @media (max-width: 720px) {
+      .shell { grid-template-columns: 1fr; }
+      .rail { display: none; }
+      .period-row { overflow-x: auto; }
+    }
+
+    /* Firm rail */
+    .rail {
+      border-right: 1px solid var(--line);
+      padding: 18px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,0,0,0.25);
+    }
+    .mark {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-family: var(--display);
+      font-size: 18px;
+      display: grid; place-items: center;
+      margin-bottom: 14px;
+    }
+    .nav-btn {
+      width: 100%;
+      padding: 10px 4px;
+      border-radius: 8px;
+      font-family: var(--ui);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    .nav-btn:hover, .nav-btn.on { color: var(--ink); background: rgba(255,255,255,0.04); }
+    .nav-btn.on { color: var(--gold); }
+    .rail-foot { margin-top: auto; }
+    .nav-btn .dot {
+      display: block; width: 6px; height: 6px; border-radius: 50%;
+      background: var(--ink-faint); margin: 0 auto 6px;
+    }
+    .nav-btn.on .dot { background: var(--gold); }
+
+    /* Main */
+    .main { padding: 22px 28px 40px; min-width: 0; }
+    .client-bar {
+      display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 18px;
+      margin-bottom: 6px;
+    }
+    .client-name {
+      font-family: var(--display);
+      font-size: 34px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0;
+    }
+    .meta {
+      font-family: var(--ui);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+    }
+    .meta span { color: var(--mint); }
+    .compare {
+      margin-left: auto;
+      display: flex; gap: 6px; align-items: center;
+      font-family: var(--ui); font-size: 11px; color: var(--ink-mute);
+    }
+    .chip {
+      padding: 6px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink-mute);
+      font-family: var(--ui);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .chip:hover { border-color: var(--line-strong); color: var(--ink); }
+    .chip.on { border-color: rgba(196,163,90,0.45); color: var(--gold); background: var(--gold-soft); }
+
+    .period-row {
+      display: flex; gap: 4px; margin: 14px 0 22px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 10px;
+    }
+    .period {
+      padding: 8px 12px;
+      font-family: var(--ui);
+      font-size: 12px;
+      color: var(--ink-faint);
+      border-radius: 6px 6px 0 0;
+      white-space:nowrap;
+    }
+    .period:hover { color: var(--ink); }
+    .period.on {
+      color: var(--ink);
+      box-shadow: inset 0 -2px 0 var(--gold);
+    }
+    .period .yr { display: block; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(180px, 240px) 1fr;
+      gap: 28px;
+      align-items: end;
+      margin-bottom: 10px;
+    }
+    @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } }
+    .hero-label {
+      font-family: var(--ui);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      margin-bottom: 8px;
+    }
+    .hero-fig {
+      font-family: var(--display);
+      font-size: clamp(48px, 6vw, 72px);
+      font-weight: 600;
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      margin: 0 0 8px;
+    }
+    .hero-delta {
+      font-family: var(--ui);
+      font-size: 12px;
+      color: var(--mint);
+    }
+    .hero-delta.down { color: var(--warn); }
+    .hero-delta.flat { color: var(--ink-mute); }
+    .chart-wrap {
+      height: 280px;
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+    }
+    #heroChart { width: 100%; height: 100%; }
+
+    .controls {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin: 8px 0 22px;
+      font-family: var(--ui);
+    }
+    .seg { display: flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; }
+    .seg button {
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ink-faint);
+    }
+    .seg button.on { background: rgba(255,255,255,0.06); color: var(--ink); }
+    .spacer { flex: 1; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 28px;
+    }
+    @media (max-width: 900px) { .metrics { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 560px) { .metrics { grid-template-columns: 1fr 1fr; } }
+    .metric {
+      padding: 16px 14px;
+      border-right: 1px solid var(--line);
+      text-align: left;
+      transition: background 0.15s;
+    }
+    .metric:last-child { border-right: 0; }
+    .metric:hover { background: rgba(255,255,255,0.02); }
+    .metric.on { background: var(--mint-soft); }
+    .metric .k {
+      font-family: var(--ui);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      margin-bottom: 6px;
+    }
+    .metric .v {
+      font-family: var(--display);
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .metric .d { font-family: var(--ui); font-size: 11px; color: var(--mint); }
+    .metric .d.down { color: var(--warn); }
+    .spark { width: 100%; height: 28px; margin-top: 8px; opacity: 0.75; }
+
+    .why {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 32px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 900px) { .why { grid-template-columns: 1fr; } }
+    h2 {
+      font-family: var(--display);
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0 0 6px;
+    }
+    .sub {
+      font-family: var(--ui);
+      font-size: 12px;
+      color: var(--ink-mute);
+      margin: 0 0 16px;
+    }
+    .bridge { list-style: none; margin: 0; padding: 0; }
+    .bridge li {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 16px;
+    }
+    .bridge li button {
+      text-align: left;
+      color: var(--ink);
+    }
+    .bridge li button:hover { color: var(--gold); }
+    .bridge .amt { font-family: var(--ui); font-size: 13px; color: var(--mint); }
+    .bridge .amt.down { color: var(--warn); }
+
+    .expense-box { min-height: 220px; }
+    #donut { width: 100%; height: 220px; }
+
+    .close-foot {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 14px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      font-family: var(--ui);
+      font-size: 12px;
+      color: var(--ink-mute);
+    }
+    .gold-cta {
+      margin-left: auto;
+      padding: 10px 16px;
+      background: var(--gold);
+      color: #12110e;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border-radius: 4px;
+    }
+    .gold-cta:hover { filter: brightness(1.05); }
+
+    /* Aside */
+    .aside {
+      border-left: 1px solid var(--line);
+      padding: 22px 18px;
+      background: rgba(0,0,0,0.2);
+    }
+    .aside h3 {
+      font-family: var(--ui);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin: 0 0 12px;
+    }
+    .insight {
+      font-size: 16px;
+      color: var(--ink);
+      margin: 0 0 18px;
+      padding-left: 12px;
+      border-left: 2px solid rgba(196,163,90,0.45);
+    }
+    .takes { list-style: none; margin: 0 0 22px; padding: 0; }
+    .takes li {
+      font-family: var(--ui);
+      font-size: 12px;
+      color: var(--ink-mute);
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .ask-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      font-family: var(--ui);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+    .ask-btn:hover { border-color: var(--gold); color: var(--gold); }
+    .ask-btn kbd {
+      float: right;
+      opacity: 0.5;
+      font-size: 10px;
+    }
+
+    /* Drawer + modal */
+    .scrim {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 40;
+    }
+    .scrim.on { opacity: 1; pointer-events: auto; }
+    .drawer {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: min(400px, 100%);
+      background: var(--panel);
+      border-left: 1px solid var(--line-strong);
+      padding: 28px 24px;
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      z-index: 50;
+    }
+    .drawer.on { transform: translateX(0); }
+    .drawer h2 { margin-bottom: 8px; }
+    .drawer p { color: var(--ink-mute); margin: 0 0 16px; }
+    .drawer .close {
+      position: absolute; top: 16px; right: 16px;
+      font-family: var(--ui); font-size: 11px; color: var(--ink-mute);
+    }
+    .modal {
+      position: fixed; left: 50%; top: 18%;
+      transform: translate(-50%, -12px) scale(0.98);
+      width: min(560px, calc(100% - 32px));
+      background: var(--panel);
+      border: 1px solid var(--line-strong);
+      border-radius: 12px;
+      padding: 22px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 60;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+    }
+    .modal.on { opacity: 1; pointer-events: auto; transform: translate(-50%, 0) scale(1); }
+    .modal label {
+      display: block;
+      font-family: var(--ui);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      margin-bottom: 8px;
+    }
+    .modal input {
+      width: 100%;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--line-strong);
+      color: var(--ink);
+      font-family: var(--body);
+      font-size: 22px;
+      padding: 8px 0 12px;
+      outline: none;
+    }
+    .modal .hints {
+      margin-top: 16px;
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .modal .hints button {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-family: var(--ui);
+      font-size: 11px;
+      color: var(--ink-mute);
+    }
+    .modal .hints button:hover { color: var(--ink); border-color: var(--line-strong); }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--panel);
+      border: 1px solid var(--gold);
+      color: var(--ink);
+      font-family: var(--ui);
+      font-size: 12px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 70;
+      pointer-events: none;
+    }
+    .toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <div><strong>Play file</strong> — not live ledger data. Click around freely.</div>
+    <div>Esc closes · ⌘K / Ctrl+K Ask · sample: Northbridge Apr 2026 style</div>
+  </div>
+
+  <div class="shell">
+    <aside class="rail" aria-label="Firm">
+      <div class="mark" title="Hathorn">H</div>
+      <button class="nav-btn on" data-nav="today"><span class="dot"></span>Today</button>
+      <button class="nav-btn" data-nav="clients"><span class="dot"></span>Clients</button>
+      <button class="nav-btn" data-nav="work"><span class="dot"></span>Work</button>
+      <button class="nav-btn" data-nav="reports"><span class="dot"></span>Reports</button>
+      <button class="nav-btn" data-nav="ask"><span class="dot"></span>Ask</button>
+      <div class="rail-foot">
+        <button class="nav-btn" data-nav="firm"><span class="dot"></span>Firm</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="client-bar">
+        <h1 class="client-name">Northbridge Care</h1>
+        <div class="meta">Home care · <span id="statusDot">Gate clear</span> · Consolidated</div>
+        <div class="compare">
+          Compare
+          <button class="chip on" data-compare="py">Prior year</button>
+          <button class="chip" data-compare="pm">Prior month</button>
+        </div>
+      </div>
+
+      <div class="period-row" id="periods"></div>
+
+      <div class="hero">
+        <div>
+          <div class="hero-label" id="heroLabel">Revenue</div>
+          <p class="hero-fig nums" id="heroFig">$190.9K</p>
+          <div class="hero-delta" id="heroDelta">+12.4% vs prior year</div>
+        </div>
+        <div class="chart-wrap"><div id="heroChart"></div></div>
+      </div>
+
+      <div class="controls">
+        <div class="seg" id="lensSeg">
+          <button class="on" data-lens="revenue">Revenue</button>
+          <button data-lens="gp">GP</button>
+          <button data-lens="margin">Margin</button>
+          <button data-lens="ni">NI</button>
+          <button data-lens="cash">Cash</button>
+          <button data-lens="ar">AR</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="seg" id="rangeSeg">
+          <button data-range="6">6M</button>
+          <button class="on" data-range="12">12M</button>
+          <button data-range="24">24M</button>
+          <button data-range="ytd">YTD</button>
+          <button data-range="all">ALL</button>
+        </div>
+        <div class="seg" id="seriesSeg">
+          <button class="on" data-series="actual">Actual</button>
+          <button data-series="prior">Prior year</button>
+          <button data-series="budget">Budget</button>
+        </div>
+      </div>
+
+      <div class="metrics" id="metrics"></div>
+
+      <div class="why">
+        <section>
+          <h2>Why it changed</h2>
+          <p class="sub">Net income bridge · click a driver</p>
+          <ul class="bridge" id="bridge"></ul>
+        </section>
+        <section>
+          <h2>Expense mix</h2>
+          <p class="sub">From P&amp;L lines · this period</p>
+          <div class="expense-box"><div id="donut"></div></div>
+        </section>
+      </div>
+
+      <div class="close-foot">
+        <div>Close · Apr 2026 · <span style="color:var(--mint)">ready for advisory</span></div>
+        <div>Payroll tied · BS balances · Cash agrees</div>
+        <button class="gold-cta" id="closeRoom">Go to Close Room</button>
+      </div>
+    </main>
+
+    <aside class="aside">
+      <h3>What Hathorn sees</h3>
+      <p class="insight" id="insight">
+        Revenue held the year-over-year lift; labor stayed inside the band. Aged AR is the conversation — not the top line.
+      </p>
+      <h3>Takeaways</h3>
+      <ul class="takes" id="takes">
+        <li>Labor ratio 68.2% — inside 65–72% band</li>
+        <li>Cash cover ~9.1 weeks operating</li>
+        <li>$31K in 61+ AR — name the payer in Close Room</li>
+      </ul>
+      <button class="ask-btn" id="openAsk">Ask Hathorn <kbd>⌘K</kbd></button>
+    </aside>
+  </div>
+
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <button class="close" id="drawerClose">Close</button>
+    <h2 id="drawerTitle">Driver</h2>
+    <p id="drawerBody">Detail for the selected movement.</p>
+    <p class="sub" id="drawerMeta"></p>
+  </aside>
+
+  <div class="modal" id="askModal" role="dialog" aria-label="Ask Hathorn">
+    <label for="askInput">Ask Hathorn</label>
+    <input id="askInput" placeholder="Why did net income move in April?" autocomplete="off" />
+    <div class="hints">
+      <button data-q="What drove the revenue lift vs last April?">Revenue lift</button>
+      <button data-q="Is labor still inside the band?">Labor band</button>
+      <button data-q="Which payers sit in 61+?">Aged AR</button>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* Prototype data — play only. Not a live ledger export. */
+    const MONTHS = [
+      { id: "2025-05", label: "May", year: "2025", revenue: 162.4, gp: 48.1, margin: 29.6, ni: 21.2, cash: 118.0, ar: 74.2 },
+      { id: "2025-06", label: "Jun", year: "2025", revenue: 168.9, gp: 50.4, margin: 29.8, ni: 22.0, cash: 121.5, ar: 76.1 },
+      { id: "2025-07", label: "Jul", year: "2025", revenue: 171.2, gp: 49.8, margin: 29.1, ni: 20.4, cash: 119.8, ar: 79.4 },
+      { id: "2025-08", label: "Aug", year: "2025", revenue: 174.6, gp: 51.2, margin: 29.3, ni: 21.8, cash: 124.1, ar: 78.0 },
+      { id: "2025-09", label: "Sep", year: "2025", revenue: 176.0, gp: 52.0, margin: 29.5, ni: 22.6, cash: 126.4, ar: 80.2 },
+      { id: "2025-10", label: "Oct", year: "2025", revenue: 178.4, gp: 53.1, margin: 29.8, ni: 23.1, cash: 128.0, ar: 81.5 },
+      { id: "2025-11", label: "Nov", year: "2025", revenue: 180.1, gp: 54.0, margin: 30.0, ni: 23.8, cash: 130.2, ar: 82.0 },
+      { id: "2025-12", label: "Dec", year: "2025", revenue: 182.5, gp: 55.2, margin: 30.2, ni: 24.4, cash: 133.5, ar: 79.8 },
+      { id: "2026-01", label: "Jan", year: "2026", revenue: 184.0, gp: 54.8, margin: 29.8, ni: 23.9, cash: 131.0, ar: 84.1 },
+      { id: "2026-02", label: "Feb", year: "2026", revenue: 179.2, gp: 52.6, margin: 29.4, ni: 22.1, cash: 129.4, ar: 86.3 },
+      { id: "2026-03", label: "Mar", year: "2026", revenue: 186.4, gp: 55.9, margin: 30.0, ni: 24.8, cash: 134.2, ar: 85.0 },
+      { id: "2026-04", label: "Apr", year: "2026", revenue: 190.9, gp: 57.4, margin: 30.1, ni: 25.6, cash: 136.8, ar: 88.4 },
+    ];
+
+    const EXPENSES = [
+      { name: "Direct care labor", value: 98.4 },
+      { name: "Attendant labor", value: 22.1 },
+      { name: "Payroll taxes & WC", value: 14.6 },
+      { name: "Occupancy", value: 6.8 },
+      { name: "Admin & other", value: 8.2 },
+    ];
+
+    const DRIVERS = [
+      { id: "rev", label: "Revenue", amt: +8.4, detail: "Volume hours and rate mix both contributed. Adult day center is still the smaller slice — consolidated movement is mostly core home care." },
+      { id: "labor", label: "Direct labor", amt: -4.1, detail: "Hours paid rose with revenue; OT share stayed under 6%. Ratio remains inside the agreed band." },
+      { id: "opex", label: "Operating expense", amt: -1.2, detail: "Insurance renewal stepped up; everything else was flat in dollars." },
+      { id: "other", label: "Other / below line", amt: +0.7, detail: "Small interest and timing items — not an operational story." },
+    ];
+
+    const state = {
+      periodIdx: MONTHS.length - 1,
+      lens: "revenue",
+      range: "12",
+      series: "actual",
+      compare: "py",
+    };
+
+    const fmtK = (n) => {
+      const abs = Math.abs(n);
+      const s = abs >= 100 ? abs.toFixed(0) : abs.toFixed(1);
+      return (n < 0 ? "−" : "") + "$" + s + "K";
+    };
+    const fmtPct = (n) => (n < 0 ? "−" : "") + Math.abs(n).toFixed(1) + "%";
+    const fmtVal = (lens, n) => (lens === "margin" ? fmtPct(n) : fmtK(n));
+
+    function sliceMonths() {
+      const end = state.periodIdx + 1;
+      if (state.range === "all") return MONTHS.slice(0, end);
+      if (state.range === "ytd") {
+        const y = MONTHS[state.periodIdx].year;
+        return MONTHS.filter((m, i) => m.year === y && i <= state.periodIdx);
+      }
+      const n = Number(state.range);
+      return MONTHS.slice(Math.max(0, end - n), end);
+    }
+
+    function priorVal(m, lens) {
+      const idx = MONTHS.indexOf(m);
+      if (state.compare === "pm") {
+        const p = MONTHS[idx - 1];
+        return p ? p[lens] : null;
+      }
+      const py = MONTHS.find((x) => x.label === m.label && Number(x.year) === Number(m.year) - 1);
+      return py ? py[lens] : null;
+    }
+
+    function deltaText(cur, prior) {
+      if (prior == null || prior === 0) return { text: "No compare basis", cls: "flat" };
+      const d = ((cur - prior) / Math.abs(prior)) * 100;
+      const pts = cur - prior;
+      const isMargin = state.lens === "margin";
+      const text = isMargin
+        ? `${pts >= 0 ? "+" : "−"}${Math.abs(pts).toFixed(1)} pts vs ${state.compare === "py" ? "prior year" : "prior month"}`
+        : `${d >= 0 ? "+" : "−"}${Math.abs(d).toFixed(1)}% vs ${state.compare === "py" ? "prior year" : "prior month"}`;
+      const cls = Math.abs(isMargin ? pts : d) < 0.4 ? "flat" : d >= 0 || (isMargin && pts >= 0) ? "" : "down";
+      // For cash/AR higher isn't always better — keep simple for play file
+      return { text, cls: Math.abs(isMargin ? pts : d) < 0.4 ? "flat" : (cur >= prior ? "" : "down") };
+    }
+
+    let heroChart, donutChart;
+
+    function renderPeriods() {
+      const el = document.getElementById("periods");
+      el.innerHTML = MONTHS.map((m, i) =>
+        `<button class="period${i === state.periodIdx ? " on" : ""}" data-i="${i}"><span class="yr">${m.year}</span>${m.label}</button>`
+      ).join("");
+      el.querySelectorAll(".period").forEach((b) =>
+        b.addEventListener("click", () => {
+          state.periodIdx = Number(b.dataset.i);
+          renderAll();
+        })
+      );
+    }
+
+    function renderHero() {
+      const m = MONTHS[state.periodIdx];
+      const v = m[state.lens];
+      document.getElementById("heroLabel").textContent = {
+        revenue: "Revenue", gp: "Gross profit", margin: "Gross margin",
+        ni: "Net income", cash: "Cash", ar: "Receivables",
+      }[state.lens];
+      document.getElementById("heroFig").textContent = fmtVal(state.lens, v);
+      const d = deltaText(v, priorVal(m, state.lens));
+      const deltaEl = document.getElementById("heroDelta");
+      deltaEl.textContent = d.text;
+      deltaEl.className = "hero-delta " + d.cls;
+    }
+
+    function renderChart() {
+      const rows = sliceMonths();
+      const labels = rows.map((r) => r.label + " " + r.year.slice(2));
+      const actual = rows.map((r) => r[state.lens]);
+      const prior = rows.map((r) => {
+        const py = MONTHS.find((x) => x.label === r.label && Number(x.year) === Number(r.year) - 1);
+        return py ? py[state.lens] : null;
+      });
+      const budget = actual.map((v) => +(v * 0.96).toFixed(1)); // play faux
+
+      const series = [];
+      if (state.series === "actual" || state.series === "prior" || state.series === "budget") {
+        series.push({
+          name: "Actual",
+          type: "line",
+          data: actual,
+          smooth: 0.25,
+          symbol: "circle",
+          symbolSize: 7,
+          lineStyle: { width: 2.2, color: "#7eb8a2" },
+          itemStyle: { color: "#7eb8a2" },
+          areaStyle: state.series === "actual" ? {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: "rgba(126,184,162,0.22)" },
+              { offset: 1, color: "rgba(126,184,162,0)" },
+            ]),
+          } : undefined,
+        });
+      }
+      if (state.series === "prior") {
+        series.push({
+          name: "Prior year",
+          type: "line",
+          data: prior,
+          smooth: 0.25,
+          symbol: "none",
+          lineStyle: { width: 1.5, type: "dashed", color: "rgba(232,230,225,0.35)" },
+        });
+      }
+      if (state.series === "budget") {
+        series.push({
+          name: "Budget",
+          type: "line",
+          data: budget,
+          smooth: 0.25,
+          symbol: "none",
+          lineStyle: { width: 1.5, type: "dotted", color: "rgba(196,163,90,0.7)" },
+        });
+      }
+
+      if (!heroChart) heroChart = echarts.init(document.getElementById("heroChart"));
+      heroChart.setOption({
+        animationDuration: 400,
+        grid: { left: 8, right: 12, top: 24, bottom: 8, containLabel: true },
+        tooltip: {
+          trigger: "axis",
+          backgroundColor: "#121210",
+          borderColor: "rgba(232,230,225,0.16)",
+          textStyle: { color: "#e8e6e1", fontFamily: "Libre Franklin", fontSize: 12 },
+          formatter(params) {
+            return params.map((p) => {
+              const val = p.value == null ? "—" : fmtVal(state.lens, p.value);
+              return `${p.marker} ${p.seriesName}: <b>${val}</b>`;
+            }).join("<br/>");
+          },
+        },
+        xAxis: {
+          type: "category",
+          data: labels,
+          axisLine: { lineStyle: { color: "rgba(232,230,225,0.12)" } },
+          axisLabel: { color: "#6a665c", fontFamily: "Libre Franklin", fontSize: 10 },
+          axisTick: { show: false },
+        },
+        yAxis: {
+          type: "value",
+          splitLine: { lineStyle: { color: "rgba(232,230,225,0.06)" } },
+          axisLabel: {
+            color: "#6a665c",
+            fontFamily: "Libre Franklin",
+            fontSize: 10,
+            formatter: (v) => (state.lens === "margin" ? v + "%" : "$" + v + "K"),
+          },
+        },
+        series,
+      }, true);
+    }
+
+    function sparkPath(values) {
+      const w = 120, h = 28;
+      const min = Math.min(...values), max = Math.max(...values);
+      const span = max - min || 1;
+      return values.map((v, i) => {
+        const x = (i / (values.length - 1)) * w;
+        const y = h - ((v - min) / span) * (h - 4) - 2;
+        return `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(" ");
+    }
+
+    function renderMetrics() {
+      const keys = ["revenue", "gp", "margin", "ni", "cash"];
+      const labels = { revenue: "Revenue", gp: "Gross profit", margin: "Margin", ni: "Net income", cash: "Cash" };
+      const m = MONTHS[state.periodIdx];
+      const hist = sliceMonths();
+      document.getElementById("metrics").innerHTML = keys.map((k) => {
+        const prior = priorVal(m, k);
+        const d = deltaText.call({ ...state, lens: k }, m[k], prior);
+        // fix: deltaText uses state.lens — temporarily patch
+        return "";
+      });
+      // rewrite cleanly
+      const html = keys.map((k) => {
+        const cur = m[k];
+        const prior = priorVal(m, k);
+        let dText = "—";
+        let cls = "flat";
+        if (prior != null && prior !== 0) {
+          if (k === "margin") {
+            const pts = cur - prior;
+            dText = `${pts >= 0 ? "+" : "−"}${Math.abs(pts).toFixed(1)} pts`;
+            cls = Math.abs(pts) < 0.3 ? "flat" : pts >= 0 ? "" : "down";
+          } else {
+            const pct = ((cur - prior) / Math.abs(prior)) * 100;
+            dText = `${pct >= 0 ? "+" : "−"}${Math.abs(pct).toFixed(1)}%`;
+            cls = Math.abs(pct) < 0.4 ? "flat" : pct >= 0 ? "" : "down";
+          }
+        }
+        const vals = hist.map((h) => h[k]);
+        return `<button class="metric${state.lens === k ? " on" : ""}" data-lens="${k}">
+          <div class="k">${labels[k]}</div>
+          <div class="v nums">${k === "margin" ? fmtPct(cur) : fmtK(cur)}</div>
+          <div class="d ${cls}">${dText}</div>
+          <svg class="spark" viewBox="0 0 120 28" preserveAspectRatio="none"><path d="${sparkPath(vals)}" fill="none" stroke="${state.lens === k ? "#7eb8a2" : "rgba(232,230,225,0.35)"}" stroke-width="1.5"/></svg>
+        </button>`;
+      }).join("");
+      document.getElementById("metrics").innerHTML = html;
+      document.querySelectorAll("#metrics .metric").forEach((b) =>
+        b.addEventListener("click", () => {
+          state.lens = b.dataset.lens;
+          syncSegs();
+          renderAll();
+        })
+      );
+    }
+
+    function renderBridge() {
+      document.getElementById("bridge").innerHTML = DRIVERS.map((d) =>
+        `<li><button data-id="${d.id}">${d.label}</button>
+         <span class="amt nums ${d.amt < 0 ? "down" : ""}">${d.amt >= 0 ? "+" : "−"}$${Math.abs(d.amt).toFixed(1)}K</span></li>`
+      ).join("") +
+      `<li><strong>Net income</strong><span class="amt nums">$25.6K</span></li>`;
+      document.querySelectorAll("#bridge button").forEach((b) =>
+        b.addEventListener("click", () => openDrawer(b.dataset.id))
+      );
+    }
+
+    function renderDonut() {
+      if (!donutChart) donutChart = echarts.init(document.getElementById("donut"));
+      donutChart.setOption({
+        color: ["#7eb8a2", "#c4a35a", "#9a968c", "#6a8a9a", "#c47a5a"],
+        tooltip: {
+          trigger: "item",
+          backgroundColor: "#121210",
+          borderColor: "rgba(232,230,225,0.16)",
+          textStyle: { color: "#e8e6e1", fontFamily: "Libre Franklin", fontSize: 12 },
+          formatter: (p) => `${p.name}<br/><b>${fmtK(p.value)}</b> · ${p.percent}%`,
+        },
+        series: [{
+          type: "pie",
+          radius: ["48%", "72%"],
+          center: ["42%", "50%"],
+          label: {
+            color: "#9a968c",
+            fontFamily: "Libre Franklin",
+            fontSize: 11,
+            formatter: "{b}",
+          },
+          labelLine: { lineStyle: { color: "rgba(232,230,225,0.2)" } },
+          data: EXPENSES.map((e) => ({ name: e.name, value: e.value })),
+          emphasis: { scale: true, scaleSize: 4 },
+        }],
+      });
+    }
+
+    function syncSegs() {
+      document.querySelectorAll("#lensSeg button").forEach((b) => b.classList.toggle("on", b.dataset.lens === state.lens));
+      document.querySelectorAll("#rangeSeg button").forEach((b) => b.classList.toggle("on", b.dataset.range === state.range));
+      document.querySelectorAll("#seriesSeg button").forEach((b) => b.classList.toggle("on", b.dataset.series === state.series));
+      document.querySelectorAll("[data-compare]").forEach((b) => b.classList.toggle("on", b.dataset.compare === state.compare));
+    }
+
+    function renderAll() {
+      syncSegs();
+      renderPeriods();
+      renderHero();
+      renderChart();
+      renderMetrics();
+      renderBridge();
+      renderDonut();
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("on");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => t.classList.remove("on"), 1800);
+    }
+
+    function openDrawer(id) {
+      const d = DRIVERS.find((x) => x.id === id);
+      if (!d) return;
+      document.getElementById("drawerTitle").textContent = d.label;
+      document.getElementById("drawerBody").textContent = d.detail;
+      document.getElementById("drawerMeta").textContent =
+        `Impact ${d.amt >= 0 ? "+" : "−"}$${Math.abs(d.amt).toFixed(1)}K · April 2026 play data`;
+      document.getElementById("drawer").classList.add("on");
+      document.getElementById("scrim").classList.add("on");
+      document.getElementById("drawer").setAttribute("aria-hidden", "false");
+    }
+    function closeOverlays() {
+      document.getElementById("drawer").classList.remove("on");
+      document.getElementById("askModal").classList.remove("on");
+      document.getElementById("scrim").classList.remove("on");
+      document.getElementById("drawer").setAttribute("aria-hidden", "true");
+    }
+    function openAsk() {
+      document.getElementById("askModal").classList.add("on");
+      document.getElementById("scrim").classList.add("on");
+      document.getElementById("askInput").focus();
+    }
+
+    // wiring
+    document.querySelectorAll("#lensSeg button").forEach((b) =>
+      b.addEventListener("click", () => { state.lens = b.dataset.lens; renderAll(); })
+    );
+    document.querySelectorAll("#rangeSeg button").forEach((b) =>
+      b.addEventListener("click", () => { state.range = b.dataset.range; renderAll(); })
+    );
+    document.querySelectorAll("#seriesSeg button").forEach((b) =>
+      b.addEventListener("click", () => { state.series = b.dataset.series; renderAll(); })
+    );
+    document.querySelectorAll("[data-compare]").forEach((b) =>
+      b.addEventListener("click", () => { state.compare = b.dataset.compare; renderAll(); })
+    );
+    document.querySelectorAll("[data-nav]").forEach((b) =>
+      b.addEventListener("click", () => {
+        document.querySelectorAll("[data-nav]").forEach((x) => x.classList.remove("on"));
+        b.classList.add("on");
+        if (b.dataset.nav === "ask") openAsk();
+        else toast("Firm nav · play stub (“" + b.dataset.nav + "”)");
+      })
+    );
+    document.getElementById("openAsk").addEventListener("click", openAsk);
+    document.getElementById("closeRoom").addEventListener("click", () => toast("Close Room · play stub"));
+    document.getElementById("scrim").addEventListener("click", closeOverlays);
+    document.getElementById("drawerClose").addEventListener("click", closeOverlays);
+    document.querySelectorAll(".hints button").forEach((b) =>
+      b.addEventListener("click", () => {
+        document.getElementById("askInput").value = b.dataset.q;
+        toast("Ask would route to /ask with this context");
+      })
+    );
+    document.getElementById("askInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        toast("Ask would route to /ask with this context");
+        closeOverlays();
+      }
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeOverlays();
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        openAsk();
+      }
+    });
+    window.addEventListener("resize", () => {
+      heroChart && heroChart.resize();
+      donutChart && donutChart.resize();
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>
