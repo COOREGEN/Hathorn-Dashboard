@@ -19,8 +19,18 @@ export function integrationHubEnabled(): boolean {
 
 function rowConn(r: any): HubConnection {
   const provider = r.provider as ProviderKey;
-  const def = getProvider(provider);
-  const status = r.status as ConnectionStatus;
+  // Legacy mock rows must not crash staging when the mock provider is disabled.
+  let capabilities: HubConnection["capabilities"] = [];
+  let status = r.status as ConnectionStatus;
+  let lastErrorCode = r.last_error_code as string | null;
+  let lastErrorMessage = r.last_error_message as string | null;
+  try {
+    capabilities = getProvider(provider).capabilities;
+  } catch {
+    status = "DISCONNECTED";
+    lastErrorCode = lastErrorCode || "PROVIDER_DISABLED";
+    lastErrorMessage = lastErrorMessage || "This provider is disabled in this environment.";
+  }
   return {
     id: r.id,
     clientId: r.client_id,
@@ -32,15 +42,15 @@ function rowConn(r: any): HubConnection {
     connectedAt: r.connected_at,
     lastSuccessfulSyncAt: r.last_successful_sync_at,
     lastAttemptedSyncAt: r.last_attempted_sync_at,
-    lastErrorCode: r.last_error_code,
-    lastErrorMessage: r.last_error_message,
+    lastErrorCode,
+    lastErrorMessage,
     metadata: safeJson(r.metadata_json),
     health: computeHealth({
       status,
       lastSuccessfulSyncAt: r.last_successful_sync_at,
-      lastErrorCode: r.last_error_code,
+      lastErrorCode,
     }),
-    capabilities: def.capabilities,
+    capabilities,
   };
 }
 
