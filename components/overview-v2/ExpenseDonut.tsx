@@ -9,7 +9,7 @@ import { fmtMoney } from "./HeroChart";
 
 echarts.use([PieChart, TooltipComponent, CanvasRenderer]);
 
-const COLORS = ["#5EE4A8", "#6B8CFF", "#C4A35A", "#E07A5F", "#8B8578", "#4DB8A0"];
+const COLORS = ["#6FBF9A", "#7A8FB8", "#C4A35A", "#C97B63", "#8A8376", "#5A8F7B"];
 
 export default function ExpenseDonut({
   slices, total,

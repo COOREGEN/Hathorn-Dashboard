@@ -1,7 +1,7 @@
 "use client";
 /**
- * Dominant financial visualization — dark Intelligence OS.
- * Atmospheric canvas; cyan glow marks; rich compare tooltip.
+ * Dominant financial canvas — restrained institutional styling.
+ * Minimal glow; inspection tooltip; Actual / Prior / Budget.
  */
 import { useEffect, useMemo, useRef } from "react";
 import * as echarts from "echarts/core";
@@ -21,13 +21,13 @@ echarts.use([
   DataZoomComponent, CanvasRenderer,
 ]);
 
-const MUTE = "#9A9488";
-const HAIR = "rgba(255,255,255,0.06)";
-const MINT = "#5EE4A8";
-const CYAN = "#6EC8FF";
-const PRIOR = "#8A8478";
-const BUDGET = "#7B8CFF";
-const PAPER = "#F4EFE3";
+const MUTE = "#8A8376";
+const HAIR = "rgba(243,238,228,0.08)";
+const ACTUAL = "#6FBF9A";
+const PRIOR = "#8A8376";
+const BUDGET = "#7A8FB8";
+const PAPER = "#F3EEE4";
+const GOLD = "#C4A35A";
 
 export const LENS_META: Record<OverviewLens, { label: string; unit: "money" | "pct" }> = {
   revenue: { label: "Revenue", unit: "money" },
@@ -37,6 +37,11 @@ export const LENS_META: Record<OverviewLens, { label: string; unit: "money" | "p
   cash: { label: "Cash", unit: "money" },
   arTotal: { label: "Receivables", unit: "money" },
 };
+
+/** Higher is generally favourable for these lenses (margin/revenue/etc.). */
+export function lensFavorableUp(lens: OverviewLens): boolean {
+  return true; // all current lenses: higher is better; expenses are not lenses here
+}
 
 export function fmtMoney(n: number) {
   const s = n < 0 ? "−" : "";
@@ -66,6 +71,8 @@ export default function HeroChart({
   const el = useRef<HTMLDivElement>(null);
   const chart = useRef<echarts.EChartsType | null>(null);
   const meta = LENS_META[lens];
+  const reduceMotion = typeof window !== "undefined"
+    && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
   const sliced = useMemo(() => {
     if (range === "ALL") return periods;
@@ -98,31 +105,27 @@ export default function HeroChart({
 
     return {
       backgroundColor: "transparent",
-      animationDuration: 480,
+      animationDuration: reduceMotion ? 0 : 360,
       animationEasing: "cubicOut",
       textStyle: { fontFamily: "Libre Franklin, sans-serif", color: MUTE },
-      grid: { left: 52, right: 18, top: 36, bottom: 28 },
+      grid: { left: 52, right: 16, top: 32, bottom: 28 },
       legend: {
         show: hasPrior || hasBudget,
-        top: 0,
-        right: 0,
-        icon: "roundRect",
-        itemWidth: 14,
-        itemHeight: 2,
+        top: 0, right: 0, icon: "roundRect", itemWidth: 12, itemHeight: 2,
         textStyle: { color: MUTE, fontSize: 10, fontFamily: "Libre Franklin, sans-serif" },
       },
       tooltip: {
         trigger: "axis",
         axisPointer: {
           type: "line",
-          lineStyle: { color: "rgba(110,200,255,0.55)", width: 1.25 },
+          lineStyle: { color: "rgba(196,163,90,0.45)", width: 1 },
           label: { show: false },
         },
-        backgroundColor: "rgba(14,16,22,0.96)",
-        borderColor: "rgba(110,200,255,0.22)",
+        backgroundColor: "rgba(22,20,18,0.97)",
+        borderColor: "rgba(243,238,228,0.12)",
         borderWidth: 1,
         padding: [16, 18],
-        extraCssText: "backdrop-filter:blur(18px);box-shadow:0 24px 70px rgba(0,0,0,0.55);border-radius:16px;",
+        extraCssText: "box-shadow:0 18px 50px rgba(0,0,0,0.45);border-radius:12px;",
         textStyle: { color: PAPER, fontSize: 12 },
         formatter: (params: any) => {
           const list = Array.isArray(params) ? params : [params];
@@ -130,37 +133,40 @@ export default function HeroChart({
           const p = sliced[idx];
           if (!p) return "";
           const actualVal = p[lens];
-          let html = `<div style="font-family:Libre Franklin,sans-serif;letter-spacing:.16em;font-size:9px;text-transform:uppercase;color:${MUTE};margin-bottom:12px">${p.label.toUpperCase()}</div>`;
-          html += `<div style="display:flex;justify-content:space-between;gap:36px;margin-bottom:8px"><span style="color:${MINT}">Actual</span><span style="font-variant-numeric:tabular-nums;font-size:15px">${fmtVal(actualVal, meta.unit)}</span></div>`;
+          let html = `<div style="font-family:Libre Franklin,sans-serif;letter-spacing:.14em;font-size:9px;text-transform:uppercase;color:${MUTE};margin-bottom:12px">${p.label.toUpperCase()}</div>`;
+          html += `<div style="font-family:Cormorant Garamond,Georgia,serif;font-size:26px;font-weight:300;margin-bottom:4px;font-variant-numeric:tabular-nums">${fmtVal(actualVal, meta.unit)}</div>`;
+          html += `<div style="font-family:Libre Franklin,sans-serif;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:${MUTE};margin-bottom:12px">${meta.label}</div>`;
 
           const prior = list.find((x: any) => x.seriesName === "Prior year");
           if (prior?.value != null) {
             const dPct = meta.unit === "pct" ? null : ((actualVal - prior.value) / Math.abs(prior.value)) * 100;
             const dPts = meta.unit === "pct" ? actualVal - prior.value : null;
             const dAmt = meta.unit === "money" ? actualVal - prior.value : null;
-            html += `<div style="display:flex;justify-content:space-between;gap:36px;margin-bottom:4px;color:${MUTE}"><span>Prior year</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${fmtVal(prior.value, meta.unit)}</span></div>`;
-            html += `<div style="display:flex;justify-content:space-between;gap:36px;margin-bottom:8px;color:${MUTE}"><span>vs Prior year</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${
-              dPts != null ? `${dPts >= 0 ? "+" : ""}${dPts.toFixed(1)} pts`
-                : `${dPct! >= 0 ? "+" : ""}${dPct!.toFixed(1)}%${dAmt != null ? ` · ${dAmt >= 0 ? "+" : ""}${fmtMoney(dAmt)}` : ""}`
-            }</span></div>`;
+            html += row("Prior year", fmtVal(prior.value, meta.unit));
+            html += row(
+              "YoY",
+              dPts != null
+                ? `${dPts >= 0 ? "+" : ""}${dPts.toFixed(1)} pts`
+                : `${dPct! >= 0 ? "+" : ""}${dPct!.toFixed(1)}%${dAmt != null ? ` · ${dAmt >= 0 ? "+" : ""}${fmtMoney(dAmt)}` : ""}`,
+            );
           }
-
           const bud = list.find((x: any) => x.seriesName === "Budget");
           if (bud?.value != null && meta.unit === "money") {
             const dPct = ((actualVal - bud.value) / Math.abs(bud.value)) * 100;
             const dAmt = actualVal - bud.value;
-            html += `<div style="display:flex;justify-content:space-between;gap:36px;margin-bottom:4px;color:${MUTE}"><span>Budget</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${fmtMoney(bud.value)}</span></div>`;
-            html += `<div style="display:flex;justify-content:space-between;gap:36px;color:${MUTE}"><span>vs Budget</span><span style="color:${PAPER};font-variant-numeric:tabular-nums">${dPct >= 0 ? "+" : ""}${dPct.toFixed(1)}% · ${dAmt >= 0 ? "+" : ""}${fmtMoney(dAmt)}</span></div>`;
+            html += row("Budget", fmtMoney(bud.value));
+            html += row("vs Budget", `${dPct >= 0 ? "+" : ""}${dPct.toFixed(1)}% · ${dAmt >= 0 ? "+" : ""}${fmtMoney(dAmt)}`);
           }
           return html;
+
+          function row(k: string, v: string) {
+            return `<div style="display:flex;justify-content:space-between;gap:28px;margin-top:5px;font-size:12px"><span style="color:${MUTE}">${k}</span><span style="font-variant-numeric:tabular-nums">${v}</span></div>`;
+          }
         },
       },
       xAxis: {
-        type: "category",
-        data: labels,
-        boundaryGap: false,
-        axisLine: { show: false },
-        axisTick: { show: false },
+        type: "category", data: labels, boundaryGap: false,
+        axisLine: { show: false }, axisTick: { show: false },
         axisLabel: { color: MUTE, fontSize: 10, fontFamily: "Libre Franklin, sans-serif" },
       },
       yAxis: {
@@ -176,36 +182,18 @@ export default function HeroChart({
           name: "Actual",
           type: "line",
           data: actual,
-          smooth: 0.4,
+          smooth: 0.32,
           symbol: "circle",
-          symbolSize: (_: number, params: any) => (params.dataIndex === activeIdx ? 12 : 7),
+          symbolSize: (_: number, params: any) => (params.dataIndex === activeIdx ? 9 : 0),
           showSymbol: true,
-          lineStyle: {
-            width: 2.8,
-            color: {
-              type: "linear", x: 0, y: 0, x2: 1, y2: 0,
-              colorStops: [
-                { offset: 0, color: MINT },
-                { offset: 1, color: CYAN },
-              ],
-            },
-            shadowColor: "rgba(110,200,255,0.45)",
-            shadowBlur: 18,
-          },
-          itemStyle: {
-            color: CYAN,
-            borderColor: "#0B1220",
-            borderWidth: 2,
-            shadowColor: "rgba(110,200,255,0.8)",
-            shadowBlur: 12,
-          },
+          lineStyle: { width: 2.25, color: ACTUAL },
+          itemStyle: { color: GOLD, borderColor: "#0A0908", borderWidth: 2 },
           areaStyle: {
             color: {
               type: "linear", x: 0, y: 0, x2: 0, y2: 1,
               colorStops: [
-                { offset: 0, color: "rgba(94,228,168,0.20)" },
-                { offset: 0.55, color: "rgba(110,200,255,0.06)" },
-                { offset: 1, color: "rgba(110,200,255,0.00)" },
+                { offset: 0, color: "rgba(111,191,154,0.14)" },
+                { offset: 1, color: "rgba(111,191,154,0.00)" },
               ],
             },
           },
@@ -214,21 +202,21 @@ export default function HeroChart({
           name: "Prior year",
           type: "line" as const,
           data: priorSeries,
-          smooth: 0.35,
+          smooth: 0.3,
           symbol: "none",
-          lineStyle: { width: 1.5, color: PRIOR, type: "dashed" as const },
+          lineStyle: { width: 1.4, color: PRIOR, type: "dashed" as const },
         }] : []),
         ...(hasBudget ? [{
           name: "Budget",
           type: "line" as const,
           data: budgetSeries,
-          smooth: 0.2,
+          smooth: 0.15,
           symbol: "none",
-          lineStyle: { width: 1.5, color: BUDGET, type: "dotted" as const },
+          lineStyle: { width: 1.4, color: BUDGET, type: "dotted" as const },
         }] : []),
       ],
     };
-  }, [sliced, periods, lens, activePeriodId, showPriorYear, showBudget, meta.unit]);
+  }, [sliced, periods, lens, activePeriodId, showPriorYear, showBudget, meta.unit, meta.label, reduceMotion]);
 
   useEffect(() => {
     if (!el.current) return;
@@ -246,5 +234,12 @@ export default function HeroChart({
     chart.current?.setOption(option, { notMerge: true });
   }, [option]);
 
-  return <div className="ov2-chart" ref={el} role="img" aria-label={`${meta.label} trend`} />;
+  return (
+    <div
+      className="ov2-chart"
+      ref={el}
+      role="img"
+      aria-label={`${meta.label} trend across ${sliced.map((p) => p.label).join(", ")}`}
+    />
+  );
 }

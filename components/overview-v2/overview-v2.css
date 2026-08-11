@@ -1,20 +1,32 @@
-/* Hathorn Intelligence OS — Overview V2 dark prototype */
+/* ══════════════════════════════════════════════════════════════════════════
+   Client Financial Command Center V2
+   Institutional · restrained · gold scarce · cards rare
+   ══════════════════════════════════════════════════════════════════════════ */
 
 .ov2-dark {
-  --bg: #0B0A09;
-  --bg-elev: #121110;
-  --bg-panel: #161412;
-  --line: rgba(255,255,255,0.07);
+  --bg: #0A0908;
+  --bg-1: #100F0D;
+  --bg-2: #161412;
+  --bg-3: #1C1916;
+  --line: rgba(243,238,228,0.08);
+  --line-strong: rgba(243,238,228,0.14);
   --text: #F3EEE4;
-  --mute: #8B8578;
-  --soft: #C9C2B4;
-  --mint: #5EE4A8;
-  --mint-dim: rgba(94,228,168,0.14);
-  --warn: #E07A5F;
+  --soft: #C7BFB0;
+  --mute: #8A8376;
   --gold: #C4A35A;
+  --gold-soft: rgba(196,163,90,0.16);
+  --mint: #6FBF9A;
+  --warn: #C97B63;
+  --blue: #7A8FB8;
+  --focus: rgba(196,163,90,0.45);
+  --rail: 220px;
+  --page-x: 32px;
+  --gap: 20px;
+  --radius: 12px;
+  --control-h: 34px;
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 232px minmax(0, 1fr);
+  grid-template-columns: var(--rail) minmax(0, 1fr);
   background: var(--bg);
   color: var(--text);
   font-family: var(--editorial);
@@ -24,245 +36,320 @@
   font-family: var(--utility);
   font-size: 9.5px;
   font-weight: 600;
-  letter-spacing: .16em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--mute);
 }
 
+/* ── Rail: quiet ─────────────────────────────────────────────────────────── */
 .ov2-rail {
   position: sticky; top: 0; height: 100vh;
-  background: #090807;
+  background: var(--bg-1);
   border-right: 1px solid var(--line);
   display: flex; flex-direction: column;
-  padding: 22px 16px;
+  padding: 22px 14px 18px;
 }
-
 .ov2-rail-brand {
   display: flex; gap: 10px; align-items: center;
-  margin-bottom: 28px; padding: 0 4px;
+  margin-bottom: 28px; padding: 0 6px;
 }
 .ov2-rail-badge {
-  width: 32px; height: 32px; border-radius: 9px;
+  width: 30px; height: 30px; border-radius: 8px;
   display: grid; place-items: center;
-  background: linear-gradient(145deg, #1d342f, #0f1c19);
-  border: 1px solid rgba(94,228,168,0.25);
-  color: var(--mint);
-  font-family: var(--display); font-size: 16px;
+  background: var(--bg-3);
+  border: 1px solid var(--gold-soft);
+  color: var(--gold);
+  font-family: var(--display); font-size: 15px;
 }
 .ov2-rail-name {
-  font-family: var(--display); font-size: 18px; letter-spacing: .04em; line-height: 1;
+  font-family: var(--display); font-size: 17px; letter-spacing: 0.04em; line-height: 1;
 }
 .ov2-rail-sub {
-  font-family: var(--utility); font-size: 9px; letter-spacing: .14em;
-  text-transform: uppercase; color: var(--mute); margin-top: 3px;
+  font-family: var(--utility); font-size: 8.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--gold); margin-top: 3px;
 }
-
 .ov2-rail-nav {
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; flex-direction: column; gap: 2px;
   font-family: var(--utility); font-size: 12px;
 }
 .ov2-rail-nav a, .ov2-rail-nav button {
   display: flex; align-items: center; gap: 10px;
   color: var(--mute); text-decoration: none;
   background: none; border: 0; cursor: pointer;
-  padding: 10px 12px; border-radius: 10px; text-align: left;
+  padding: 9px 10px; border-radius: 8px; text-align: left;
 }
 .ov2-rail-nav a:hover, .ov2-rail-nav button:hover { color: var(--text); background: rgba(255,255,255,0.03); }
 .ov2-rail-nav a.on {
   color: var(--text);
-  background: var(--mint-dim);
-  box-shadow: inset 2px 0 0 var(--mint);
+  background: rgba(255,255,255,0.04);
+  box-shadow: inset 2px 0 0 var(--gold);
 }
-
 .ov2-rail-firm {
-  margin-top: auto; padding-top: 18px;
+  margin-top: auto; padding-top: 16px;
   border-top: 1px solid var(--line);
   display: grid; gap: 8px;
   font-family: var(--utility); font-size: 11px;
 }
 .ov2-rail-firm a { color: var(--mute); text-decoration: none; }
-.ov2-rail-firm a:hover { color: var(--text); }
-
+.ov2-rail-firm a:hover { color: var(--soft); }
 .ov2-rail-user {
-  margin-top: 18px; display: flex; gap: 10px; align-items: center;
+  margin-top: 16px; display: flex; gap: 10px; align-items: center;
   font-family: var(--utility); font-size: 12px;
 }
 .ov2-avatar {
-  width: 34px; height: 34px; border-radius: 50%;
+  width: 32px; height: 32px; border-radius: 50%;
   display: grid; place-items: center;
-  background: #24201c; color: var(--soft);
+  background: var(--bg-3); color: var(--soft);
   border: 1px solid var(--line);
 }
+.ov2-avatar.sm { width: 32px; height: 32px; font-size: 12px; }
 .ov2-rail-role { color: var(--mute); font-size: 10px; margin-top: 2px; }
 
-.ov2-workspace {
-  min-width: 0;
-  display: flex; flex-direction: column;
-  min-height: 100vh;
-}
-
+/* ── Workspace ───────────────────────────────────────────────────────────── */
+.ov2-workspace { min-width: 0; display: flex; flex-direction: column; min-height: 100vh; }
 .ov2-top {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 28px 0; gap: 16px;
+  gap: 16px; padding: 14px var(--page-x) 0;
 }
 .ov2-crumbs {
   display: flex; gap: 8px; align-items: center;
   font-family: var(--utility); font-size: 11px; color: var(--mute);
 }
+.ov2-crumbs a { color: var(--mute); text-decoration: none; }
+.ov2-crumbs a:hover { color: var(--soft); }
 .ov2-crumbs span:last-child { color: var(--soft); }
+.ov2-top-right { display: flex; align-items: center; gap: 10px; }
 .ov2-search {
-  display: flex; align-items: center; gap: 14px;
+  display: flex; align-items: center;
   border: 1px solid var(--line);
-  background: rgba(255,255,255,0.03);
-  backdrop-filter: blur(14px);
+  background: var(--bg-2);
   color: var(--mute);
   border-radius: 999px;
-  padding: 8px 12px 8px 16px;
+  padding: 8px 14px;
   font-family: var(--utility); font-size: 12px; cursor: pointer;
-  min-width: 220px; justify-content: space-between;
+  min-width: 240px;
 }
-.ov2-search kbd {
-  font-family: var(--utility); font-size: 10px;
-  border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px;
+.ov2-search:hover { border-color: var(--line-strong); color: var(--soft); }
+.ov2-search:focus-visible, .ov2-icon-btn:focus-visible,
+.ov2-period-tools > button:focus-visible, .ov2-lens button:focus-visible,
+.ov2-range button:focus-visible, .ov2-metric:focus-visible,
+.ov2-scrub button:focus-visible {
+  outline: 2px solid var(--focus); outline-offset: 2px;
+}
+.ov2-icon-btn {
+  appearance: none; border: 1px solid var(--line); background: var(--bg-2);
+  color: var(--mute); width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
 }
 
 .ov2-title-row {
   display: flex; justify-content: space-between; gap: 20px; align-items: flex-end;
-  padding: 12px 28px 4px;
+  padding: 18px var(--page-x) 8px;
 }
 .ov2-title-row h1 {
   margin: 0;
-  font-family: var(--display); font-size: 28px; font-weight: 300;
+  font-family: var(--display); font-size: 30px; font-weight: 300;
   letter-spacing: -0.02em;
 }
+.ov2-verified {
+  display: inline-grid; place-items: center;
+  width: 16px; height: 16px; margin-left: 8px; border-radius: 50%;
+  background: transparent; color: var(--gold);
+  border: 1px solid var(--gold-soft);
+  font-size: 10px; font-weight: 700; vertical-align: middle;
+  font-family: var(--utility);
+}
 .ov2-title-meta {
-  display: flex; gap: 10px; align-items: center; margin-top: 8px;
-  font-family: var(--utility); font-size: 12px; color: var(--mute);
+  display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; margin-top: 8px;
+  font-family: var(--utility); font-size: 11.5px; color: var(--mute);
 }
-.ov2-pill {
-  display: inline-flex; align-items: center;
-  padding: 4px 10px; border-radius: 999px;
-  background: var(--mint-dim); color: var(--mint);
-  font-size: 10px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+.ov2-dot-ok::before, .ov2-dot-mute::before {
+  content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  margin-right: 7px; vertical-align: middle;
 }
-.ov2-period-tools { display: flex; gap: 8px; align-items: center; }
+.ov2-dot-ok::before { background: var(--mint); }
+.ov2-dot-mute::before { background: var(--mute); }
+
+.ov2-period-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ov2-period-tools > button {
-  appearance: none; border: 1px solid var(--line); background: var(--bg-elev);
-  color: var(--soft); width: 34px; height: 34px; border-radius: 10px; cursor: pointer;
+  appearance: none; border: 1px solid var(--line); background: var(--bg-2);
+  color: var(--soft); width: var(--control-h); height: var(--control-h);
+  border-radius: 8px; cursor: pointer;
 }
-.ov2-period-tools > button:disabled { opacity: .35; cursor: not-allowed; }
+.ov2-period-tools > button:disabled { opacity: 0.35; cursor: not-allowed; }
 .ov2-period-current {
-  min-width: 110px !important; width: auto !important; padding: 0 12px;
+  min-width: 104px !important; width: auto !important; padding: 0 12px;
   font-family: var(--utility); font-size: 12px;
 }
 .ov2-compare {
-  appearance: none; border: 1px solid var(--line); background: var(--bg-elev);
-  color: var(--soft); border-radius: 10px; height: 34px; padding: 0 12px;
+  appearance: none; border: 1px solid var(--line); background: var(--bg-2);
+  color: var(--soft); border-radius: 8px; height: var(--control-h); padding: 0 12px;
   font-family: var(--utility); font-size: 12px;
 }
 
+/* Period scrubber */
+.ov2-scrub-wrap { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.ov2-scrub-year { display: flex; align-items: center; gap: 8px; }
+.ov2-scrub-year-label {
+  font-family: var(--utility); font-size: 9px; font-weight: 600;
+  letter-spacing: 0.12em; color: var(--mute); min-width: 34px;
+}
+.ov2-scrub { display: flex; flex-wrap: wrap; gap: 0; }
+.ov2-scrub button {
+  appearance: none; background: transparent; border: 0; cursor: pointer;
+  padding: 5px 7px; color: var(--mute);
+  font-family: var(--utility); font-size: 9px; letter-spacing: 0.08em;
+  position: relative;
+}
+.ov2-scrub button.on { color: var(--gold); font-weight: 600; }
+.ov2-scrub button i {
+  position: absolute; left: 50%; bottom: 0; width: 4px; height: 4px;
+  border-radius: 50%; background: var(--gold); transform: translateX(-50%);
+}
+
+/* ── Body grid ───────────────────────────────────────────────────────────── */
 .ov2-body {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.85fr);
-  gap: 14px;
-  padding: 8px 28px 72px;
+  grid-template-columns: minmax(0, 1.65fr) minmax(260px, 0.78fr);
+  gap: var(--gap);
+  padding: 8px var(--page-x) 72px;
 }
+.ov2-canvas { min-width: 0; display: flex; flex-direction: column; gap: 28px; }
 
-.ov2-canvas { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-
+/* Chart = canvas, not a heavy card */
 .ov2-chart-block {
-  background: radial-gradient(1200px 420px at 20% -10%, rgba(94,228,168,0.07), transparent 55%),
-              var(--bg-elev);
-  border: 1px solid var(--line);
-  border-radius: 22px;
-  padding: 16px 18px 10px;
+  position: relative;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--line);
 }
-
 .ov2-chart-head {
   display: flex; justify-content: space-between; gap: 16px; align-items: flex-start;
-  margin-bottom: 10px;
+  margin-bottom: 12px; padding-top: 18px;
 }
 .ov2-hero-value {
-  font-family: var(--display); font-size: clamp(40px, 4.6vw, 56px);
-  font-weight: 300; letter-spacing: -0.03em; line-height: 1; margin-top: 4px;
+  font-family: var(--display); font-size: clamp(44px, 5vw, 64px);
+  font-weight: 300; letter-spacing: -0.03em; line-height: 0.95; margin-top: 6px;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 .ov2-hero-delta {
-  margin-top: 10px; display: flex; gap: 10px; align-items: baseline;
+  margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: baseline;
   font-family: var(--utility); font-size: 12px; color: var(--mute);
 }
+.ov2-hero-amt { color: var(--mute); }
 .ov2-delta { font-weight: 600; font-variant-numeric: tabular-nums; }
 .ov2-delta.up { color: var(--mint); }
 .ov2-delta.down { color: var(--warn); }
 .ov2-delta.flat { color: var(--mute); }
 
-.ov2-range, .ov2-lens { display: flex; flex-wrap: wrap; gap: 4px; }
+.ov2-range, .ov2-lens { display: flex; flex-wrap: wrap; gap: 2px; }
 .ov2-range button, .ov2-lens button {
   appearance: none; border: 0; background: transparent; color: var(--mute);
   font-family: var(--utility); font-size: 11px; padding: 7px 10px;
   border-radius: 999px; cursor: pointer;
 }
 .ov2-range button.on, .ov2-lens button.on {
-  background: rgba(255,255,255,0.08); color: var(--text);
+  background: var(--bg-3); color: var(--text);
 }
-.ov2-lens { margin: 4px 0 8px; padding: 4px; border-radius: 14px; background: rgba(0,0,0,0.25); }
+.ov2-lens {
+  margin: 2px 0 6px; padding: 3px;
+  width: fit-content;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--line);
+}
+.ov2-chart { width: 100%; height: min(34vh, 300px); min-height: 220px; }
 
-.ov2-chart { width: 100%; height: min(32vh, 280px); min-height: 210px; }
-
-.ov2-tiles {
+/* Supporting metrics — separators, not cards */
+.ov2-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
-.ov2-tile {
-  appearance: none; border: 1px solid var(--line); background: var(--bg-elev);
-  border-radius: 16px; padding: 14px 14px 12px; text-align: left; color: inherit; cursor: pointer;
+.ov2-metric {
+  appearance: none; background: transparent; border: 0;
+  border-right: 1px solid var(--line);
+  text-align: left; color: inherit; cursor: pointer;
+  padding: 16px 16px 14px;
 }
-.ov2-tile:hover { border-color: rgba(94,228,168,0.28); }
-.ov2-tile-top { display: flex; justify-content: space-between; align-items: flex-start; }
-.ov2-tile-v {
+.ov2-metric:last-child { border-right: 0; }
+.ov2-metric:hover { background: rgba(255,255,255,0.02); }
+.ov2-metric.on { box-shadow: inset 0 -2px 0 var(--gold); }
+.ov2-metric-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.ov2-metric-v {
   font-family: var(--display); font-size: 28px; font-weight: 300;
   letter-spacing: -0.02em; margin: 10px 0 4px;
+  font-variant-numeric: tabular-nums lining-nums;
 }
-.ov2-tile-d { font-family: var(--utility); font-size: 12px; }
+.ov2-metric-d { font-family: var(--utility); font-size: 12px; }
 
-.ov2-waterfall {
-  border: 1px solid var(--line); background: var(--bg-elev);
-  border-radius: 18px; padding: 18px 20px 16px;
+.ov2-bottom-grid {
+  display: grid; grid-template-columns: 1.2fr 1fr; gap: 28px;
+  padding-top: 4px;
 }
-.ov2-waterfall h2 {
+.ov2-waterfall h2, .ov2-expense h2 {
   margin: 8px 0 16px;
   font-family: var(--display); font-size: 22px; font-weight: 300;
 }
 .ov2-waterfall ul { list-style: none; padding: 0; margin: 0; }
-.ov2-waterfall li {
+.ov2-waterfall li { list-style: none; }
+.ov2-waterfall li.is-edge {
+  display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center;
+  font-family: var(--utility); font-size: 12px; font-weight: 600; color: var(--text);
+  padding: 12px 0;
+}
+.ov2-driver-btn {
   display: grid; grid-template-columns: 120px 1fr auto; gap: 12px; align-items: center;
-  padding: 7px 0; font-family: var(--utility); font-size: 12px; color: var(--soft);
+  width: 100%; padding: 8px 0; font-family: var(--utility); font-size: 12px; color: var(--soft);
+  background: none; border: 0; cursor: pointer; text-align: left;
 }
-.ov2-waterfall li.is-edge { grid-template-columns: 1fr auto; font-weight: 600; color: var(--text); padding: 10px 0; }
-.ov2-waterfall li i { display: block; height: 8px; border-radius: 2px; }
-.ov2-waterfall li i.up { background: var(--mint); }
-.ov2-waterfall li i.down { background: var(--warn); }
+.ov2-driver-btn:hover, .ov2-driver-btn.on { color: var(--text); background: rgba(255,255,255,0.02); }
+.ov2-driver-btn i { display: block; height: 7px; border-radius: 1px; opacity: 0.9; }
+.ov2-driver-btn i.up { background: var(--mint); }
+.ov2-driver-btn i.down { background: var(--warn); }
 
-.ov2-intel { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.ov2-intel-card {
-  border: 1px solid var(--line); background: var(--bg-panel);
-  border-radius: 18px; padding: 18px;
+.ov2-donut-wrap { position: relative; display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: center; }
+.ov2-donut { width: 150px; height: 150px; }
+.ov2-donut-center {
+  position: absolute; left: 0; top: 50%; width: 150px; transform: translateY(-50%);
+  text-align: center; pointer-events: none;
 }
+.ov2-donut-center strong {
+  display: block; margin-top: 4px;
+  font-family: var(--display); font-size: 18px; font-weight: 300;
+  font-variant-numeric: tabular-nums;
+}
+.ov2-donut-legend { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.ov2-donut-legend li {
+  display: grid; grid-template-columns: 8px 1fr auto; gap: 8px; align-items: center;
+  font-family: var(--utility); font-size: 11px; color: var(--soft);
+}
+.ov2-donut-legend i { width: 7px; height: 7px; border-radius: 50%; }
+.ov2-donut-legend em { font-style: normal; color: var(--mute); font-variant-numeric: tabular-nums; }
+.ov2-donut-empty { color: var(--mute); font-size: 14px; padding: 20px 0; }
+
+/* Intelligence rail — surface change, not card zoo */
+.ov2-intel { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+.ov2-intel-card {
+  border: 0; border-top: 1px solid var(--line);
+  background: transparent; border-radius: 0; padding: 20px 0;
+}
+.ov2-intel-card:first-child { border-top: 0; padding-top: 8px; }
 .ov2-intel-card h2 {
   margin: 10px 0 10px;
-  font-family: var(--display); font-size: 24px; font-weight: 300; line-height: 1.2;
+  font-family: var(--display); font-size: 22px; font-weight: 300; line-height: 1.25;
+  max-width: 18ch;
 }
 .ov2-intel-card p {
   margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--soft);
 }
 .ov2-signal-chip {
-  display: inline-flex; margin-top: 12px; padding: 6px 10px; border-radius: 999px;
-  background: rgba(224,122,95,0.12); color: var(--warn);
-  font-family: var(--utility); font-size: 11px; letter-spacing: .06em;
+  display: inline-flex; margin-top: 12px; padding: 5px 9px; border-radius: 999px;
+  background: rgba(201,123,99,0.12); color: var(--warn);
+  font-family: var(--utility); font-size: 10.5px; letter-spacing: 0.06em;
 }
-.ov2-note { margin-top: 12px !important; color: var(--mute) !important; font-size: 13px !important; }
-
 .ov2-insight-list { list-style: none; padding: 0; margin: 12px 0 0; }
 .ov2-insight-list li {
   display: grid; grid-template-columns: 1fr auto; gap: 2px 12px;
@@ -270,70 +357,112 @@
   font-family: var(--utility); font-size: 12px;
 }
 .ov2-insight-list li span { color: var(--mute); grid-column: 1; }
-.ov2-insight-list li strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 14px; }
+.ov2-insight-list li strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 13px; font-variant-numeric: tabular-nums; }
 .ov2-insight-list li em { grid-column: 1; font-style: normal; color: var(--soft); font-size: 11px; }
 .ov2-insight-list .is-up { color: var(--mint); }
 .ov2-insight-list .is-down { color: var(--warn); }
-.ov2-text-link {
-  display: inline-block; margin-top: 14px;
-  font-family: var(--utility); font-size: 12px; color: var(--mint); text-decoration: none;
-}
 
-.ov2-ask-suggestions { display: grid; gap: 8px; margin-top: 12px; }
+.ov2-ask-suggestions { display: grid; gap: 6px; margin-top: 12px; }
 .ov2-ask-suggestions button {
-  appearance: none; border: 1px solid var(--line); background: rgba(255,255,255,0.02);
-  color: var(--soft); text-align: left; border-radius: 12px; padding: 10px 12px;
-  font-family: var(--editorial); font-size: 14px; cursor: pointer;
+  appearance: none; border: 0; border-bottom: 1px solid var(--line);
+  background: transparent; color: var(--soft); text-align: left;
+  padding: 9px 0; font-family: var(--editorial); font-size: 14px; cursor: pointer;
 }
-.ov2-ask-suggestions button:hover { border-color: rgba(94,228,168,0.3); color: var(--text); }
-
+.ov2-ask-suggestions button:hover { color: var(--gold); }
+.ov2-ask-inline {
+  margin-top: 14px; display: grid; grid-template-columns: 1fr auto; gap: 8px;
+}
+.ov2-ask-inline input {
+  border: 1px solid var(--line); background: var(--bg-2);
+  border-radius: 8px; color: var(--text); padding: 10px 12px;
+  font-family: var(--editorial); font-size: 14px; outline: none;
+}
+.ov2-ask-inline button {
+  appearance: none; border: 0; border-radius: 8px; padding: 0 14px;
+  background: var(--gold); color: #0A0908;
+  font-family: var(--utility); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer;
+}
 .ov2-fine {
   margin-top: 12px; font-family: var(--utility); font-size: 10.5px;
   color: var(--mute); line-height: 1.45;
 }
 
+/* Driver drawer */
+.ov2-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(360px, 92vw);
+  z-index: 60; background: var(--bg-2);
+  border-left: 1px solid var(--line-strong);
+  padding: 28px 24px;
+  box-shadow: -20px 0 60px rgba(0,0,0,0.35);
+}
+.ov2-drawer h3 {
+  margin: 10px 0 6px;
+  font-family: var(--display); font-size: 26px; font-weight: 300;
+}
+.ov2-drawer .ov2-drawer-v {
+  font-family: var(--display); font-size: 40px; font-weight: 300;
+  letter-spacing: -0.02em; margin: 14px 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+.ov2-drawer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.ov2-drawer-actions a, .ov2-drawer-actions button {
+  appearance: none; border: 1px solid var(--line); background: transparent;
+  color: var(--soft); border-radius: 999px; padding: 9px 12px;
+  font-family: var(--utility); font-size: 11px; text-decoration: none; cursor: pointer;
+}
+.ov2-drawer-close {
+  position: absolute; top: 16px; right: 16px;
+  appearance: none; border: 0; background: transparent; color: var(--mute);
+  font-size: 20px; cursor: pointer;
+}
+
+/* Status strip */
 .ov2-statusbar {
   position: sticky; bottom: 0;
   display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center;
-  padding: 12px 28px;
-  background: rgba(9,8,7,0.92);
+  padding: 11px var(--page-x);
+  background: rgba(10,9,8,0.94);
   border-top: 1px solid var(--line);
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(12px);
   font-family: var(--utility); font-size: 11px; color: var(--mute);
 }
 .ov2-statusbar .ok { color: var(--mint); }
 .ov2-statusbar .warn { color: var(--warn); }
 .ov2-status-cta {
-  margin-left: auto; color: var(--text); text-decoration: none;
-  border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px;
+  margin-left: auto; color: #0A0908 !important; text-decoration: none;
+  background: var(--gold);
+  border: 0 !important; border-radius: 999px; padding: 8px 14px !important;
+  font-weight: 600;
 }
-.ov2-status-cta:hover { border-color: var(--mint); color: var(--mint); }
+.ov2-status-cta:hover { filter: brightness(1.06); color: #0A0908 !important; }
 
+/* Command */
 .ov2-cmd {
   position: fixed; inset: 0; z-index: 80;
   display: grid; place-items: center; padding: 24px;
 }
 .ov2-cmd-scrim {
   position: absolute; inset: 0; border: 0; cursor: pointer;
-  background: rgba(0,0,0,0.62);
-  backdrop-filter: blur(10px);
+  background: rgba(0,0,0,0.58);
+  backdrop-filter: blur(8px);
 }
 .ov2-cmd-panel {
-  position: relative; width: min(560px, 100%);
-  background: #171512;
-  border: 1px solid var(--line);
-  border-radius: 22px;
+  position: relative; width: min(540px, 100%);
+  background: var(--bg-2);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
   padding: 26px;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+  box-shadow: 0 28px 70px rgba(0,0,0,0.5);
 }
 .ov2-cmd-panel h2 {
   margin: 10px 0 16px;
-  font-family: var(--display); font-size: 28px; font-weight: 300;
+  font-family: var(--display); font-size: 26px; font-weight: 300;
 }
 .ov2-cmd-panel input {
   width: 100%; border: 0; border-bottom: 1px solid var(--line);
   background: transparent; color: var(--text); padding: 12px 0;
-  font-family: var(--editorial); font-size: 18px; outline: none;
+  font-family: var(--editorial); font-size: 17px; outline: none;
 }
 .ov2-cmd-suggest { margin-top: 18px; display: grid; gap: 8px; }
 .ov2-cmd-suggest button {
@@ -342,134 +471,33 @@
 }
 .ov2-btn-primary {
   display: inline-flex; width: fit-content; margin-top: 8px;
-  background: var(--text); color: #0B0A09; text-decoration: none;
-  font-family: var(--utility); font-size: 11px; letter-spacing: .1em;
-  text-transform: uppercase; padding: 12px 16px; border-radius: 999px;
+  background: var(--gold); color: #0A0908; text-decoration: none;
+  font-family: var(--utility); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 11px 15px; border-radius: 999px;
 }
 
 @media (max-width: 1180px) {
-  .ov2-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ov2-body { grid-template-columns: 1fr; }
+  .ov2-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ov2-metric:nth-child(2) { border-right: 0; }
+  .ov2-bottom-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 860px) {
-  .ov2-dark { grid-template-columns: 1fr; }
+  .ov2-dark { grid-template-columns: 1fr; --page-x: 16px; }
   .ov2-rail {
     position: sticky; top: 0; height: auto; z-index: 20;
-    flex-direction: row; flex-wrap: wrap; gap: 12px; align-items: center;
+    flex-direction: row; flex-wrap: wrap; gap: 10px; align-items: center;
   }
   .ov2-rail-nav { flex-direction: row; flex-wrap: wrap; }
   .ov2-rail-firm, .ov2-rail-user { display: none; }
   .ov2-title-row { flex-direction: column; align-items: flex-start; }
-  .ov2-body, .ov2-top, .ov2-title-row, .ov2-statusbar { padding-left: 16px; padding-right: 16px; }
+  .ov2-hero-value { font-size: 44px; }
+  .ov2-chart { height: 220px; min-height: 200px; }
+  .ov2-metrics { grid-template-columns: 1fr 1fr; }
+  .ov2-donut-wrap { grid-template-columns: 120px 1fr; }
+  .ov2-donut, .ov2-donut-center { width: 120px; }
+  .ov2-donut { height: 120px; }
 }
-
-/* Atmosphere + mock-closer refinements */
-.ov2-top-right { display: flex; align-items: center; gap: 10px; }
-.ov2-icon-btn {
-  appearance: none; border: 1px solid var(--line); background: rgba(255,255,255,0.03);
-  color: var(--mute); width: 36px; height: 36px; border-radius: 50%;
-  display: grid; place-items: center; cursor: pointer;
-}
-.ov2-avatar.sm { width: 34px; height: 34px; font-size: 12px; }
-.ov2-crumbs a { color: var(--mute); text-decoration: none; }
-.ov2-crumbs a:hover { color: var(--text); }
-.ov2-verified {
-  display: inline-grid; place-items: center;
-  width: 18px; height: 18px; margin-left: 10px; border-radius: 50%;
-  background: #3B6EF5; color: white; font-size: 11px; font-weight: 700;
-  vertical-align: middle; font-family: var(--utility);
-}
-.ov2-dot-ok::before, .ov2-dot-mute::before {
-  content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
-  margin-right: 7px; vertical-align: middle;
-}
-.ov2-dot-ok::before { background: var(--mint); box-shadow: 0 0 8px rgba(94,228,168,0.55); }
-.ov2-dot-mute::before { background: var(--mute); }
-.ov2-hero-amt { color: var(--mute); }
-
-.ov2-water {
-  position: relative; overflow: hidden;
-  background:
-    radial-gradient(900px 280px at 18% 0%, rgba(94,228,168,0.10), transparent 50%),
-    radial-gradient(700px 320px at 85% 30%, rgba(110,200,255,0.10), transparent 55%),
-    radial-gradient(1200px 500px at 50% 120%, rgba(20,40,70,0.55), transparent 60%),
-    linear-gradient(180deg, rgba(10,18,28,0.92), rgba(11,10,9,0.96)),
-    repeating-radial-gradient(circle at 20% 40%, rgba(255,255,255,0.015) 0 1px, transparent 1px 14px);
-}
-.ov2-water::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(115deg, transparent 40%, rgba(110,200,255,0.04) 50%, transparent 60%);
-  mix-blend-mode: screen;
-}
-
-.ov2-tiles { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.ov2-tile-add {
-  display: grid; place-items: center; gap: 6px; color: var(--mute);
-  border-style: dashed;
-}
-.ov2-tile-add span {
-  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line);
-  display: grid; place-items: center; font-size: 20px;
-}
-.ov2-tile-add em { font-style: normal; font-family: var(--utility); font-size: 11px; }
-
-.ov2-bottom-grid {
-  display: grid; grid-template-columns: 1.15fr 1fr; gap: 12px;
-}
-.ov2-expense {
-  border: 1px solid var(--line); background: var(--bg-elev);
-  border-radius: 18px; padding: 18px 20px 16px;
-}
-.ov2-expense h2, .ov2-waterfall h2 {
-  margin: 8px 0 14px;
-  font-family: var(--display); font-size: 22px; font-weight: 300;
-}
-.ov2-donut-wrap { position: relative; display: grid; grid-template-columns: 160px 1fr; gap: 14px; align-items: center; }
-.ov2-donut { width: 160px; height: 160px; }
-.ov2-donut-center {
-  position: absolute; left: 0; top: 50%; width: 160px; transform: translateY(-50%);
-  text-align: center; pointer-events: none;
-}
-.ov2-donut-center strong {
-  display: block; margin-top: 4px;
-  font-family: var(--display); font-size: 20px; font-weight: 300;
-}
-.ov2-donut-legend { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-.ov2-donut-legend li {
-  display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: center;
-  font-family: var(--utility); font-size: 11px; color: var(--soft);
-}
-.ov2-donut-legend i { width: 8px; height: 8px; border-radius: 50%; }
-.ov2-donut-legend em { font-style: normal; color: var(--mute); }
-.ov2-donut-empty { color: var(--mute); font-family: var(--editorial); font-size: 14px; padding: 24px 0; }
-
-.ov2-ask-inline {
-  margin-top: 12px; display: grid; grid-template-columns: 1fr auto; gap: 8px;
-}
-.ov2-ask-inline input {
-  border: 1px solid var(--line); background: rgba(0,0,0,0.25);
-  border-radius: 12px; color: var(--text); padding: 10px 12px;
-  font-family: var(--editorial); font-size: 14px; outline: none;
-}
-.ov2-ask-inline button {
-  appearance: none; border: 0; border-radius: 12px; padding: 0 14px;
-  background: var(--mint); color: #0B0A09;
-  font-family: var(--utility); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
-  cursor: pointer;
-}
-
-.ov2-status-cta {
-  margin-left: auto; color: #0B0A09 !important; text-decoration: none;
-  background: linear-gradient(180deg, #E0C16A, #C4A35A);
-  border: 0 !important; border-radius: 999px; padding: 9px 16px !important;
-  font-weight: 600; box-shadow: 0 8px 24px rgba(196,163,90,0.28);
-}
-.ov2-status-cta:hover { filter: brightness(1.05); color: #0B0A09 !important; }
-
-@media (max-width: 1180px) {
-  .ov2-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .ov2-bottom-grid { grid-template-columns: 1fr; }
-  .ov2-donut-wrap { grid-template-columns: 140px 1fr; }
-  .ov2-donut, .ov2-donut-center { width: 140px; }
-  .ov2-donut { height: 140px; }
+@media (prefers-reduced-motion: reduce) {
+  .ov2-cmd-scrim, .ov2-drawer { transition: none; }
 }
