@@ -91,6 +91,14 @@ export default async function Today() {
   const queue = tasks.slice(1, 4);
   const more = Math.max(0, tasks.length - 1 - queue.length);
   const urgentCount = tasks.filter((t) => t.urgency === "now").length;
+  const clientsWaiting = new Set(tasks.map((t) => t.clientId)).size;
+
+  // Counted from the same rows the queue is built from — never a decorative figure.
+  const glance = [
+    { label: "Clients in the book", value: p.cohort.count },
+    { label: "Waiting on you", value: clientsWaiting },
+    { label: "Needs today", value: urgentCount },
+  ];
 
   const URG = {
     now: { col: "#9E401D", label: "Now" },
@@ -105,71 +113,79 @@ export default async function Today() {
       userName={s.name}
       role={s.role}
     >
-      <main style={{ maxWidth: 880, margin: "0 auto", padding: "48px 32px 88px" }}>
-        <p className="eyebrow" style={{ marginBottom: 14 }}>Today</p>
-        <h1 style={{ fontFamily: "var(--display)", fontSize: 40, fontWeight: 300,
-          letterSpacing: "-.015em", margin: 0, lineHeight: 1.08 }}>
-          {greeting()}, {firstName}.
-        </h1>
-        <p style={{ fontFamily: "var(--editorial)", fontSize: 18, color: "var(--ink-soft)",
-          marginTop: 14, maxWidth: 480, lineHeight: 1.55 }}>
-          {tasks.length === 0
-            ? `All ${p.cohort.count} clients are current. Nothing outstanding.`
-            : urgentCount > 0
-              ? `${urgentCount} need${urgentCount === 1 ? "s" : ""} you today.`
-              : `${tasks.length} item${tasks.length === 1 ? "" : "s"} when you have a moment.`}
-        </p>
+      <main className="today">
+        <header className="today-hero">
+          <p className="eyebrow">Today · {new Date().toLocaleDateString("en-US",
+            { weekday: "long", month: "long", day: "numeric" })}</p>
+          <h1 className="today-greeting">
+            {greeting()}, {firstName}.
+          </h1>
+          <p className="today-lede">
+            {tasks.length === 0
+              ? `All ${p.cohort.count} clients are current. Nothing outstanding.`
+              : urgentCount > 0
+                ? `${urgentCount} need${urgentCount === 1 ? "s" : ""} you today.`
+                : `${tasks.length} item${tasks.length === 1 ? "" : "s"} when you have a moment.`}
+          </p>
 
-        <section style={{ marginTop: 48 }}>
-          {!primary ? (
-            <div style={{ padding: "36px 0", borderTop: "1px solid var(--hairline)" }}>
-              <div style={{ fontFamily: "var(--display)", fontSize: 24, fontWeight: 300 }}>
-                Nothing waiting
+          <dl className="today-glance">
+            {glance.map((g) => (
+              <div key={g.label} className="today-glance-cell">
+                <dt className="today-glance-label">{g.label}</dt>
+                <dd className="today-glance-value tnum">{g.value}</dd>
               </div>
-              <p className="caption" style={{ marginTop: 8, maxWidth: 380 }}>
+            ))}
+          </dl>
+        </header>
+
+        <section className="today-next reveal">
+          {!primary ? (
+            <div className="today-card today-card--calm">
+              <div className="eyebrow">Clear</div>
+              <div className="today-next-head">Nothing waiting</div>
+              <p className="today-next-detail">
                 Every close is current and no commitment has stalled.
               </p>
             </div>
           ) : (
-            <div style={{ borderTop: "1px solid var(--ink)", paddingTop: 28 }}>
-              <div className="eyebrow" style={{ color: URG[primary.urgency].col, marginBottom: 10 }}>
-                Next · {URG[primary.urgency].label}
+            <div className="today-card" data-urgency={primary.urgency}>
+              <div className="today-next-mark">
+                <span className="today-dot" style={{ background: URG[primary.urgency].col }} aria-hidden="true" />
+                <span className="eyebrow" style={{ color: URG[primary.urgency].col }}>
+                  Next · {URG[primary.urgency].label}
+                </span>
               </div>
-              <div style={{ fontFamily: "var(--display)", fontSize: 28, fontWeight: 300,
-                lineHeight: 1.2, maxWidth: 560 }}>
-                {primary.headline}
-              </div>
-              <div style={{ fontFamily: "var(--utility)", fontSize: 11, letterSpacing: ".08em",
-                textTransform: "uppercase", color: "var(--ink-mute)", marginTop: 10 }}>
-                {primary.client}
-              </div>
-              <p style={{ fontFamily: "var(--editorial)", fontSize: 16, color: "var(--ink-soft)",
-                marginTop: 12, maxWidth: 480, lineHeight: 1.5 }}>
-                {primary.detail}
-              </p>
-              <Link href={primary.href} className="btn" style={{ marginTop: 22, display: "inline-block" }}>
+              <div className="today-next-head">{primary.headline}</div>
+              <div className="today-next-client">{primary.client}</div>
+              <p className="today-next-detail">{primary.detail}</p>
+              <Link href={primary.href} className="btn btn-arrow">
                 {primary.action}
+                <span aria-hidden="true">→</span>
               </Link>
             </div>
           )}
         </section>
 
         {queue.length > 0 && (
-          <section style={{ marginTop: 44 }}>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>Also</div>
+          <section className="today-also">
+            <div className="today-section-head">
+              <span className="eyebrow">Also</span>
+              <span className="today-rule" aria-hidden="true" />
+            </div>
             {queue.map((t, i) => (
-              <Link key={i} href={t.href} className="home-queue-row">
+              <Link key={i} href={t.href} className="home-queue-row reveal">
                 <span className="home-queue-when" style={{ color: URG[t.urgency].col }}>
                   {URG[t.urgency].label}
                 </span>
                 <span className="home-queue-head">{t.headline}</span>
                 <span className="home-queue-client">{t.client}</span>
-                <span className="home-queue-go">→</span>
+                <span className="home-queue-go" aria-hidden="true">→</span>
               </Link>
             ))}
             {more > 0 && (
-              <Link href="/portfolio" className="linkish" style={{ display: "inline-block", marginTop: 14 }}>
-                {more} more in the book →
+              <Link href="/portfolio" className="today-more">
+                {more} more in the book
+                <span aria-hidden="true">→</span>
               </Link>
             )}
           </section>
