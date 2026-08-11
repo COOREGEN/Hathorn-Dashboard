@@ -1,0 +1,25 @@
+import { NextResponse } from "next/server";
+import { db, uid } from "@/lib/db";
+import { requireRole, audit, AuthError } from "@/lib/auth";
+import { ValidationError, jsonObject } from "@/lib/validate";
+import { hashPassword, validatePassword } from "@/lib/auth";
+
+export async function POST(req: Request) {
+  try {
+  const s = await requireRole("ADMIN");
+  const { email, name, role, clientId, password } = await jsonObject(req);
+  const id = uid();
+  const pwErr = validatePassword(password);
+    if (pwErr) return NextResponse.json({ ok: false, error: pwErr }, { status: 400 });
+    const hash = hashPassword(password);
+  db().prepare("INSERT INTO users (id,email,password_hash,name,role,client_id,token_version) VALUES (?,?,?,?,?,?,1)")
+    .run(id, email.toLowerCase().trim(), hash, name, role, clientId || null);
+  audit(s.userId, "USER_CREATE", id);
+  return NextResponse.json({ id });
+
+  } catch (e: any) {
+    if (e instanceof AuthError) return NextResponse.json({ ok: false, error: e.message }, { status: e.status });
+    if (e instanceof ValidationError) return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+    return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+  }
+}
