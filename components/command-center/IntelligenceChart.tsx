@@ -76,15 +76,12 @@ export default function IntelligenceChart({
       cb.current.onHoverIndex(typeof idx === "number" ? idx : null);
     };
     const onOut = () => cb.current.onHoverIndex(null);
-    const onClick = (params: unknown) => {
-      const p = params as { componentType?: string; dataIndex?: number };
-      if (p.componentType !== "series" || typeof p.dataIndex !== "number") return;
-      const i = p.dataIndex;
+    const emitSelect = (i: number) => {
       const period = slicedRef.current[i];
       const value = actualRef.current[i];
-      if (!period || value == null) return;
+      if (!period || value == null || !ref.current) return;
       const pixel = chart.convertToPixel({ xAxisIndex: 0, yAxisIndex: 0 }, [i, value]) as number[];
-      const host = ref.current!.getBoundingClientRect();
+      const host = ref.current.getBoundingClientRect();
       cb.current.onSelectPoint({
         index: i,
         periodId: period.id,
@@ -92,6 +89,28 @@ export default function IntelligenceChart({
         value,
         pixel: { x: host.left + (pixel[0] ?? 0), y: host.top + (pixel[1] ?? 0) },
       });
+    };
+
+    const onClick = (params: unknown) => {
+      const p = params as { componentType?: string; dataIndex?: number };
+      if (typeof p.dataIndex === "number") {
+        emitSelect(p.dataIndex);
+        return;
+      }
+    };
+
+    // Magnetic click: nearest category when clicking the plot (not only the symbol).
+    const onZrClick = (e: { offsetX: number; offsetY: number }) => {
+      try {
+        const pointInPixel = [e.offsetX, e.offsetY];
+        const raw = chart.convertFromPixel({ gridIndex: 0 }, pointInPixel);
+        const x = Array.isArray(raw) ? Number(raw[0]) : Number(raw);
+        if (Number.isNaN(x)) return;
+        const i = Math.max(0, Math.min(slicedRef.current.length - 1, Math.round(x)));
+        emitSelect(i);
+      } catch {
+        /* chart not ready */
+      }
     };
     const onBrushEnd = (params: unknown) => {
       const p = params as { areas?: Array<{ coordRange?: number[] }> };
@@ -110,6 +129,7 @@ export default function IntelligenceChart({
     chart.on("globalout", onOut);
     chart.on("click", onClick);
     chart.on("brushEnd", onBrushEnd);
+    chart.getZr().on("click", onZrClick);
     ref.current.addEventListener("dblclick", onDbl);
 
     const ro = new ResizeObserver(() => chart.resize());
