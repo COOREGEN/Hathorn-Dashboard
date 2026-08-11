@@ -6,14 +6,14 @@
 
 ## Intent
 
-Stop organizing around card grids. One continuous financial environment:
+Dark **Intelligence OS** — closer to institutional wealth terminals than SaaS admin:
 
-- Editorial hero figure (the number *is* the interface)
-- One dominant interactive trend (ECharts)
-- Floating glass controls for lens / range / compare
-- Period scrubber (“time travel”)
-- Deterministic intelligence strip + driver bridge
+- Dark canvas, mint actual series, dashed prior year, dotted budget (when present)
+- Left firm rail · center financial canvas · right intelligence / Ask
+- Editorial hero figure + dominant ECharts lens chart
+- Metric tiles with sparklines · YoY NI waterfall · close status footer
 - ⌘K Ask Hathorn command layer
+- **Real fixture figures only** (Apr 2026 Northbridge revenue **$190.9K**, not invented $842K)
 
 ## What is real
 

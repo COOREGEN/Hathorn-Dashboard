@@ -1,37 +1,34 @@
 "use client";
 /**
- * Client Overview V2 — Hathorn Intelligence OS prototype.
- * One continuous financial environment. Metric = lens, not page.
+ * Client Overview V2 — dark Hathorn Intelligence OS (visual prototype).
+ * Layout inspired by institutional wealth terminals; figures are fixture-true.
  */
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { OverviewLens, OverviewV2Model } from "@/lib/overview-v2/build";
 import HeroChart, { LENS_META, fmtMoney, fmtVal } from "./HeroChart";
+import "./overview-v2.css";
 
 const LENSES: OverviewLens[] = ["revenue", "grossProfit", "grossMarginPct", "netIncome", "cash", "arTotal"];
-const SECONDARY: OverviewLens[] = ["grossMarginPct", "cash", "arTotal", "netIncome"];
+const TILES: OverviewLens[] = ["grossMarginPct", "netIncome", "cash", "arTotal"];
 
-function Delta({
-  lens, compare,
-}: {
-  lens: OverviewLens;
-  compare: OverviewV2Model["compare"]["priorYear"][OverviewLens];
-}) {
-  if (compare.points != null) {
-    const up = compare.points >= 0;
-    return (
-      <span className={`ov2-delta ${up ? "is-up" : "is-down"}`}>
-        {up ? "↑" : "↓"} {Math.abs(compare.points).toFixed(1)} pts
-      </span>
-    );
-  }
-  if (compare.deltaPct == null) return <span className="ov2-delta is-flat">—</span>;
-  const up = compare.deltaPct >= 0;
+function Spark({ values, up }: { values: number[]; up: boolean }) {
+  if (values.length < 2) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const w = 72;
+  const h = 28;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w;
+    const y = h - ((v - min) / span) * (h - 4) - 2;
+    return `${x},${y}`;
+  }).join(" ");
   return (
-    <span className={`ov2-delta ${up ? "is-up" : "is-down"}`}>
-      {up ? "↑" : "↓"} {Math.abs(compare.deltaPct).toFixed(1)}%
-    </span>
+    <svg className="ov2-spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
+      <polyline fill="none" stroke={up ? "#5EE4A8" : "#E07A5F"} strokeWidth="1.5" points={pts} />
+    </svg>
   );
 }
 
@@ -39,10 +36,9 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [lens, setLens] = useState<OverviewLens>("revenue");
-  const [range, setRange] = useState<"6M" | "12M" | "ALL">("12M");
+  const [range, setRange] = useState<"6M" | "12M" | "24M" | "YTD" | "ALL">("12M");
   const [compareMode, setCompareMode] = useState<"PRIOR_YEAR" | "PRIOR_MONTH" | "NONE">("PRIOR_YEAR");
   const [cmdOpen, setCmdOpen] = useState(false);
-  const [driversOpen, setDriversOpen] = useState(false);
   const [query, setQuery] = useState("");
 
   const cur = model.cur;
@@ -54,11 +50,11 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
       ? model.compare.priorYear[lens]
       : { delta: null, deltaPct: null, points: null };
 
+  const idx = model.periods.findIndex((p) => p.periodId === cur.periodId);
+
   const askHref = useMemo(() => {
     const parts = [`client=${encodeURIComponent(model.client.id)}`];
-    if (cur.year && cur.month) {
-      parts.push(`year=${cur.year}`, `month=${cur.month}`, `period=${encodeURIComponent(cur.periodId)}`);
-    }
+    parts.push(`year=${cur.year}`, `month=${cur.month}`, `period=${encodeURIComponent(cur.periodId)}`);
     return `/ask?${parts.join("&")}`;
   }, [model.client.id, cur.year, cur.month, cur.periodId]);
 
@@ -70,6 +66,11 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
       router.push(`/dash/overview-v2?${sp.toString()}`);
     });
   }, [model.client.id, router]);
+
+  const stepPeriod = (dir: -1 | 1) => {
+    const next = model.periods[idx + dir];
+    if (next) selectPeriod(next.periodId);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -84,206 +85,228 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
   }, []);
 
   const suggestions = [
-    `What changed for ${model.client.name} in ${cur.label}?`,
-    `Explain the cash movement in ${cur.label}`,
-    `What should I discuss with the client?`,
-    `Where is our biggest variance this month?`,
+    "Why did gross margin move?",
+    "What should I discuss with the client?",
+    `Explain cash in ${cur.label}`,
+    "Where is the biggest variance?",
   ];
 
+  const seriesFor = (l: OverviewLens) => model.periods.slice(Math.max(0, idx - 5), idx + 1).map((p) => p[l]);
+
   return (
-    <div className="ov2">
-      <aside className="ov2-rail" aria-label="Firm">
-        <Link href="/today" className="ov2-mark">
-          <span className="ov2-mark-h">HATHORN</span>
-          <span className="ov2-mark-s">Intelligence</span>
-        </Link>
+    <div className="ov2 ov2-dark">
+      <aside className="ov2-rail" aria-label="Firm navigation">
+        <div className="ov2-rail-brand">
+          <div className="ov2-rail-badge">H</div>
+          <div>
+            <div className="ov2-rail-name">Hathorn</div>
+            <div className="ov2-rail-sub">Advisory Group</div>
+          </div>
+        </div>
+
         <nav className="ov2-rail-nav">
-          <Link href="/today">Today</Link>
-          <Link href="/clients">Clients</Link>
-          <Link href="/close">Work</Link>
-          <Link href="/dash/reports">Reports</Link>
-          <button type="button" className="ov2-rail-ask" onClick={() => setCmdOpen(true)}>
-            Ask<br />Hathorn
+          <Link href="/today" className="on"><Icon d="M3 12l9-9 9 9M5 10v10h14V10" />Today</Link>
+          <Link href="/clients"><Icon d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />Clients</Link>
+          <Link href="/close"><Icon d="M9 11l3 3L22 4M4 20h16" />Work</Link>
+          <Link href="/dash/reports"><Icon d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6" />Reports</Link>
+          <button type="button" onClick={() => setCmdOpen(true)}>
+            <Icon d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />Ask Hathorn
           </button>
         </nav>
-        <div className="ov2-rail-foot">
-          <span className="ov2-eyebrow">Prototype</span>
-          <span>Overview V2</span>
+
+        <div className="ov2-rail-firm">
+          <div className="ov2-eyebrow">Firm</div>
+          <Link href="/firm">Team</Link>
+          <Link href="/firm">Templates</Link>
+          <Link href="/firm">Settings</Link>
+        </div>
+
+        <div className="ov2-rail-user">
+          <div className="ov2-avatar">{model.userName.charAt(0)}</div>
+          <div>
+            <div>{model.userName}</div>
+            <div className="ov2-rail-role">{model.userRole === "ADMIN" ? "Partner" : model.userRole}</div>
+          </div>
         </div>
       </aside>
 
-      <div className="ov2-main">
+      <div className="ov2-workspace">
         <header className="ov2-top">
-          <div className="ov2-top-left">
-            <span className="ov2-word">HATHORN</span>
+          <div className="ov2-crumbs">
+            <span>{model.firmName}</span>
+            <span>/</span>
+            <span>{model.client.name}</span>
           </div>
-          <div className="ov2-top-ctx">
-            <span className="ov2-client-chip">{model.client.name.split(" ")[0].toUpperCase()}</span>
-            <span className="ov2-period-chip">{cur.label.toUpperCase()}</span>
-          </div>
-          <button type="button" className="ov2-cmd-btn" onClick={() => setCmdOpen(true)} aria-label="Ask Hathorn">
-            <span>⌘ K</span>
+          <button type="button" className="ov2-search" onClick={() => setCmdOpen(true)}>
+            <span>Ask Hathorn</span>
+            <kbd>⌘ K</kbd>
           </button>
         </header>
 
-        <section className="ov2-hero">
-          <div className="ov2-hero-meta">
-            <div>
-              <div className="ov2-kicker">{model.client.name.toUpperCase()}</div>
-              <div className="ov2-period-line">
-                <PeriodScrubber
-                  periods={model.periods}
-                  activeId={cur.periodId}
-                  onSelect={selectPeriod}
-                />
+        <div className="ov2-title-row">
+          <div>
+            <h1>{model.client.name}</h1>
+            <div className="ov2-title-meta">
+              <span>{cur.label}</span>
+              <span className="ov2-pill">{model.status.books}</span>
+            </div>
+          </div>
+          <div className="ov2-period-tools">
+            <button type="button" aria-label="Previous period" onClick={() => stepPeriod(-1)} disabled={idx <= 0}>‹</button>
+            <button type="button" className="ov2-period-current" onClick={() => { /* scrub focus */ }}>
+              {cur.label}
+            </button>
+            <button type="button" aria-label="Next period" onClick={() => stepPeriod(1)} disabled={idx >= model.periods.length - 1}>›</button>
+            <select
+              className="ov2-compare"
+              value={compareMode}
+              aria-label="Compare"
+              onChange={(e) => setCompareMode(e.target.value as typeof compareMode)}
+            >
+              <option value="PRIOR_YEAR">Compare · Prior year</option>
+              <option value="PRIOR_MONTH">Compare · Prior month</option>
+              <option value="NONE">Compare · Off</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="ov2-body">
+          <main className="ov2-canvas">
+            <section className="ov2-chart-block">
+              <div className="ov2-chart-head">
+                <div>
+                  <div className="ov2-eyebrow">{meta.label}</div>
+                  <div className="ov2-hero-value tnum">{fmtVal(heroValue, meta.unit)}</div>
+                  <div className="ov2-hero-delta">
+                    <Delta compare={compare} />
+                    <span>
+                      {compareMode === "PRIOR_YEAR" ? `vs ${model.priorYear?.label ?? "prior year"}` : compareMode === "PRIOR_MONTH" ? "vs prior month" : ""}
+                    </span>
+                  </div>
+                </div>
+                <div className="ov2-range">
+                  {(["6M", "12M", "24M", "YTD", "ALL"] as const).map((r) => (
+                    <button key={r} type="button" className={range === r ? "on" : ""} onClick={() => setRange(r)}>{r}</button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="ov2-status">
-              <span><i />{model.status.books}</span>
-              <span>{model.status.close}</span>
-              <span>{model.status.connection}</span>
-            </div>
-          </div>
 
-          <div className="ov2-hero-figure">
-            <div className="ov2-hero-figure-main">
-              <div className="ov2-hero-value tnum">{fmtVal(heroValue, meta.unit)}</div>
-              <div className="ov2-hero-label">{meta.label}</div>
-              <div className="ov2-hero-delta">
-                <Delta lens={lens} compare={compare} />
-                <span className="ov2-hero-delta-basis">
-                  {compareMode === "PRIOR_YEAR" ? "vs prior year" : compareMode === "PRIOR_MONTH" ? "vs prior month" : "no comparison"}
-                </span>
+              <div className="ov2-lens">
+                {LENSES.map((l) => (
+                  <button key={l} type="button" className={lens === l ? "on" : ""} onClick={() => setLens(l)}>
+                    {LENS_META[l].label}
+                  </button>
+                ))}
               </div>
-            </div>
-            {model.narrative.signal && (
-              <div className="ov2-signal">
-                <span className="ov2-eyebrow">Hathorn signal</span>
-                <strong>● {model.narrative.signal}</strong>
-              </div>
-            )}
-          </div>
 
-          <div className="ov2-controls" role="toolbar" aria-label="Financial lens">
-            <div className="ov2-control-group">
-              {LENSES.map((l) => (
-                <button
-                  key={l}
-                  type="button"
-                  className={lens === l ? "on" : ""}
-                  onClick={() => setLens(l)}
-                >
-                  {LENS_META[l].label}
-                </button>
-              ))}
-            </div>
-            <div className="ov2-control-group ov2-control-right">
-              {(["6M", "12M", "ALL"] as const).map((r) => (
-                <button key={r} type="button" className={range === r ? "on" : ""} onClick={() => setRange(r)}>
-                  {r === "ALL" ? "All" : r}
-                </button>
-              ))}
-              <button
-                type="button"
-                className={compareMode === "PRIOR_YEAR" ? "on" : ""}
-                onClick={() => setCompareMode((m) => (m === "PRIOR_YEAR" ? "NONE" : "PRIOR_YEAR"))}
-                disabled={!model.priorYear}
-              >
-                Prior year
-              </button>
-            </div>
-          </div>
+              <HeroChart
+                periods={model.periods}
+                lens={lens}
+                activePeriodId={cur.periodId}
+                showPriorYear={compareMode === "PRIOR_YEAR"}
+                showBudget={lens === "revenue" && model.budget.available}
+                range={range}
+              />
+            </section>
 
-          <HeroChart
-            periods={model.periods}
-            lens={lens}
-            activePeriodId={cur.periodId}
-            showPriorYear={compareMode === "PRIOR_YEAR"}
-            range={range}
-          />
+            <section className="ov2-tiles" aria-label="Key metrics">
+              {TILES.map((l) => {
+                const c = model.compare.priorYear[l];
+                const up = l === "grossMarginPct"
+                  ? (c.points ?? 0) >= 0
+                  : (c.deltaPct ?? 0) >= 0;
+                return (
+                  <button key={l} type="button" className="ov2-tile" onClick={() => setLens(l)}>
+                    <div className="ov2-tile-top">
+                      <span className="ov2-eyebrow">{LENS_META[l].label}</span>
+                      <Spark values={seriesFor(l)} up={up} />
+                    </div>
+                    <div className="ov2-tile-v tnum">{fmtVal(cur[l], LENS_META[l].unit)}</div>
+                    <div className="ov2-tile-d"><Delta compare={c} /></div>
+                  </button>
+                );
+              })}
+            </section>
 
-          <div className="ov2-series-key">
-            <span><b />Actual</span>
-            {compareMode === "PRIOR_YEAR" && model.priorYear && <span className="is-prior"><b />Prior year</span>}
-          </div>
-        </section>
-
-        <section className="ov2-intel">
-          <div className="ov2-intel-copy">
-            <span className="ov2-eyebrow">What Hathorn sees</span>
-            <h2>{model.narrative.headline}</h2>
-            <p>{model.narrative.body}</p>
-            {model.narrative.noteHeading && (
-              <p className="ov2-note">
-                <em>{model.narrative.noteHeading}.</em> {model.narrative.noteBody}
-              </p>
-            )}
-            <div className="ov2-actions">
-              <button type="button" className="ov2-btn-primary" onClick={() => setDriversOpen((v) => !v)}>
-                {driversOpen ? "Hide drivers" : "Explore drivers"}
-              </button>
-              <button type="button" className="ov2-btn-ghost" onClick={() => setCmdOpen(true)}>
-                Ask Hathorn
-              </button>
-              <Link className="ov2-btn-ghost" href={`/dash/financials?client=${model.client.id}&month=${cur.periodId}`}>
-                Open financials
-              </Link>
-            </div>
-          </div>
-
-          <aside className="ov2-secondary" aria-label="Supporting metrics">
-            {SECONDARY.filter((l) => l !== lens).slice(0, 3).map((l) => (
-              <button key={l} type="button" className="ov2-sec-metric" onClick={() => setLens(l)}>
-                <span className="ov2-eyebrow">{LENS_META[l].label}</span>
-                <strong className="tnum">{fmtVal(cur[l], LENS_META[l].unit)}</strong>
-                <Delta lens={l} compare={model.compare.priorYear[l]} />
-              </button>
-            ))}
-          </aside>
-        </section>
-
-        {driversOpen && (
-          <section className="ov2-drivers" aria-label="Driver analysis">
-            <div>
-              <span className="ov2-eyebrow">Why net income changed</span>
-              <h3>Period bridge · {model.priorMonth?.label ?? "—"} → {cur.label}</h3>
-              <ul className="ov2-bridge">
-                {model.drivers.netIncome.map((row, i) => {
-                  const isEdge = i === 0 || i === model.drivers.netIncome.length - 1;
-                  const mag = Math.max(...model.drivers.netIncome.map((x) => Math.abs(x.delta)), 1);
-                  const w = isEdge ? 0 : Math.max(8, (Math.abs(row.delta) / mag) * 100);
+            <section className="ov2-waterfall">
+              <div className="ov2-eyebrow">Why net income changed</div>
+              <h2>{model.drivers.fromLabel} → {model.drivers.toLabel}</h2>
+              <ul>
+                {model.drivers.netIncome.map((row) => {
+                  const edge = row.kind === "start" || row.kind === "end";
+                  const mag = Math.max(...model.drivers.netIncome.filter((x) => !["start", "end"].includes(x.kind)).map((x) => Math.abs(x.delta)), 1);
+                  const w = edge ? 0 : Math.max(10, (Math.abs(row.delta) / mag) * 100);
                   return (
-                    <li key={row.label} className={isEdge ? "is-edge" : ""}>
+                    <li key={row.label} className={edge ? "is-edge" : ""}>
                       <span>{row.label}</span>
-                      {!isEdge && (
-                        <i style={{ width: `${w}%`, background: row.delta >= 0 ? "var(--brand)" : "var(--accent-deep)" }} />
-                      )}
+                      {!edge && <i className={row.kind === "up" ? "up" : "down"} style={{ width: `${w}%` }} />}
                       <strong className="tnum">{fmtMoney(row.delta)}</strong>
                     </li>
                   );
                 })}
               </ul>
+              <p className="ov2-fine">
+                Deterministic {model.drivers.mode} bridge from the ledger.
+                Labels are revenue / direct cost / overhead — not invented subcontractors.
+              </p>
+            </section>
+          </main>
+
+          <aside className="ov2-intel" aria-label="Intelligence">
+            <div className="ov2-intel-card">
+              <div className="ov2-eyebrow">What Hathorn sees</div>
+              <h2>{model.narrative.headline}</h2>
+              <p>{model.narrative.body}</p>
+              {model.narrative.signal && (
+                <div className="ov2-signal-chip">● {model.narrative.signal}</div>
+              )}
+              {model.narrative.noteBody && (
+                <p className="ov2-note"><em>{model.narrative.noteHeading}.</em> {model.narrative.noteBody}</p>
+              )}
             </div>
-            <div>
-              <span className="ov2-eyebrow">Revenue contributors</span>
-              <h3>Entity movement</h3>
-              <ul className="ov2-slices">
-                {model.drivers.revenueSlices.length === 0 && <li>No entity-level movement versus prior month.</li>}
-                {model.drivers.revenueSlices.map((s) => (
-                  <li key={s.label}>
-                    <span>{s.label}</span>
-                    <strong className="tnum" style={{ color: s.delta >= 0 ? "var(--brand-deep)" : "var(--accent-deep)" }}>
-                      {s.delta >= 0 ? "+" : ""}{fmtMoney(s.delta)}
-                    </strong>
+
+            <div className="ov2-intel-card">
+              <div className="ov2-eyebrow">Key insights</div>
+              <ul className="ov2-insight-list">
+                {model.insights.map((ins) => (
+                  <li key={ins.label}>
+                    <span>{ins.label}</span>
+                    <strong className={`tnum is-${ins.tone}`}>{ins.value}</strong>
+                    <em>{ins.detail}</em>
                   </li>
                 ))}
               </ul>
-              <p className="ov2-method">
-                Deterministic bridges from the ledger. Causal claim beyond the close requires transaction detail — Hathorn will not invent it.
-              </p>
+              <Link className="ov2-text-link" href={`/dash/financials?client=${model.client.id}&month=${cur.periodId}`}>
+                Explore drivers →
+              </Link>
             </div>
-          </section>
-        )}
+
+            <div className="ov2-intel-card ov2-ask-card">
+              <div className="ov2-eyebrow">Ask Hathorn</div>
+              <div className="ov2-ask-suggestions">
+                {suggestions.map((s) => (
+                  <button key={s} type="button" onClick={() => { setQuery(s); setCmdOpen(true); }}>{s}</button>
+                ))}
+              </div>
+              <p className="ov2-fine">Answers use authorized tools and verified ledger sources — not free invention.</p>
+            </div>
+          </aside>
+        </div>
+
+        <footer className="ov2-statusbar">
+          <span className={model.status.closeTrack === "On track" || model.status.closeTrack === "Complete" ? "ok" : ""}>
+            Close · {model.status.closeTrack}
+          </span>
+          <span>
+            Reconciliations · {model.status.reconTotal ? `${model.status.reconDone}/${model.status.reconTotal}` : "None on period"}
+          </span>
+          <span>Open items · {model.status.openItems}</span>
+          <span className={model.status.docsMissing ? "warn" : ""}>
+            Documents · {model.status.docsMissing ? `${model.status.docsMissing} missing` : "Clear"}
+          </span>
+          <span>Partner review · {model.status.partnerReview}</span>
+          <Link href={`/close?client=${model.client.id}`} className="ov2-status-cta">Go to close room →</Link>
+        </footer>
       </div>
 
       {cmdOpen && (
@@ -292,12 +315,7 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
           <div className="ov2-cmd-panel">
             <div className="ov2-eyebrow">✦ Ask Hathorn</div>
             <h2>What do you want to understand about {model.client.name.split(" ")[0]}?</h2>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                window.location.href = askHref;
-              }}
-            >
+            <form onSubmit={(e) => { e.preventDefault(); window.location.href = askHref; }}>
               <input
                 autoFocus
                 value={query}
@@ -305,24 +323,11 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
                 placeholder={`Why did profitability move in ${cur.label}?`}
               />
             </form>
-            <p className="ov2-method" style={{ marginTop: 12 }}>
-              Opens Ask Hathorn in context for {model.client.name} · {cur.label}.
-              {query.trim() ? ` Prompt ready: “${query.trim()}”.` : ""}
-            </p>
             <div className="ov2-cmd-suggest">
-              <span className="ov2-eyebrow">Suggested</span>
               {suggestions.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setQuery(s)}
-                >
-                  {s}
-                </button>
+                <button key={s} type="button" onClick={() => setQuery(s)}>{s}</button>
               ))}
-              <Link className="ov2-btn-primary" href={askHref} style={{ marginTop: 8, display: "inline-flex", width: "fit-content" }}>
-                Open Ask Hathorn
-              </Link>
+              <Link className="ov2-btn-primary" href={askHref}>Open Ask Hathorn</Link>
             </div>
           </div>
         </div>
@@ -331,41 +336,20 @@ export default function OverviewCanvas({ model }: { model: OverviewV2Model }) {
   );
 }
 
-function PeriodScrubber({
-  periods, activeId, onSelect,
-}: {
-  periods: OverviewV2Model["periods"];
-  activeId: string;
-  onSelect: (id: string) => void;
-}) {
-  // Group by year so JAN'25 and JAN'26 are never ambiguous.
-  const years = Array.from(new Set(periods.map((p) => p.year))).sort((a, b) => a - b);
+function Delta({ compare }: { compare: { delta: number | null; deltaPct: number | null; points: number | null } }) {
+  if (compare.points != null) {
+    const up = compare.points >= 0;
+    return <span className={`ov2-delta ${up ? "up" : "down"}`}>{up ? "↑" : "↓"} {Math.abs(compare.points).toFixed(1)} pts</span>;
+  }
+  if (compare.deltaPct == null) return <span className="ov2-delta flat">—</span>;
+  const up = compare.deltaPct >= 0;
+  return <span className={`ov2-delta ${up ? "up" : "down"}`}>{up ? "↑" : "↓"} {Math.abs(compare.deltaPct).toFixed(1)}%</span>;
+}
+
+function Icon({ d }: { d: string }) {
   return (
-    <div className="ov2-scrub-wrap" aria-label="Reporting period">
-      {years.map((year) => (
-        <div key={year} className="ov2-scrub-year">
-          <span className="ov2-scrub-year-label">{year}</span>
-          <div className="ov2-scrub" role="listbox" aria-label={`${year} periods`}>
-            {periods.filter((p) => p.year === year).map((p) => {
-              const on = p.periodId === activeId;
-              return (
-                <button
-                  key={p.periodId}
-                  type="button"
-                  role="option"
-                  aria-selected={on}
-                  className={on ? "on" : ""}
-                  onClick={() => onSelect(p.periodId)}
-                  title={p.label}
-                >
-                  <span>{p.label.split(" ")[0].slice(0, 3).toUpperCase()}</span>
-                  {on && <i />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={d} />
+    </svg>
   );
 }
