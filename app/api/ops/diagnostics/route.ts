@@ -39,6 +39,14 @@ export async function POST(req: Request) {
   try {
     const s = await requirePlatformAdmin();
     const body = await jsonObject(req);
+    // Re-bind after awaits — platform_admin is never ambient from the JWT.
+    try {
+      const { setPlatformAdmin, setRlsUserId, setRlsFirmId } =
+        require("@/lib/db-context") as typeof import("@/lib/db-context");
+      setRlsUserId(s.userId);
+      setRlsFirmId(s.firmId ?? null);
+      setPlatformAdmin(true);
+    } catch { /* sqlite */ }
     if (String(body.action) === "integrity") {
       const result = runIntegrityDiagnostics();
       audit(s.userId, "INTEGRITY_CHECK_RUN", JSON.stringify({

@@ -179,6 +179,30 @@ function persistResult(opts: {
   const now = new Date().toISOString();
   const runId = uid();
 
+  // Parent row must exist before reconciliation_runs under Postgres RLS
+  // (WITH CHECK joins runs → reconciliations → clients → firm).
+  if (!existing) {
+    db().prepare(`
+      INSERT INTO reconciliations
+        (id, client_id, period_id, reconciliation_type, control_source, supporting_source,
+         control_amount_cents, supporting_amount_cents, difference_cents, absolute_difference_cents,
+         percentage_difference, tolerance_cents, tolerance_source, status, readiness,
+         issues_json, source_refs_json, latest_run_id, created_by, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+    `).run(
+      reconId, opts.clientId, opts.periodId, opts.type,
+      opts.result.controlSource, opts.result.supportingSource,
+      opts.result.controlAmountCents, opts.result.supportingAmountCents,
+      opts.result.differenceCents, opts.result.absoluteDifferenceCents,
+      opts.result.percentageDifference,
+      opts.result.toleranceCents, opts.result.toleranceSource,
+      opts.result.status, opts.result.readiness,
+      JSON.stringify(opts.result.issues),
+      JSON.stringify(opts.result.sourceRefs),
+      runId, opts.createdBy, now, now,
+    );
+  }
+
   db().prepare(`
     INSERT INTO reconciliation_runs
       (id, reconciliation_id, control_snapshot, supporting_snapshot, difference_cents,
@@ -218,26 +242,6 @@ function persistResult(opts: {
       JSON.stringify(opts.result.issues),
       JSON.stringify(opts.result.sourceRefs),
       runId, now, reconId,
-    );
-  } else {
-    db().prepare(`
-      INSERT INTO reconciliations
-        (id, client_id, period_id, reconciliation_type, control_source, supporting_source,
-         control_amount_cents, supporting_amount_cents, difference_cents, absolute_difference_cents,
-         percentage_difference, tolerance_cents, tolerance_source, status, readiness,
-         issues_json, source_refs_json, latest_run_id, created_by, created_at, updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `).run(
-      reconId, opts.clientId, opts.periodId, opts.type,
-      opts.result.controlSource, opts.result.supportingSource,
-      opts.result.controlAmountCents, opts.result.supportingAmountCents,
-      opts.result.differenceCents, opts.result.absoluteDifferenceCents,
-      opts.result.percentageDifference,
-      opts.result.toleranceCents, opts.result.toleranceSource,
-      opts.result.status, opts.result.readiness,
-      JSON.stringify(opts.result.issues),
-      JSON.stringify(opts.result.sourceRefs),
-      runId, opts.createdBy, now, now,
     );
   }
 

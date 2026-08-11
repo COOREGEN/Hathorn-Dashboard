@@ -37,6 +37,14 @@ export async function POST(req: Request) {
     return await runWithCorrelationAsync({
       correlationId, userId: s.userId, operation: "ops.jobs",
     }, async () => {
+      // Re-bind after await — ALS does not survive Next.js async boundaries.
+      try {
+        const { setPlatformAdmin, setRlsUserId, setRlsFirmId } =
+          require("@/lib/db-context") as typeof import("@/lib/db-context");
+        setRlsUserId(s.userId);
+        setRlsFirmId(s.firmId ?? null);
+        setPlatformAdmin(true);
+      } catch { /* sqlite */ }
       const body = await jsonObject(req);
       const action = String(body.action || "");
 

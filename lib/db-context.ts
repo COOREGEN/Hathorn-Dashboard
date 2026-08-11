@@ -73,6 +73,9 @@ export function bindRlsFromSession(session: {
   enter({
     userId: session.userId,
     firmId: session.firmId ?? null,
+    // Platform bypass is opt-in (`opts.platformAdmin` or requirePlatformAdmin).
+    // Never ambient from JWT — that would let every platform-admin request
+    // skip firm RLS on ordinary firm-scoped routes.
     platformAdmin: opts?.platformAdmin ?? false,
   });
 }

@@ -339,11 +339,16 @@ CREATE POLICY close_policies_isolation ON close_policies
   USING (
   current_setting('app.platform_admin', true) = '1'
   OR (
-  client_id IN (
-    SELECT id FROM clients WHERE firm_id::text = current_setting('app.current_firm_id', true)
+    /* Firm-default template rows use client_id NULL (shared catalog). */
+    (
+      client_id IS NULL
+      AND current_setting('app.current_firm_id', true) <> ''
+    )
+    OR client_id IN (
+      SELECT id FROM clients WHERE firm_id::text = current_setting('app.current_firm_id', true)
+    )
   )
-  )
-);
+  );
 
 DROP POLICY IF EXISTS budget_lines_isolation ON budget_lines;
 CREATE POLICY budget_lines_isolation ON budget_lines
@@ -664,6 +669,7 @@ CREATE POLICY audit_logs_isolation ON audit_logs
       SELECT id FROM clients WHERE firm_id::text = current_setting('app.current_firm_id', true)
     )
     OR (
+      /* Auth / password-reset events bind app.current_user_id before insert. */
       current_setting('app.current_user_id', true) <> ''
       AND user_id::text = current_setting('app.current_user_id', true)
     )
@@ -876,6 +882,196 @@ CREATE POLICY tax_scenario_runs_isolation ON tax_scenario_runs
     WHERE ti.client_id IN (
       SELECT id FROM clients WHERE firm_id::text = current_setting('app.current_firm_id', true)
     )
+  )
+  )
+);
+
+/* ------------------------------------------------------------------ */
+/* Additional tenant tables (Phase 8 domains not covered above)        */
+/* ------------------------------------------------------------------ */
+
+ALTER TABLE period_locks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE period_locks FORCE ROW LEVEL SECURITY;
+ALTER TABLE kpi_client_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kpi_client_config FORCE ROW LEVEL SECURITY;
+ALTER TABLE kpi_inputs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kpi_inputs FORCE ROW LEVEL SECURITY;
+ALTER TABLE kpi_values ENABLE ROW LEVEL SECURITY;
+ALTER TABLE kpi_values FORCE ROW LEVEL SECURITY;
+ALTER TABLE passthrough_lines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE passthrough_lines FORCE ROW LEVEL SECURITY;
+ALTER TABLE fee_lines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE fee_lines FORCE ROW LEVEL SECURITY;
+ALTER TABLE channel_lines ENABLE ROW LEVEL SECURITY;
+ALTER TABLE channel_lines FORCE ROW LEVEL SECURITY;
+ALTER TABLE personal_finance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE personal_finance FORCE ROW LEVEL SECURITY;
+ALTER TABLE release_deliveries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE release_deliveries FORCE ROW LEVEL SECURITY;
+ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE assets FORCE ROW LEVEL SECURITY;
+ALTER TABLE client_reconciliation_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE client_reconciliation_config FORCE ROW LEVEL SECURITY;
+ALTER TABLE qbo_account_map ENABLE ROW LEVEL SECURITY;
+ALTER TABLE qbo_account_map FORCE ROW LEVEL SECURITY;
+ALTER TABLE advisory_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE advisory_sessions FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS period_locks_isolation ON period_locks;
+CREATE POLICY period_locks_isolation ON period_locks
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  period_id IN (
+    SELECT p.id FROM periods p
+    JOIN clients c ON c.id = p.client_id
+    WHERE c.firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS kpi_client_config_isolation ON kpi_client_config;
+CREATE POLICY kpi_client_config_isolation ON kpi_client_config
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  client_id IN (
+    SELECT id FROM clients WHERE firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS kpi_inputs_isolation ON kpi_inputs;
+CREATE POLICY kpi_inputs_isolation ON kpi_inputs
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  period_id IN (
+    SELECT p.id FROM periods p
+    JOIN clients c ON c.id = p.client_id
+    WHERE c.firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS kpi_values_isolation ON kpi_values;
+CREATE POLICY kpi_values_isolation ON kpi_values
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  period_id IN (
+    SELECT p.id FROM periods p
+    JOIN clients c ON c.id = p.client_id
+    WHERE c.firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS passthrough_lines_isolation ON passthrough_lines;
+CREATE POLICY passthrough_lines_isolation ON passthrough_lines
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  period_id IN (
+    SELECT p.id FROM periods p
+    JOIN clients c ON c.id = p.client_id
+    WHERE c.firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS fee_lines_isolation ON fee_lines;
+CREATE POLICY fee_lines_isolation ON fee_lines
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  period_id IN (
+    SELECT p.id FROM periods p
+    JOIN clients c ON c.id = p.client_id
+    WHERE c.firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS channel_lines_isolation ON channel_lines;
+CREATE POLICY channel_lines_isolation ON channel_lines
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  period_id IN (
+    SELECT p.id FROM periods p
+    JOIN clients c ON c.id = p.client_id
+    WHERE c.firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS personal_finance_isolation ON personal_finance;
+CREATE POLICY personal_finance_isolation ON personal_finance
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  period_id IN (
+    SELECT p.id FROM periods p
+    JOIN clients c ON c.id = p.client_id
+    WHERE c.firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS release_deliveries_isolation ON release_deliveries;
+CREATE POLICY release_deliveries_isolation ON release_deliveries
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  release_id IN (
+    SELECT rr.id FROM release_records rr
+    JOIN clients c ON c.id = rr.client_id
+    WHERE c.firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS assets_isolation ON assets;
+CREATE POLICY assets_isolation ON assets
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  client_id IN (
+    SELECT id FROM clients WHERE firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS client_reconciliation_config_isolation ON client_reconciliation_config;
+CREATE POLICY client_reconciliation_config_isolation ON client_reconciliation_config
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  client_id IN (
+    SELECT id FROM clients WHERE firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS qbo_account_map_isolation ON qbo_account_map;
+CREATE POLICY qbo_account_map_isolation ON qbo_account_map
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  client_id IN (
+    SELECT id FROM clients WHERE firm_id::text = current_setting('app.current_firm_id', true)
+  )
+  )
+);
+
+DROP POLICY IF EXISTS advisory_sessions_isolation ON advisory_sessions;
+CREATE POLICY advisory_sessions_isolation ON advisory_sessions
+  USING (
+  current_setting('app.platform_admin', true) = '1'
+  OR (
+  client_id IN (
+    SELECT id FROM clients WHERE firm_id::text = current_setting('app.current_firm_id', true)
   )
   )
 );

@@ -114,6 +114,20 @@ export function translateSqliteSql(sql: string): string {
     /COALESCE\((published_at|shared_at)\s*,\s*created_at\)/gi,
     "COALESCE($1::timestamptz, created_at)",
   );
+  // Jobs: heartbeat/started are text; created_at is timestamptz.
+  // Rewrite before the naive datetime() rewriter (nested parens break [^)]+).
+  out = out.replace(
+    /datetime\s*\(\s*COALESCE\s*\(\s*heartbeat_at\s*,\s*started_at\s*,\s*created_at\s*\)\s*\)/gi,
+    "(COALESCE(heartbeat_at, started_at, created_at::text))::timestamptz",
+  );
+  out = out.replace(
+    /COALESCE\s*\(\s*heartbeat_at\s*,\s*started_at\s*,\s*created_at\s*\)\s*<\s*datetime\('now',\s*\?\)/gi,
+    "(COALESCE(heartbeat_at, started_at, created_at::text))::timestamptz < NOW() + CAST(? AS INTERVAL)",
+  );
+  out = out.replace(
+    /COALESCE\s*\(\s*heartbeat_at\s*,\s*started_at\s*,\s*created_at\s*\)/gi,
+    "COALESCE(heartbeat_at, started_at, created_at::text)",
+  );
   // Text columns coalesced with "now" must stay text; timestamptz columns compare to NOW().
   out = out.replace(
     /COALESCE\(([a-zA-Z_][\w]*)\s*,\s*datetime\('now'\)\)/gi,
@@ -148,17 +162,17 @@ export function translateSqliteSql(sql: string): string {
   out = out.replace(/\bdatetime\(([^)]+)\)/gi, "(($1)::timestamptz)");
   out = out.replace(/\browid\b/gi, "ctid");
 
-  // Boolean columns migrated from INTEGER 0/1.
-  const boolCols = "active|mfa_enabled|is_platform_admin|show_platform_mark|visible|enabled|blocking|reconciled|read_only|shared|for_client";
-  out = out.replace(new RegExp(`\\b(${boolCols})\\s*=\\s*1\\b`, "gi"), "$1 = TRUE");
-  out = out.replace(new RegExp(`\\b(${boolCols})\\s*=\\s*0\\b`, "gi"), "$1 = FALSE");
+  // Only columns that are true PostgreSQL booleans after migrate-to-postgres.
+  // INTEGER 0/1 flags (mfa_enabled, is_platform_admin, enabled, …) must stay
+  // compared as integers — casting them to TRUE/FALSE yields
+  // "operator does not exist: integer = boolean".
+  out = out.replace(/\bactive\s*=\s*1\b/gi, "active = TRUE");
+  out = out.replace(/\bactive\s*=\s*0\b/gi, "active = FALSE");
+
+  // Postgres has no round(double precision, int) — cast the value to numeric.
   out = out.replace(
-    /COALESCE\(([^,]+is_platform_admin[^,]*),\s*0\)\s*=\s*0/gi,
-    "COALESCE($1, FALSE) = FALSE",
-  );
-  out = out.replace(
-    /COALESCE\(([^,]+is_platform_admin[^,]*),\s*0\)/gi,
-    "COALESCE($1, FALSE)",
+    /\bROUND\s*\(\s*([a-zA-Z_][\w.]*)\s*,\s*(\d+)\s*\)/gi,
+    "ROUND(($1)::numeric, $2)",
   );
 
   if (hadIgnore && !/ON\s+CONFLICT/i.test(out)) {
@@ -181,13 +195,13 @@ function ensureRlsFromCookie() {
     if (!token) return;
     const { decodeJwt } = require("jose") as typeof import("jose");
     const payload = decodeJwt(token) as {
-      userId?: string; firmId?: string | null; isPlatformAdmin?: boolean;
+      userId?: string; firmId?: string | null;
     };
     const { bindRlsFromSession } = require("./db-context") as typeof import("./db-context");
+    // Restore firm/user only — platform_admin stays opt-in via requirePlatformAdmin().
     bindRlsFromSession({
       userId: String(payload.userId || ""),
       firmId: payload.firmId ?? null,
-      isPlatformAdmin: Boolean(payload.isPlatformAdmin),
     });
   } catch { /* outside a Next.js request (scripts, worker) */ }
 }

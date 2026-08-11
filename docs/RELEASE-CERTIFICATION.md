@@ -2,9 +2,9 @@
 
 Engineering/accounting truth document. Not marketing.
 
-**Verdict:** see bottom and agent final response.
+**Verdict:** `READY FOR CONTROLLED PILOT ONLY` — see `docs/PRODUCTION-LAUNCH-CERTIFICATION.md` (2026-08-11).
 
-Branch audited: `cursor/release-candidate-audit-c8e9` (from Phase 12 tip).
+Branch audited: `cursor/production-launch-closure-c8e9` (Postgres staging cutover + RLS).
 
 ---
 
@@ -17,7 +17,7 @@ Branch audited: `cursor/release-candidate-audit-c8e9` (from Phase 12 tip).
 | TENANT ISOLATION | **PASS** |
 | CRITICAL UX | **PASS** |
 | CORE WORKFLOW | **PASS** |
-| PRODUCTION OPERATIONS | **PARTIAL** |
+| PRODUCTION OPERATIONS | **PASS (staging Postgres)** / production host cutover pending |
 
 ---
 
@@ -26,14 +26,14 @@ Branch audited: `cursor/release-candidate-audit-c8e9` (from Phase 12 tip).
 | Subsystem | Status | Evidence |
 |---|---|---|
 | Authentication | VERIFIED | Login/MFA/reset paths; proof auth; throttle |
-| Tenant isolation | VERIFIED | tenancy:test + proof Firm A/B |
+| Tenant isolation | VERIFIED | tenancy:test + proof Firm A/B + RLS |
 | Client isolation | VERIFIED | Client IDOR + portal API probes |
-| Database (SQLite) | VERIFIED | Schema 30; integrity checks |
-| Postgres runtime | DEFERRED | Tooling only |
-| RLS | PARTIAL | SQL present; not runtime-enforced on SQLite |
-| Financial actuals | VERIFIED | Independent Apr-2026 fixture + BS balance |
+| Database (SQLite) | VERIFIED | Retained as rollback |
+| Postgres runtime | **VERIFIED (staging)** | Dual driver live; proof 217/217 |
+| RLS | **VERIFIED** | FORCE RLS; `db:rls-proof` 13/13 pooled |
+| Financial actuals | VERIFIED | Independent Apr-2026 fixture + BS balance on PG |
 | Releases | VERIFIED | Checksum immutable after working mutation |
-| Amendments | VERIFIED | Prior proof lifecycle |
+| Amendments | VERIFIED | Proof lifecycle on Postgres |
 | FP&A | VERIFIED | Native engine tests; Forge off by default |
 | Documents | VERIFIED | Upload/parse/auth tests |
 | Tax | VERIFIED | Unit + proof sections |
@@ -43,12 +43,12 @@ Branch audited: `cursor/release-candidate-audit-c8e9` (from Phase 12 tip).
 | Close | VERIFIED | close:test + proof |
 | Copilot | VERIFIED | Grounding + injection + cross-tenant |
 | Financial intelligence | VERIFIED | intelligence:test + proof |
-| Client portal | VERIFIED | Portal tests + visual QA + isolation |
+| Client portal | VERIFIED | Portal tests + isolation |
 | Reports | VERIFIED | Snapshot freeze + portal reports |
 | Background jobs | VERIFIED | ops:test + proof §21 |
-| Backups | VERIFIED | create + restore-check OK (2026-08-10 RC drill) |
+| Backups / restore | **DATED DRILL VERIFIED** | 2026-08-10 SQLite + 2026-08-11 Postgres |
 | Operations | VERIFIED | `/platform` + `/api/ops/*` |
-| Malware scanning | BLOCKED / NOT READY | Documented gap |
+| Malware scanning | IMPLEMENTED BUT NOT LIVE-PROVEN | ClamAV clean path; infected E2E pending |
 | Next.js CVE patch level | PARTIAL | 14.2.35; major upgrade deferred |
 
 ---
@@ -60,9 +60,9 @@ Branch audited: `cursor/release-candidate-audit-c8e9` (from Phase 12 tip).
 | Authentication | PASS |
 | Tenant isolation | PASS |
 | Client isolation | PASS |
-| RLS | PARTIAL (not live) |
+| RLS | PASS (pooled proof) |
 | IDOR | PASS (probed) |
-| File security | PASS (path/MIME); malware NOT claimed |
+| File security | PASS (path/MIME); ClamAV clean proven; infected E2E not claimed |
 | AI tool security | PASS |
 | Prompt injection | PASS |
 | Secrets in repo | PASS (no live secrets committed; `.env.local` local only) |
@@ -97,11 +97,12 @@ Branch audited: `cursor/release-candidate-audit-c8e9` (from Phase 12 tip).
 
 | Item | Status |
 |---|---|
-| Database | SQLite production path supported |
-| Backups | Hourly cron documented; verify OK |
+| Database | **Postgres staging runtime verified**; SQLite rollback retained |
+| Backups | Hourly cron + dated restore drills (SQLite + Postgres) |
 | Jobs | `npm run jobs:tick` |
-| Monitoring | Health live/ready + structured logs |
-| Critical-path smoke | VERIFIED — `npm run smoke` **11 passed, 0 failed** (live, favicon, auth, portal, ops wall, firm isolation) |
+| Monitoring | Health live/ready + structured logs; SaaS tracker DEFERRED |
+| Critical-path smoke | VERIFIED — `npm run smoke` **11/11** on Postgres |
+| Full proof | VERIFIED — `npm run proof` **217/217** on Postgres |
 | Error handling | Degrade matrix for AI/QBO/email/Docling |
 | Performance | Prior portal batching; no new regressions observed |
 | Deployment | CI workflow present; Next major upgrade tracked |
@@ -110,17 +111,8 @@ Branch audited: `cursor/release-candidate-audit-c8e9` (from Phase 12 tip).
 
 ## Release verdict
 
-**READY WITH KNOWN NON-BLOCKING LIMITATIONS**
+**READY FOR CONTROLLED PILOT ONLY**
 
-Core security, tenancy, financial integrity, publish/portal, and critical UX gates pass with evidence.
+Postgres + RLS + dated restore + full Postgres proof close the prior operational gaps for a controlled pilot. Multi-firm production still requires: authorized QBO verification, controlled Next.js security upgrade, production host cutover, and infected-file malware E2E.
 
-Limitations that do **not** block a controlled firm pilot, but must stay visible:
-
-1. QuickBooks not production-Intuit verified  
-2. Postgres/RLS runtime not cut over  
-3. Malware scanning not implemented  
-4. Next.js 14.x advisory backlog (upgrade project)  
-5. Email/Docling optional and environment-dependent  
-6. Restore **snapshot verify** OK; full disaster drill still an operator calendar item  
-
-Any unresolved **P0** would force NOT READY — none found.
+See `docs/PRODUCTION-LAUNCH-CERTIFICATION.md` sections A–L.

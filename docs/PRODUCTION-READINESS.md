@@ -1,35 +1,36 @@
 # Production readiness matrix — Hathorn Dashboard
 
-Evidence-based. Update when drills run.
+Evidence-based. Updated 2026-08-11 after Postgres staging cutover.
 
 | Capability | Status | Evidence |
 |---|---|---|
-| Authentication | VERIFIED | Auth unit/proof; throttle; token_version |
-| Staff MFA | VERIFIED | MFA flows + production default |
-| Tenant isolation | VERIFIED | tenancy:test + proof Firm A/B probes |
-| Release integrity | VERIFIED | release engine + proof publish/amend |
-| Gate / accounting integrity | VERIFIED | gate + proof financial fixtures |
-| Database backup (SQLite) | VERIFIED | `npm run backup` + verify on create |
-| Restore | PARTIAL | `npm run restore-check` verifies snapshots; **full prod drill — DOCUMENT date when run** |
-| Postgres runtime | NOT READY | Tooling only; dual driver not shipped |
-| RLS | PARTIAL | SQL + docs; not runtime-enforced on SQLite |
-| QBO production | PARTIAL | Code complete; live Intuit not proven here |
-| Document worker | PARTIAL | Native CSV verified; Docling optional |
-| AI / Copilot | PARTIAL | Works with key; degrades without; adversarial tests in proof |
-| Background jobs | VERIFIED | ops-unit + jobs table + tick script |
+| Authentication | VERIFIED | Auth + proof; forgot-password under RLS; token_version |
+| Staff MFA | VERIFIED | MFA flows + production default (off only for staging proof) |
+| Tenant isolation | VERIFIED | tenancy:test + proof Firm A/B + RLS pooled proof |
+| Release integrity | VERIFIED | release engine + proof publish/amend on Postgres |
+| Gate / accounting integrity | VERIFIED | gate + financial-pg-proof known numbers |
+| Database (Postgres staging) | VERIFIED | `POSTGRES_RUNTIME_ENABLED=1`; smoke/proof/RLS green |
+| Database (SQLite) | VERIFIED | Retained as rollback; not destroyed |
+| Restore | **DATED DRILL VERIFIED** | `docs/RESTORE-DRILL-LOG.md` — 2026-08-10 SQLite + 2026-08-11 Postgres |
+| RLS | **VERIFIED** | FORCE RLS + `npm run db:rls-proof` 13/13 |
+| QBO production | PARTIAL | INTEGRATION TESTED; no Intuit credentials here |
+| Document worker | PARTIAL | Native CSV verified; Docling optional/off |
+| AI / Copilot | PARTIAL | Works with key; degrades without; proof green without key |
+| Background jobs | VERIFIED | ops-unit + proof §21 on Postgres |
 | Job idempotency / retry | VERIFIED | ops-unit |
 | Health live/ready | VERIFIED | `/api/health/live`, `/ready` |
 | Observability (structured logs) | VERIFIED | `log()` + redaction + correlation header |
-| Error tracking (SaaS) | DEFERRED | Host logs first |
+| Error tracking (SaaS) | DEFERRED | Host logs sufficient for controlled pilot |
 | Platform ops console | VERIFIED | `/platform` + `/api/ops/*` |
 | Appsmith | NOT NEEDED | First-party ops console |
 | Temporal | DEFERRED | Simple queue sufficient |
 | Incident runbooks | DOCUMENTED | `docs/INCIDENT-RESPONSE.md` |
-| Disaster recovery | DOCUMENTED | `docs/DISASTER-RECOVERY.md` |
-| Load test | PARTIAL | Historical portal concurrency notes; Phase 12 targeted ops tests only |
-| Email | PARTIAL | Integration present; delivery unexercised without key |
-| Malware scanning | NOT READY | Documented gap |
+| Disaster recovery | DOCUMENTED | `docs/DISASTER-RECOVERY.md` + dated drills |
+| Load test | PARTIAL | Historical portal concurrency notes |
+| Email | DISABLED / PARTIAL | No RESEND key in this env |
+| Malware scanning | IMPLEMENTED BUT NOT LIVE-PROVEN | ClamAV clean path proven; infected E2E pending |
 | Billing | NOT READY | Intentionally out of scope |
+| Next.js CVE level | PARTIAL | 14.2.35; Next 16 upgrade deferred (breaking) |
 
 ## Critical path (minimum useful product)
 
@@ -50,22 +51,15 @@ Must work even when optional systems fail:
 | QBO | Released/historical data; sync unavailable |
 | Email | App + publish; notifications fail separately |
 | Jobs tick paused | Interactive paths; background retries delay |
-
-## Scale gates (observe, then act)
-
-| Signal | Next evaluation |
-|---|---|
-| SQLite concurrency pain / multi-instance need | Postgres runtime + dual driver |
-| Jobs >> current tick capacity | Dedicated worker process / more tick frequency |
-| Document corpus search limits | Dedicated search (not automatic) |
-| Multi-region latency/availability demand | Only after single-region HA on Postgres |
+| Malware scanner unavailable | Uploads error/quarantine path — never claim clean |
 
 ## Restore drill log
 
 | Date | Environment | Result | Notes |
 |---|---|---|---|
-| 2026-08-10 | Local/STAGING (RC audit) | SNAPSHOT VERIFY OK | `npm run backup` then `npm run restore-check` after fresh seed — integrity ok, 428 rows / 14 tables counted. Full file-swap restore to a separate DATA_DIR not yet operated in this drill. |
+| 2026-08-10 | STAGING | DATED DRILL VERIFIED | SQLite file-swap + verify |
+| 2026-08-11 | STAGING Postgres | DATED DRILL VERIFIED | `pg_dump` → `hathorn_restore_drill`, 351 ms, counts match |
 
 ## CI gates
 
-PRs / main should not deploy when critical suites fail: build, tenancy, release/proof accounting paths, auth, migration apply (clean checkout / schema version).
+PRs / main should not deploy when critical suites fail: build, typecheck, lint, smoke, proof, tenancy, RLS proof (when Postgres), financial-pg-proof (when Postgres), migration apply.

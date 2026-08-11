@@ -349,7 +349,7 @@ export function markStuckJobs(maxMinutes = 30): number {
            error_code=COALESCE(error_code, 'STUCK'),
            error_message=COALESCE(error_message, 'Exceeded maximum running duration without heartbeat')
      WHERE status='RUNNING'
-       AND datetime(COALESCE(heartbeat_at, started_at, created_at))
+       AND COALESCE(heartbeat_at, started_at, created_at)
            < datetime('now', ?)
   `).run(`-${maxMinutes} minutes`);
   if (res.changes) log("warn", "job.stuck_marked", { count: res.changes, maxMinutes });

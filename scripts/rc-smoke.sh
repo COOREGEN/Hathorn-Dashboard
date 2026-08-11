@@ -64,10 +64,22 @@ curl -sf -c "$COOKIE_DIR/ex.jar" -X POST "$BASE/api/login" \
   -d '{"email":"admin@example-cpa.test","password":"ledger2026"}' \
   > "$COOKIE_DIR/ex-login.json" || true
 CLIENT_ID=$(python3 - <<'PY'
-import sqlite3, os
-c=sqlite3.connect(os.path.join(os.environ.get("DATA_DIR","data"),"ledger.db"))
-row=c.execute("SELECT id FROM clients WHERE name LIKE 'Northbridge%'").fetchone()
-print(row[0] if row else "")
+import os, subprocess
+flag = (os.environ.get("POSTGRES_RUNTIME_ENABLED") or "").lower()
+pg = flag in ("1", "true", "yes")
+url = os.environ.get("DATABASE_MIGRATOR_URL") or os.environ.get("DATABASE_URL")
+if pg and url:
+    out = subprocess.check_output(
+        ["psql", url, "-At", "-c",
+         "SELECT id FROM clients WHERE name ILIKE 'Northbridge%' LIMIT 1"],
+        text=True,
+    ).strip()
+    print(out)
+else:
+    import sqlite3
+    c = sqlite3.connect(os.path.join(os.environ.get("DATA_DIR", "data"), "ledger.db"))
+    row = c.execute("SELECT id FROM clients WHERE name LIKE 'Northbridge%'").fetchone()
+    print(row[0] if row else "")
 PY
 )
 if [ -n "$CLIENT_ID" ]; then

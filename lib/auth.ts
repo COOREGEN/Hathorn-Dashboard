@@ -397,6 +397,13 @@ export function createPasswordReset(email: string): { created: boolean; rawToken
   const u: any = db().prepare("SELECT id FROM users WHERE email=?").get(clean);
   if (!u) return { created: false };
 
+  // Unauthenticated recovery still writes audit_logs under RLS — bind the user
+  // so the row's user_id satisfies the policy WITH CHECK.
+  try {
+    const { setRlsUserId } = require("./db-context") as typeof import("./db-context");
+    setRlsUserId(u.id);
+  } catch { /* sqlite */ }
+
   // Invalidate prior unused tokens.
   db().prepare(
     `UPDATE password_reset_tokens SET used_at=datetime('now')
