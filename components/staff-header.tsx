@@ -1,18 +1,26 @@
-import BrandMark from "@/components/brand-mark";
+import Link from "next/link";
 import LogoutButton from "@/components/logout-button";
 import StaffRail from "@/components/staff-rail";
-import Link from "next/link";
+import StaffScroll from "@/components/staff-scroll";
+import StaffCommand, { CommandTrigger } from "@/components/staff-command";
 
 /**
- * Shared staff chrome — left practice rail + short top bar.
+ * Shared staff chrome — left practice rail, quiet top bar.
  *
- * Full module set lives in the rail (GHL-style placement, Hathorn type).
- * Top bar keeps only the page context, user, and one or two shortcuts.
+ * The rail owns the wordmark and every destination. The top bar is context and
+ * identity only: where you are, how to jump, who you are. It sits on the paper
+ * rather than on a black slab, so the page reads as one surface and the eye goes
+ * to the figures instead of the furniture.
  */
 const TOP_LINKS = [
   { href: "/today", label: "Today" },
   { href: "/ask", label: "Ask" },
 ] as const;
+
+function initials(name?: string) {
+  if (!name) return "H";
+  return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "H";
+}
 
 export default function StaffHeader({
   sub,
@@ -32,36 +40,47 @@ export default function StaffHeader({
   children?: React.ReactNode;
 }) {
   const top = [...TOP_LINKS, ...(links || [])];
+  const crumbs = sub.split("·").map((s) => s.trim()).filter(Boolean);
 
   const chrome = (
     <>
       <StaffRail role={role} />
-      <header className="masthead staff-masthead">
-        <div className="masthead-inner" style={{ maxWidth }}>
-          <BrandMark href="/today" tone="ink" sub={sub} />
-          <nav
-            aria-label="Shortcuts"
-            className="ml-auto flex items-center flex-wrap"
-            style={{ justifyContent: "flex-end", gap: "10px 18px" }}
-          >
-            {top.map((l) => (
-              <Link
-                key={l.href + l.label}
-                href={l.href}
-                className="prepared-by"
-                style={{ textDecoration: "none" }}
-              >
-                {l.label}
-              </Link>
+      <StaffCommand role={role} />
+      <StaffScroll />
+      <header className="staff-topbar">
+        <div className="staff-topbar-inner" style={{ maxWidth }}>
+          <nav aria-label="Breadcrumb" className="topbar-crumbs">
+            {crumbs.map((c, i) => (
+              <span key={c + i} className="topbar-crumb" data-last={i === crumbs.length - 1}>
+                {i > 0 && <span className="topbar-crumb-sep" aria-hidden="true">/</span>}
+                {i === crumbs.length - 1 ? c : <Link href="/today">{c}</Link>}
+              </span>
             ))}
+          </nav>
+
+          <div className="topbar-right">
+            <CommandTrigger />
+            <span className="topbar-divider" aria-hidden="true" />
+            <nav aria-label="Shortcuts" className="topbar-links">
+              {top.map((l) => (
+                <Link key={l.href + l.label} href={l.href} className="topbar-link">
+                  {l.label}
+                </Link>
+              ))}
+            </nav>
             {userName && (
-              <span className="prepared-by">
-                {userName}{role ? ` · ${role}` : ""}
+              <span className="topbar-user" title={role ? `${userName} · ${role}` : userName}>
+                <span className="topbar-avatar" aria-hidden="true">{initials(userName)}</span>
+                <span className="topbar-user-text">
+                  <span className="topbar-user-name">{userName}</span>
+                  {role && <span className="topbar-user-role">{role}</span>}
+                </span>
               </span>
             )}
             <LogoutButton />
-          </nav>
+          </div>
         </div>
+        <span className="staff-progress" aria-hidden="true" />
       </header>
     </>
   );
