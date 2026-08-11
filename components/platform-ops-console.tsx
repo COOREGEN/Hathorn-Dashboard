@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import ActivityMonitor from "@/components/activity-monitor";
 
 type JobRow = {
   id: string;
@@ -245,6 +246,12 @@ export default function PlatformOpsConsole() {
       )}
 
       {msg && <p className="caption" style={{ color: "var(--gold-deep)" }}>{msg}</p>}
+
+      <ActivityMonitor
+        endpoint="/api/ops/audit"
+        title="Platform activity"
+        subtitle="Who touched what across firms — metadata only, never ledger amounts."
+      />
     </div>
   );
 }

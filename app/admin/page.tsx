@@ -5,6 +5,7 @@ import StaffHeader from "@/components/staff-header";
 import { integrationStatus } from "@/lib/config";
 import { backupStatus } from "@/lib/backup";
 import BackupPanel from "@/components/backup-panel";
+import ActivityMonitor from "@/components/activity-monitor";
 
 /**
  * Firm ops — backups, integrations, security.
@@ -46,13 +47,16 @@ export default async function Admin() {
         </p>
 
         {s.role === "ADMIN" && (
-          <section style={{ marginBottom: 52 }}>
-            <h2 className="display-m">Storage</h2>
-            <p className="section-q" style={{ marginBottom: 18 }}>
-              A single database file with no copies is a countdown, not a strategy.
-            </p>
-            <BackupPanel initial={backupStatus()} />
-          </section>
+          <>
+            <ActivityMonitor />
+            <section style={{ marginBottom: 52 }}>
+              <h2 className="display-m">Storage</h2>
+              <p className="section-q" style={{ marginBottom: 18 }}>
+                A single database file with no copies is a countdown, not a strategy.
+              </p>
+              <BackupPanel initial={backupStatus()} />
+            </section>
+          </>
         )}
 
         <section>

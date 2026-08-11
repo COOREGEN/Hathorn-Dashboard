@@ -1,5 +1,6 @@
 import { db, uid } from "../db";
 import { firmIdForClient } from "../tenancy";
+import { audit } from "../auth";
 import {
   DEFAULT_PORTAL_METRICS,
   DEFAULT_PORTAL_MODULES,
@@ -54,6 +55,13 @@ export function upsertPortalConfig(
     next.showReports ? 1 : 0,
     actorId,
   );
+  audit(actorId, "PORTAL_CONFIG_UPDATE", clientId, {
+    firmId,
+    clientId,
+    resourceType: "portal_config",
+    resourceId: clientId,
+    metadata: patch as Record<string, unknown>,
+  });
   return getPortalConfig(clientId);
 }
 

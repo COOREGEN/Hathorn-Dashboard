@@ -12,16 +12,12 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { db, uid } from "./db";
 import { encrypt, decrypt } from "./security";
+import { recordAudit } from "./audit-trail";
 
 const ISSUER = "Hathorn Dashboard";
 
 export function isStaffRole(role: string): boolean {
   return role === "ADMIN" || role === "ADVISOR" || role === "BOOKKEEPER";
-}
-
-function audit(userId: string, action: string, detail = "") {
-  db().prepare("INSERT INTO audit_logs (id, user_id, action, detail) VALUES (?, ?, ?, ?)")
-    .run(crypto.randomUUID(), userId, action, detail);
 }
 
 export function userMfaStatus(userId: string): { enabled: boolean; enrolledAt: string | null } {
@@ -68,7 +64,7 @@ export function confirmMfaEnrollment(userId: string, code: string): { ok: true; 
   db().prepare(
     `UPDATE users SET mfa_enabled=1, mfa_enrolled_at=datetime('now'), mfa_backup_hashes=? WHERE id=?`,
   ).run(JSON.stringify(hashes), userId);
-  audit(userId, "MFA_ENABLED");
+  recordAudit(userId, "MFA_ENABLED", "", { resourceType: "user", resourceId: userId });
   return { ok: true, backupCodes };
 }
 
@@ -76,7 +72,7 @@ export function disableMfa(userId: string, actorId: string) {
   db().prepare(
     `UPDATE users SET mfa_enabled=0, mfa_secret_enc=NULL, mfa_backup_hashes='[]', mfa_enrolled_at=NULL WHERE id=?`,
   ).run(userId);
-  audit(actorId, "MFA_DISABLED", userId);
+  recordAudit(actorId, "MFA_DISABLED", userId, { resourceType: "user", resourceId: userId });
 }
 
 export function verifyUserMfa(userId: string, code: string): boolean {
@@ -111,7 +107,7 @@ function consumeBackupCode(userId: string, code: string, rawHashes: string): boo
   hashes.splice(idx, 1);
   db().prepare("UPDATE users SET mfa_backup_hashes=? WHERE id=?")
     .run(JSON.stringify(hashes), userId);
-  audit(userId, "MFA_BACKUP_USED");
+  recordAudit(userId, "MFA_BACKUP_USED", "", { resourceType: "user", resourceId: userId });
   return true;
 }
 

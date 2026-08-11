@@ -16,6 +16,13 @@ export async function POST(req: Request) {
     if (String(body.action || "") === "amend") {
       try {
         openAmendment(periodId, s.userId, String(body.reason || ""));
+        const period: any = db().prepare("SELECT client_id FROM periods WHERE id=?").get(periodId);
+        audit(s.userId, "PERIOD_AMEND", `${periodId} ${String(body.reason || "").slice(0, 120)}`, {
+          clientId: period?.client_id ?? null,
+          resourceType: "period",
+          resourceId: periodId,
+          metadata: { reason: String(body.reason || "").slice(0, 240) },
+        });
         return NextResponse.json({ ok: true, amended: true });
       } catch (e: any) {
         return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
@@ -31,10 +38,14 @@ export async function POST(req: Request) {
         blockers: out.blockers ?? [],
       }, { status: 400 });
     }
-    audit(s.userId, "PERIOD_PUBLISH", periodId);
-
     // Email notification (no-op if RESEND_API_KEY not set)
     const period: any = db().prepare("SELECT * FROM periods WHERE id=?").get(periodId);
+    audit(s.userId, "PERIOD_PUBLISH", periodId, {
+      clientId: period?.client_id ?? null,
+      resourceType: "period",
+      resourceId: periodId,
+      metadata: { version: out.version, releaseId: out.releaseId },
+    });
     const client: any = db().prepare("SELECT * FROM clients WHERE id=?").get(period?.client_id);
     if (client?.notify_email) {
       const { brandingForClient } = await import("@/lib/tenancy");
