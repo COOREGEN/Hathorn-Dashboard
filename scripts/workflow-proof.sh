@@ -1059,6 +1059,15 @@ assert "staff can create document request" grep -q '"ok":true' "$COOKIE_DIR/port
 HTML=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/portal?client=northbridge&preview=1")
 echo "$HTML" > "$COOKIE_DIR/portal-preview.html"
 assert "staff preview banner" grep -qi 'Preview as client' "$COOKIE_DIR/portal-preview.html"
+assert "staff preview exit link" grep -qi 'Exit preview' "$COOKIE_DIR/portal-preview.html"
+assert "staff preview home link" grep -qi 'Back to Today' "$COOKIE_DIR/portal-preview.html"
+HTML=$(curl -s -b "$COOKIE_DIR/admin.jar" "$BASE/portal/insights?client=northbridge&preview=1")
+echo "$HTML" > "$COOKIE_DIR/portal-insights-preview.html"
+assert "insights preview has exit" grep -qi 'Exit preview' "$COOKIE_DIR/portal-insights-preview.html"
+HTML=$(curl -s -b "$COOKIE_DIR/client.jar" "$BASE/portal")
+echo "$HTML" > "$COOKIE_DIR/portal-client.html"
+assert "real client has no exit preview" ! grep -qi 'Exit preview' "$COOKIE_DIR/portal-client.html"
+assert "real client has no back to today" ! grep -qi 'Back to Today' "$COOKIE_DIR/portal-client.html"
 
 echo
 echo "21. Platform operations"

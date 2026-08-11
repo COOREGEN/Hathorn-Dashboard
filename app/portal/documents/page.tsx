@@ -22,6 +22,7 @@ export default async function PortalDocuments({
       periodLabel={ctx.latest?.label}
       nav={ctx.nav}
       preview={ctx.preview}
+      staffChrome={ctx.staffChrome}
     >
       <DocumentsClient
         documents={documents}

@@ -46,6 +46,7 @@ export default async function PortalStatement({
         clientName={c.name}
         nav={ctx.nav}
         preview={ctx.preview}
+        staffChrome={ctx.staffChrome}
       >
         <h2 className="display-m">Nothing published yet</h2>
         <p className="prose" style={{ marginTop: 12 }}>
@@ -90,6 +91,7 @@ export default async function PortalStatement({
       periodLabel={periods.find((p) => p.periodId === selectedId)?.label}
       nav={ctx.nav}
       preview={ctx.preview}
+      staffChrome={ctx.staffChrome}
     >
       <Dashboard
         client={client}

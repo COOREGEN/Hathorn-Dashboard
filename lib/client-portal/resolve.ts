@@ -71,6 +71,21 @@ export async function resolvePortalClient(searchParams: { client?: string; previ
 
   // Fix overview href
   nav[0].href = preview && c.slug ? `/portal?client=${c.slug}&preview=1` : "/portal";
+  // Keep preview=1 on statement so staff don't silently leave preview mode.
+  if (preview && c.slug) {
+    nav[1].href = `/portal/statement?client=${c.slug}&preview=1`;
+  }
+
+  const staffChrome = s.role !== "CLIENT"
+    ? {
+        homeHref: "/today",
+        homeLabel: "Back to Today",
+        exitPreviewHref: "/client-experience",
+        exitPreviewLabel: "Exit preview",
+        clientHref: `/admin/clients/${clientId}`,
+        clientLabel: "Client settings",
+      }
+    : null;
 
   return {
     session: s,
@@ -82,6 +97,7 @@ export async function resolvePortalClient(searchParams: { client?: string; previ
     latest,
     nav,
     preview: !!preview && s.role !== "CLIENT",
+    staffChrome,
     showCopilot: modules.showCopilot && s.role === "CLIENT",
     allowClientAnswers: modules.allowClientAnswers && s.role === "CLIENT",
     allowClientUploads: modules.allowClientUploads && s.role === "CLIENT",

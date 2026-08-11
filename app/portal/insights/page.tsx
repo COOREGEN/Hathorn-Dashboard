@@ -22,6 +22,7 @@ export default async function PortalInsights({
       periodLabel={ctx.latest?.label}
       nav={ctx.nav}
       preview={ctx.preview}
+      staffChrome={ctx.staffChrome}
     >
       <InsightsClient
         insights={insights}

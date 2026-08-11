@@ -10,6 +10,15 @@ export type PortalNavItem = {
   enabled?: boolean;
 };
 
+export type PortalStaffChrome = {
+  homeHref: string;
+  homeLabel: string;
+  exitPreviewHref: string;
+  exitPreviewLabel: string;
+  clientHref: string;
+  clientLabel: string;
+};
+
 export default function ClientPortalShell({
   brand,
   clientName,
@@ -17,6 +26,7 @@ export default function ClientPortalShell({
   nav,
   children,
   preview,
+  staffChrome,
 }: {
   brand: {
     firmName: string;
@@ -31,9 +41,12 @@ export default function ClientPortalShell({
   nav: PortalNavItem[];
   children: React.ReactNode;
   preview?: boolean;
+  /** Staff-only escape hatches — never shown to CLIENT users. */
+  staffChrome?: PortalStaffChrome | null;
 }) {
   const pathname = usePathname();
   const items = nav.filter((n) => n.enabled !== false);
+  const staff = !!staffChrome;
 
   return (
     <div
@@ -45,20 +58,58 @@ export default function ClientPortalShell({
         ["--accent" as string]: brand.brandAccent,
       }}
     >
-      {preview && (
+      {preview && staffChrome && (
         <div
           className="no-print"
           style={{
             background: "#2C504D",
             color: "#F7F5F1",
-            padding: "8px 16px",
+            padding: "10px 16px",
             fontFamily: "var(--utility)",
             fontSize: 12,
             letterSpacing: "0.04em",
-            textTransform: "uppercase",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
           }}
         >
-          Preview as client — staff view using client visibility rules
+          <span style={{ textTransform: "uppercase" }}>
+            Preview as client — staff view using client visibility rules
+          </span>
+          <span style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            <Link
+              href={staffChrome.exitPreviewHref}
+              style={{
+                color: "#2C504D",
+                background: "#F7F5F1",
+                textDecoration: "none",
+                padding: "6px 12px",
+                fontWeight: 700,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                fontSize: 11,
+              }}
+            >
+              {staffChrome.exitPreviewLabel}
+            </Link>
+            <Link
+              href={staffChrome.homeHref}
+              style={{
+                color: "#F7F5F1",
+                border: "1px solid rgba(247,245,241,0.55)",
+                textDecoration: "none",
+                padding: "6px 12px",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                fontSize: 11,
+              }}
+            >
+              {staffChrome.homeLabel}
+            </Link>
+          </span>
         </div>
       )}
       <header
@@ -99,8 +150,38 @@ export default function ClientPortalShell({
                 </p>
               )}
             </div>
-            <div className="no-print" style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {brand.showPlatformMark && (
+            <div
+              className="no-print"
+              style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "flex-end" }}
+            >
+              {staff && staffChrome && (
+                <>
+                  <Link
+                    href={staffChrome.homeHref}
+                    className="prepared-by"
+                    style={{ textDecoration: "none", color: "var(--ink)", fontWeight: 600 }}
+                  >
+                    ← {staffChrome.homeLabel}
+                  </Link>
+                  {preview && (
+                    <Link
+                      href={staffChrome.exitPreviewHref}
+                      className="prepared-by"
+                      style={{ textDecoration: "none", color: "var(--gold-deep)", fontWeight: 600 }}
+                    >
+                      {staffChrome.exitPreviewLabel}
+                    </Link>
+                  )}
+                  <Link
+                    href={staffChrome.clientHref}
+                    className="prepared-by"
+                    style={{ textDecoration: "none" }}
+                  >
+                    {staffChrome.clientLabel}
+                  </Link>
+                </>
+              )}
+              {!staff && brand.showPlatformMark && (
                 <span className="prepared-by" style={{ fontSize: 11 }}>Hathorn Dashboard</span>
               )}
               <LogoutButton />
@@ -119,8 +200,9 @@ export default function ClientPortalShell({
             }}
           >
             {items.map((item) => {
-              const active = pathname === item.href
-                || (item.href !== "/portal" && pathname.startsWith(item.href));
+              const pathOnly = item.href.split("?")[0];
+              const active = pathname === pathOnly
+                || (pathOnly !== "/portal" && pathname.startsWith(pathOnly));
               return (
                 <Link
                   key={item.href}
