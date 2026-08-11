@@ -20,7 +20,7 @@ export default async function PortalHome({
 
   if (!overview.period) {
     return (
-      <ClientPortalShell brand={ctx.brand} clientName={ctx.client.name} nav={ctx.nav} preview={ctx.preview}>
+      <ClientPortalShell brand={ctx.brand} clientName={ctx.client.name} nav={ctx.nav} preview={ctx.preview} staffChrome={ctx.staffChrome}>
         <p className="eyebrow">{greeting}</p>
         <h2 className="display-m" style={{ marginTop: 8 }}>Nothing published yet</h2>
         <p className="prose" style={{ marginTop: 12 }}>
@@ -46,6 +46,7 @@ export default async function PortalHome({
       periodLabel={overview.period.label}
       nav={ctx.nav}
       preview={ctx.preview}
+      staffChrome={ctx.staffChrome}
     >
       <p className="eyebrow">{greeting}</p>
       <h2 className="display-m" style={{ margin: "6px 0 8px" }}>{overview.period.label}</h2>

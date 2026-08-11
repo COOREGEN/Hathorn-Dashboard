@@ -43,6 +43,7 @@ export default async function PortalReports({
       periodLabel={selected?.content.periodLabel || ctx.latest?.label}
       nav={ctx.nav}
       preview={ctx.preview}
+      staffChrome={ctx.staffChrome}
     >
       <h2 className="eyebrow">Reports</h2>
       {!reports.length && (

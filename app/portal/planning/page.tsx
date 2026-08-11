@@ -21,6 +21,7 @@ export default async function PortalPlanning({
       periodLabel={ctx.latest?.label}
       nav={ctx.nav}
       preview={ctx.preview}
+      staffChrome={ctx.staffChrome}
     >
       <h2 className="eyebrow">Planning</h2>
       <p className="prepared-by" style={{ marginTop: 8 }}>
