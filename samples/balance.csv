@@ -1,0 +1,13 @@
+section,label,amount
+CURRENT_ASSET,Cash — operating,120.0
+CURRENT_ASSET,Cash — reserve,25.0
+CURRENT_ASSET,Accounts receivable,114.5
+CURRENT_ASSET,Prepaid insurance,8.2
+FIXED_ASSET,"Vehicles, net",42.5
+FIXED_ASSET,"Equipment, net",16.8
+CURRENT_LIABILITY,Accounts payable,31.4
+CURRENT_LIABILITY,Accrued payroll,50.0
+CURRENT_LIABILITY,Current portion of debt,24.0
+LONG_TERM_LIABILITY,SBA term loan,118.6
+LONG_TERM_LIABILITY,Vehicle notes,28.4
+EQUITY,Retained earnings and capital,74.6
