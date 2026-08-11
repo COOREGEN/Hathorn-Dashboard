@@ -84,18 +84,18 @@ Empty / missing data paths use honest copy, e.g.:
 
 ## EMPTY CLIENT TEST
 
-Created client **Empty Sweep Audit LLC** (slug `empty-sweep-audit-llc`) on the live staging book, then inspected staff surfaces:
+Created client **Empty Sweep Audit LLC** (slug `empty-sweep-audit-llc`) on the live staging book, then inspected staff surfaces (client id required on `/dash?client=`):
 
 | Surface | Observed |
 |---|---|
-| `/dash` for the client | **No statements yet** — no KPI figures, no chart series |
-| Reconciliation | No periods / nothing to reconcile |
-| Planning | No actual periods |
-| Documents | No documents yet |
-| Portfolio row | Em dashes / “No close on record” — no fabricated revenue |
-| Money-like hits on empty dash HTML | **0** |
+| `/dash?client=<id>` | **No statements yet** twice in HTML; no `$…K` financial figures for the empty book |
+| Documents (`?client=<slug>`) | Library: **No documents yet for this client.** |
+| Portfolio row | Trend/Revenue/Margin/Cover = **—**; why = **No close on record**; score 25 (urgency from missing close only) |
+| Known seed figures (190.9 / 96.1 / …) on empty dash | **Absent** |
 
-Client row deleted after the probe.
+Client row deleted after each probe (`DELETE /api/admin/clients/<id>`). Seeded demo clients remain visible in the same portfolio list — that is the active DB, not an empty-client fallback.
+
+**Post-change verification (2026-08-11):** `npm run typecheck` · `npm run build` · `npm run smoke` **11/11** · `npm run proof` **217/217** · `npm run ops:test` **16/16** (SQLite / `APP_ENV=LOCAL`).
 
 ---
 
