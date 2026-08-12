@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Shell from "./shell";
-import { loadDashboard, alertsFor } from "@/lib/dashboard-data";
+import { loadDashboard, alertsFor, dashboardFallback } from "@/lib/dashboard-data";
 
 /**
  * Wraps a view in the shell and loads its data.
@@ -14,7 +14,7 @@ export default async function Frame({ searchParams, title, subtitle, showFilters
   children: (ctx: NonNullable<Awaited<ReturnType<typeof loadDashboard>>>) => React.ReactNode;
 }) {
   const ctx = await loadDashboard(searchParams);
-  if (!ctx) redirect("/login");
+  if (!ctx) redirect(await dashboardFallback());
 
   return (
     <Shell

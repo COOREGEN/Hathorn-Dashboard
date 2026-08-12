@@ -32,6 +32,20 @@ function provenancedLaborTarget(clientId: string): { lo: number; hi: number } | 
 export type DashboardContext = Awaited<ReturnType<typeof loadDashboard>>;
 
 /**
+ * Where to send someone whose dashboard request cannot be resolved.
+ *
+ * Every view used to redirect to /login on a null context, which reads as "you
+ * have been signed out" to a signed-in advisor who only mistyped a client. Send
+ * people to their own landing page instead, and keep /login for the one case
+ * that means it.
+ */
+export async function dashboardFallback(): Promise<string> {
+  const s = await getSession();
+  if (!s) return "/login";
+  return s.role === "CLIENT" ? "/portal" : "/today";
+}
+
+/**
  * `searchParams` drives which month, entity and comparison mode are in view. State
  * lives in the URL rather than component state, so a view is linkable and the back
  * button works — the thing that makes a dashboard usable in a meeting.
@@ -60,11 +74,21 @@ export async function loadDashboard(params: {
         LIMIT 1`).get(firmId);
     return row?.id;
   };
-  const clientId = session.role === "CLIENT" ? session.clientId! : params.client || defaultClient();
-  if (!clientId) return null;
+  const requested = session.role === "CLIENT" ? session.clientId! : params.client || defaultClient();
+  if (!requested) return null;
 
-  const client: any = db().prepare("SELECT * FROM clients WHERE id=?").get(clientId);
+  /**
+   * Accept a slug as well as an id. The dashboard's whole premise is that its
+   * state lives in the URL so a link can be pasted into a conversation, and a
+   * slug is the form a person types or reads out. Resolving only ids meant
+   * `/dash?client=northbridge` failed to find a client that plainly exists.
+   */
+  let client: any = db().prepare("SELECT * FROM clients WHERE id=?").get(requested);
+  if (!client && session.role !== "CLIENT") {
+    client = db().prepare("SELECT * FROM clients WHERE slug=?").get(requested);
+  }
   if (!client) return null;
+  const clientId = client.id;
   // Staff may only open clients inside their active firm.
   if (session.role !== "CLIENT") {
     if (!firmId || client.firm_id !== firmId) return null;

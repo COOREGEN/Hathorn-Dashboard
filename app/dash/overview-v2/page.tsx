@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import OverviewCanvas from "@/components/overview-v2/OverviewCanvas";
 import { buildOverviewV2 } from "@/lib/overview-v2/build";
+import { dashboardFallback } from "@/lib/dashboard-data";
 
 /**
  * 6-3-1 Client Intelligence refinement — Hathorn paper overview.
@@ -13,7 +14,7 @@ export default async function OverviewV2Page({
   searchParams: Record<string, string | undefined>;
 }) {
   const model = await buildOverviewV2(searchParams);
-  if (!model) redirect("/login");
+  if (!model) redirect(await dashboardFallback());
 
   return <OverviewCanvas model={model} />;
 }
