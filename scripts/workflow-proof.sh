@@ -1089,6 +1089,22 @@ assert "attention renders the rail" grep -q 'staff-rail' "$COOKIE_DIR/portfolio.
 assert "attention names its clients" grep -qi 'Northbridge' "$COOKIE_DIR/portfolio.html"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/client.jar" "$BASE/today")
 assert "client cannot reach the staff shell" test "$CODE" = "307" -o "$CODE" = "401" -o "$CODE" = "403"
+# A dashboard link is meant to be pasteable, so the slug has to resolve.
+assert "advisor login" login "jeremiah@hathornadvisorygroup.com" "$COOKIE_DIR/advisor.jar"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/advisor.jar" "$BASE/dash?client=northbridge")
+assert "advisor opens the dashboard by slug" test "$CODE" = "200"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/advisor.jar" "$BASE/dash?client=$CLIENT_ID")
+assert "advisor opens the dashboard by id" test "$CODE" = "200"
+# An unresolvable client must not read as "you have been signed out".
+LOC=$(curl -sI -b "$COOKIE_DIR/advisor.jar" "$BASE/dash?client=no-such-client" | grep -i '^location' | tr -d '\r' | awk '{print $2}')
+assert "signed-in advisor is not bounced to login" test "$LOC" = "/today"
+LOC=$(curl -sI "$BASE/dash?client=northbridge" | grep -i '^location' | tr -d '\r' | awk '{print $2}')
+assert "a stranger still goes to login" test "$LOC" = "/login"
+# Another firm must not reach this book by naming its slug.
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" "$BASE/dash?client=northbridge")
+assert "other firm blocked from dashboard by slug" test "$CODE" = "307" -o "$CODE" = "403"
+LOC=$(curl -sI -b "$COOKIE_DIR/exadmin.jar" "$BASE/dash?client=northbridge" | grep -i '^location' | tr -d '\r' | awk '{print $2}')
+assert "other firm is not shown a login screen either" test "$LOC" = "/today"
 
 echo
 echo "21. Platform operations"
