@@ -274,9 +274,13 @@ Every client statement carries management-prepared, unaudited language in the fo
 - Email sends outside the request path — a slow mail API must not make "Approve & Publish" hang.
 - `/api/health` reports schema version and integration status without leaking client data.
 - Schema changes go through `lib/migrations.ts`. Never edit a shipped migration, only append.
-- **Still to do before real client financials:** managed auth (Clerk or Supabase) for MFA
-  and account recovery, and Postgres for backups and to remove the synchronous-driver
-  concurrency ceiling (see Performance).
+- **MFA is implemented** — TOTP with backup codes, secrets encrypted at rest, and
+  `REQUIRE_STAFF_MFA` defaulting on in production so staff are forced to enrol at first
+  login. Clients may enable it voluntarily.
+- **Still to do before real client financials:** self-service account recovery (the
+  remaining argument for managed auth), and the Postgres cutover for backups and to remove
+  the synchronous-driver concurrency ceiling (see Performance). The Postgres runtime itself
+  now works — see `docs/PLATFORM-REVIEW.md`.
 
 ## Storage
 
@@ -374,11 +378,13 @@ six queries concurrently.
 ## Stack
 
 - Next.js 14 App Router, TypeScript, Tailwind.
-- **better-sqlite3** with a hand-rolled data layer (`lib/db.ts`, `lib/schema.sql`).
-  Prisma was rejected only because its binary CDN was blocked in the build environment —
-  migrating to Prisma/Postgres later is fine; the schema maps 1:1.
-- Auth: bcryptjs + jose JWT in an httpOnly cookie (`lib/auth.ts`), role guard in `middleware.ts`.
-  **TODO for production: swap to Clerk or Supabase Auth + real AUTH_SECRET env + MFA.**
+- **better-sqlite3** with a hand-rolled data layer (`lib/db.ts`, `lib/schema.sql`), and a
+  **working Postgres runtime** (`lib/db-pg.ts`, behind `POSTGRES_RUNTIME_ENABLED`) that the
+  full proof suite passes against. Prisma was rejected only because its binary CDN was
+  blocked in the build environment; the raw statements have been fine.
+- Auth: bcryptjs + jose JWT in an httpOnly cookie (`lib/auth.ts`), TOTP MFA (`lib/mfa.ts`),
+  role guard in `middleware.ts`. **Remaining production gap: self-service account
+  recovery.**
 - Charts: pure SVG in `components/charts.tsx`. No chart library. Keep it that way.
 
 ## Roles
@@ -412,33 +418,33 @@ six queries concurrently.
 
 ## Testing
 
-`./test.sh` runs a 94-assertion regression suite against a live server. It covers
+> **`test.sh` and `stress.sh` no longer exist.** They were replaced by `npm run proof`,
+> `npm run smoke` and thirteen offline unit suites. This section is corrected; anything
+> elsewhere in this file still naming those scripts is wrong.
+
+`npm run proof` runs a 239-assertion regression suite against a live server. It covers
 happy paths AND the things that must NOT work. Run it before every commit:
 
 ```bash
 npm run seed && npm run start &   # server on :3000
-./test.sh                          # exits non-zero on any failure
+npm run proof                     # exits non-zero on any failure
+npm run smoke                     # 11 release-candidate assertions
 ```
 
-Sections: configuration guard · authentication · role walls · client CRUD · the gate ·
-publish lifecycle · client isolation (multi-tenancy) · comments · metrics integrity ·
-cross-tenant attack probes · brand system · hardening · advisory depth · period comparison · comparability and confidence · auth hardening · storage and backups · QuickBooks · story agent · audit trail.
-The suite creates a throwaway client and cleans up after itself.
+Sections: host readiness · authentication and role walls · the gate · story → publish ·
+client portal · comments · amendments · lock enforcement · upload → gate · FP&A ·
+document intelligence · tax · accounting guidance · reconciliation · integration hub ·
+close automation · multi-tenant firm isolation · copilot · financial intelligence ·
+client experience · staff shell · platform operations. It creates a throwaway client and
+cleans up after itself.
 
-**Currently: 136 passed, 0 failed.**
+Thirteen further suites run offline against temporary databases — tenancy, security, ops,
+close, reconciliation, integrations, copilot, intelligence, client portal, FP&A, documents,
+tax, research — for 168 more assertions.
 
-## Stress testing
-
-`./stress.sh` is a separate adversarial suite — 58 assertions that try to break things
-rather than confirm they work: injection, hostile strings, simultaneous writes, degenerate
-numbers, oversized payloads, forged credentials, and empty states. Run it alongside the
-regression suite.
-
-Sections: injection and hostile input · malformed and degenerate data · concurrency ·
-auth under attack · resource abuse · business logic abuse · empty and boundary states ·
-data integrity sweep.
-
-**Currently: 136 passed, 0 failed.**
+**Currently: 239 + 11 + 168 passing, plus 29 Postgres-only assertions
+(`db:rls-proof`, `db:financial-proof`). The 239-assertion suite passes on both SQLite and
+Postgres.**
 
 Four real defects came out of the first run and are fixed:
 
@@ -506,9 +512,9 @@ Notable invariants the suite locks down:
 
 ```bash
 npm install
-npm run seed     # builds data/ledger.db with the Criterion demo
+npm run seed     # builds data/ledger.db with the demo book
 npm run dev      # http://localhost:3000
-./test.sh        # 94-assertion regression suite (needs `npm run start` running)
+npm run proof    # 239-assertion regression suite (needs `npm run start` running)
 ```
 
 Optional `.env.local` — email is opt-in and silently skipped without a key:
