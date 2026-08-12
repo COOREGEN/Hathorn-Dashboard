@@ -72,6 +72,20 @@ confidence rather than providing it.
 a verdict the browser showed thirty seconds ago is not evidence. There is no bypass, and
 `assertEditable()` guards every write path against touching a published period.
 
+### What else blocks a publish
+
+Beyond the gate, `lib/release.ts` refuses to publish when there is no real commentary
+(under 40 characters, or still the drafted placeholder), when the period has no figures at
+all, or when an amendment has been opened without a stated reason. Softer conditions —
+not yet reconciled, open cleanup findings, confidence under 60%, client not yet at the
+advisory stage — are surfaced as warnings the advisor can proceed past with their eyes
+open.
+
+**Two ways back from published.** *Amend* opens a new version while the existing statement
+stays live until the replacement is published. *Withdraw* revokes the active release
+entirely and returns the period to review. Both demand a reason, and superseded versions
+are never deleted.
+
 ### Three rules that make the numbers trustworthy
 
 1. **A comparison that cannot be trusted is removed, not degraded.** Different accounting
@@ -102,7 +116,7 @@ a verdict the browser showed thirty seconds ago is not evidence. There is no byp
 | **The gate** | Named validation checks per industry profile; records its verdict on the period |
 | **Review** | Advisor cockpit — gate panel, inline story editing, Approve & Publish |
 | **Release** | One module may publish; a release is an immutable snapshot including branding and language |
-| **Client portal** | Overview, Financials, Insights, Planning, Reports, Documents — each independently switchable per client |
+| **Client portal** | Six surfaces — Overview, Financials, Insights, Planning, Reports, Documents — each independently switchable per client |
 | **Metrics engine** | One source of truth for every computed figure; batched queries, flat with history size |
 
 ### The advisory layer — working
@@ -131,6 +145,19 @@ bucket · action items that outlive the period with an ageing count.
 | **Guidance** | Source-backed accounting research |
 | **Firm / Ops / Platform** | Firm settings, activity log, storage and backups, platform operations |
 | **Ask Hathorn** | Grounded copilot over the firm's own data |
+
+### What the client actually gets
+
+The statement runs to as many as **ten numbered sections**, numbered dynamically so a
+client with no budget never sees a gap: Overview · Compared · Year to date · Against Plan ·
+Payroll & Labor · Volume Drivers · Cash & Collections · Position · Open Commitments ·
+Businesses. Sections with no data disappear rather than rendering zeros.
+
+**The portal is read-only by default, with three interactions that are switchable per
+client and default to off:** answering management questions, uploading against a document
+request, and the Ask copilot. Comment threads on a metric are on, so a client can ask and
+an advisor answers. What a client can never do is see a draft, change a figure, or build
+their own analysis.
 
 ### Industry profiles
 
@@ -177,8 +204,13 @@ would cost the typography, which is the product's whole visual argument.
 - QuickBooks tokens and MFA secrets encrypted at rest (AES-256-GCM), with key rotation
   support.
 - Every outbound call has a deadline; anything metered is rate limited.
-- **Row-level security in Postgres**, proven by execution (see below).
-- Append-only audit trail of who touched what, readable from the Ops screen.
+- **Row-level security in Postgres**, proven by execution (see below). **On SQLite there
+  is no database-level isolation at all** — tenancy is enforced entirely in application
+  code and by 13 permanent adversarial probes. That asymmetry is itself an argument for
+  the Postgres cutover: the same tenancy rules become defence in depth rather than a
+  single layer.
+- Append-only audit trail of who touched what, readable from the Ops screen. It records
+  writes, not reads — a portal view or dashboard load leaves no trace.
 
 ---
 
@@ -206,12 +238,20 @@ completed in 0.53 s wall, all 200s, slowest single request 504 ms — that tail 
 synchronous SQLite driver serialising requests inside one process, and it is the reason
 Postgres matters at scale rather than a bug.
 
-### Two documented limitations that are now out of date
+### The briefing documents are out of date in three places
 
-`AGENTS.md` says Postgres "has never executed against a live server" and that there is no
-MFA. **Both are stale.** Today the full application booted on Postgres with RLS active and
-passed the entire suite, and MFA is implemented and on by default in production. The
-briefing docs need correcting — noted in the actions below.
+Found by auditing the code against the docs rather than trusting them:
+
+1. **Postgres** is described as never having executed against a live server. Today the
+   whole application ran on it and passed the full suite.
+2. **MFA** is listed as a to-do. It is implemented, TOTP-based, and required for staff in
+   production by default.
+3. **`test.sh` and `stress.sh` do not exist.** `CLAUDE.md`, `AGENTS.md` and one compliance
+   document all instruct the reader to run them, at specific assertion counts. The real
+   suites are `npm run proof`, `npm run smoke` and the thirteen `*-unit.ts` scripts. A new
+   developer following the README hits a missing file on their first command.
+
+All three are corrected in the same change as this review.
 
 ---
 
@@ -223,10 +263,23 @@ Be precise about this in the room. These are real gaps, not hedging.
 |---|---|---|
 | **QuickBooks Online** | Written against Intuit's documented shapes, unit-tested, **never run against live Intuit** — sandbox egress was blocked | One real connection. The first sync is where you learn whether the report JSON matches the parsing. |
 | **Email (Resend)** | Integration written, opt-in, **never exercised** | An API key and one publish notification |
+| **Every AI feature's LLM layer** | The story agent, copilot, tax and research drafting have **never called Anthropic** in this environment. Each one falls back to deterministic output and that fallback is what the tests exercise | An API key, and a judgement about how much we want the model writing |
 | **A real close** | Every number in the system is seeded demo data | Run one actual client month end to end. Worth more than another hundred assertions. |
 | **Postgres at scale** | Proven functionally on a test database | A managed instance with backups, and a load test with real history |
 | **The rendered UI on real devices** | Reviewed on desktop and phone by screenshot and recording; one iOS defect was reported by a human and fixed | More eyes on real hardware |
 | **Vertical config in the client-facing components** | Profiles exist and the gate uses them; some portal copy is still home-care shaped | Wire `volume_unit` / `receivable_label` through the remaining components |
+
+### Switched off on purpose — do not demo these
+
+Four optional engines are wired but disabled, and each has a working native substitute:
+**PDF/spreadsheet document parsing** (Docling; needs Torch — CSV parsing is native and
+works), **Forge** for FP&A (the native forecast engine is what runs), the **IRS Fact
+Graph** (native §179 rules run instead), and **RAGFlow** retrieval (native chunk search
+runs instead). They are flags, not half-finished screens, but nobody should open them in
+a demo expecting output.
+
+Document extraction, when it does run, always lands in `NEEDS_REVIEW` and **never writes
+to the ledger**. Same principle as the story agent: the machine drafts, a person decides.
 
 ---
 
@@ -249,8 +302,28 @@ session. Nothing is deployed. This is the blocker to Jeremiah using it for real 
 rather than a walkthrough.
 
 **Needs:** a host (Vercel or Fly are both fine for this shape), a managed Postgres, a
-domain, `AUTH_SECRET` and `ENCRYPTION_KEY` in a secret store, `BACKUP_DIR` on a mounted
-volume, and the cron entry for `npm run backup`.
+domain, and four environment variables the app refuses to start in production without —
+`AUTH_SECRET`, `NEXT_PUBLIC_BASE_URL`, `BACKUP_DIR` (off the live disk) and
+`ENCRYPTION_KEY` (which must differ from `AUTH_SECRET`).
+
+**Two scheduled jobs have to exist outside the app**, because there is no in-process
+scheduler by design: `npm run backup` for the verified snapshot and prune, and
+`npm run jobs:tick` for the background queue — maintenance sweeps, integrity checks and
+asynchronous integration syncs. Deploy without them and the queue simply never drains.
+
+### 2a. Three gaps specific to the Postgres cutover
+
+Worth naming separately, because "Postgres passes the suite" can be mistaken for "Postgres
+is finished":
+
+- **Migrations do not run on a Postgres boot.** `runMigrations()` is called on the SQLite
+  path only. Today the schema arrives via the migration script; after cutover, every new
+  migration needs a deliberate apply step. This needs solving before the cutover, not after.
+- **In-app restore is SQLite-only.** `restoreBackup()` swaps a file. Postgres backup and
+  verification exist (`pg_dump` / `pg_restore --list`) and there is a drill script, but the
+  one-click restore in the admin panel does not cover Postgres.
+- **Backup verification checks a fixed table list** that predates the newer tables, so a
+  snapshot is verified less thoroughly than it appears.
 
 ### 3. No real client data has ever gone through it
 
@@ -345,9 +418,16 @@ Demo logins, password `ledger2026` for all:
 Run the suites before every commit:
 
 ```bash
-npm run seed && npm run start & ./scripts/workflow-proof.sh   # 239 assertions
-npm run seed && bash scripts/rc-smoke.sh                      # 11 assertions
+npm run seed && npm run start &
+npm run proof      # 239 assertions, needs the server running
+npm run smoke      # 11 assertions
+npm run tenancy:test && npm run security:test && npm run ops:test   # and ten more
 ```
+
+The demo book is five clients across four industries — home care, childcare, short-term
+rental and property management — plus a second firm used as the tenancy fixture.
+`npm run seed:book` adds twenty synthetic clients for exercising the portfolio at scale;
+those have no release snapshots, so they populate Attention but not the portal.
 
 **A five-minute walkthrough:** Today → Attention → open Northbridge → the month in review
 → write the commentary and publish → Client Experience → preview as the client.

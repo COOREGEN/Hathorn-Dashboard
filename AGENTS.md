@@ -4,7 +4,11 @@ Briefing for anyone — human or AI — picking up Hathorn Dashboard.
 
 Drop this in the repo root. Cursor, Claude Code, and Codex all read it automatically.
 `CLAUDE.md` alongside it goes deeper on individual subsystems; this file is the map and
-the rules.
+the rules. **`docs/PLATFORM-REVIEW.md` is the current state of the whole system** — what
+is built, what is proven, and what is blocking a first real client.
+
+Where this file and the code disagree, the code wins and this file is wrong: it has been
+corrected three times already for exactly that reason.
 
 ---
 
@@ -23,18 +27,36 @@ Other seeded logins: `jeremiah@` (advisor), `books@` (bookkeeper),
 `natosha@criterionihc.com` (client). Same password.
 
 ```bash
-npm run start & ./test.sh     # 307 assertions — correctness
-npm run start & ./stress.sh   #  58 assertions — adversarial
+npm run start & npm run proof   # 239 assertions — the full workflow
+npm run smoke                   #  11 assertions — release-candidate smoke
 npm run backup                # verified snapshot + prune
 ```
 
-**Re-seed between suites.** `test.sh` ends with a restore test that rolls the database
-back to a snapshot; running `stress.sh` immediately afterwards fails eight assertions
-against the rolled-back state. That is suite interference, not a regression:
+**Re-seed between suites.** Several suites mutate the book — publishing, amending,
+withdrawing — so a suite run against another suite's leftovers fails for reasons that are
+interference rather than regression:
 
 ```bash
-npm run seed && ./test.sh      # then
-npm run seed && ./stress.sh
+npm run seed && npm run proof    # then
+npm run seed && npm run smoke
+```
+
+Thirteen more suites run offline against temporary databases, no server needed:
+
+```bash
+npm run tenancy:test && npm run security:test && npm run ops:test
+npm run close:test && npm run recon:test && npm run integrations:test
+npm run copilot:test && npm run intelligence:test && npm run client-portal:test
+npm run fpa:test && npm run documents:test && npm run tax:test && npm run research:test
+```
+
+**On Postgres**, the same proof suite runs against the Postgres runtime, plus two
+Postgres-only proofs:
+
+```bash
+POSTGRES_RUNTIME_ENABLED=1 DATABASE_URL=… npm run proof
+npm run db:rls-proof          # 13 assertions — row-level security
+npm run db:financial-proof    # 16 assertions — cross-engine financial parity
 ```
 
 Both suites must stay green. If a change breaks one, the change is wrong until proven
@@ -270,9 +292,9 @@ Neither surfaced during the build because the container's database had been crea
 migrated long before. **511 tests all ran against an already-seeded database, so not one of
 them could see it.** A new developer could not start the project at all.
 
-`test.sh` now has a CLEAN CHECKOUT section that seeds into a fresh `DATA_DIR` and asserts
-every migrated table exists afterwards. Anything that only works on a machine with history
-gets caught there.
+`npm run proof` now has a CLEAN CHECKOUT section that seeds into a fresh `DATA_DIR` and
+asserts every migrated table exists afterwards. Anything that only works on a machine with
+history gets caught there.
 
 The same reasoning applies to any future setup step: if it depends on state a running
 machine already has, it needs a test that starts from nothing.
@@ -340,8 +362,8 @@ Landing an advisor on an empty draft month hides the real state of the book one 
 
 Next requires `config.matcher` in `middleware.ts` to be a static literal, so it cannot be
 derived from `GUARDS`. Two lists that must agree and nothing checking they do — a client
-briefly reached `/dash` because the guard existed and the matcher didn't list it. `test.sh`
-now asserts every guarded prefix has a matcher entry. **Add to both, always.**
+briefly reached `/dash` because the guard existed and the matcher didn't list it. The proof
+suite now asserts every guarded prefix has a matcher entry. **Add to both, always.**
 
 ## Map
 
@@ -415,47 +437,67 @@ a chart library would cost the typography.
 **Advisory is computed per period, not once.** Switching to March must show March's
 balance sheet, not the latest month's.
 
-**Storage tests run last in `test.sh`.** The restore test rolls the database back and
-would undo every prior section's teardown.
+**Storage tests run last.** The restore test rolls the database back and would undo every
+prior section's teardown.
+
+**Backup and restore are not in the main suite.** They are exercised by `npm run
+restore-check` and `npm run restore:drill`, which are deliberate, offline operations.
 
 ---
 
 ## What is verified, and what is not
 
-Be precise about this. 365 passing assertions are real evidence and they are not the
+Be precise about this. 447 passing assertions are real evidence and they are not the
 same as production use.
 
 **Verified by execution:** the gate, all metric math, comparison across every mode,
 comparability, confidence, role walls, cross-tenant isolation, session revocation,
-encryption round-trip, rate limits, backup create/verify/restore/prune, retention
-windows, CSV parsing, injection and malformed-input handling, concurrency, empty states.
+encryption round-trip, rate limits, backup create/verify/prune and restore drills,
+retention windows, CSV parsing, injection and malformed-input handling, concurrency,
+empty states.
 
-**Written and unit-tested but never run end to end:**
+**Also verified, contrary to what this file used to say:**
+- **Postgres runs the whole application.** `POSTGRES_RUNTIME_ENABLED=1` with a
+  `DATABASE_URL` boots the app on `lib/db-pg.ts`, and the entire 239-assertion proof suite
+  passes against it, alongside `db:rls-proof` (13) and `db:financial-proof` (16).
+  **One gap remains before cutover: `runMigrations()` is called on the SQLite path only**,
+  so a new migration has no automatic Postgres apply path.
+- **MFA exists.** TOTP with backup codes, encrypted secrets, and `REQUIRE_STAFF_MFA`
+  defaulting on in production with forced enrolment at first login. Managed auth (Clerk or
+  Supabase) is still not integrated; that is a different question from having MFA.
+
+**Written and unit-tested but never run against the real thing:**
 - **QuickBooks.** OAuth and sync are written against Intuit's documented shapes. Sandbox
   egress was blocked. The first real connection is where you find out if the report JSON
   matches the parsing. Budget an hour.
-- **Postgres.** SQL translation, placeholder rewriting, type mapping and transfer order
-  are all unit-tested. It has never executed against a live server. Run
-  `DATABASE_URL=… npx tsx scripts/migrate-to-postgres.ts` against **staging** and read the
-  financial verification output before pointing production at it.
 - **Email.** Resend integration is opt-in and unexercised.
+- **Every LLM path.** The story agent, copilot, tax and research drafting have never called
+  Anthropic here. What the suites exercise is the deterministic fallback each one degrades
+  to without a key — which is worth knowing: the product works with the model switched off.
 
-**Never seen by a human:** the rendered UI. Fonts, spacing, dark mode, print output,
-mobile layout — all asserted, none looked at. This is the single highest-value hour
-available: run it, look at it, and fix what's ugly.
+**Deliberately disabled, each with a working native substitute:** Docling document parsing
+(`DOCUMENT_INTELLIGENCE_ENABLED`), Forge FP&A (`FORGE_ENABLED`), the IRS Fact Graph
+(`IRS_FACT_GRAPH_ENABLED`) and RAGFlow retrieval (`RAGFLOW_ENABLED`).
+
+**Seen by a human:** the staff shell, Today, Attention, the client dashboard, the portal
+and the mobile drawer have all now been looked at on screen and on a phone, and several
+defects were found and fixed that way. Print output and dark mode still have not been.
 
 ---
 
 ## Backlog, in order
 
 **Before a real client**
-1. Run a real close through it. Actual numbers, not the seed. Worth more than another
+0. **Merge to `main`.** It is still an empty initial commit; the product lives on a stack
+   of unmerged branches. Nothing else on this list is safe until there is a trunk.
+1. Deploy somewhere permanent, on managed Postgres, with `npm run backup` and
+   `npm run jobs:tick` on a schedule — there is no in-process scheduler by design.
+   Close the Postgres migration gap first (see above).
+2. Run a real close through it. Actual numbers, not the seed. Worth more than another
    hundred assertions.
-2. Postgres + managed backups. Removes the concurrency ceiling and gives a real recovery
-   story. Migration script is written.
-3. Managed auth (Clerk or Supabase). The hand-rolled JWT survived adversarial testing but
-   has no MFA and no account recovery.
-4. First live QuickBooks connection.
+3. First live QuickBooks connection.
+4. Account recovery. MFA is done; the hand-rolled JWT still has no self-service recovery
+   path, which is the remaining argument for managed auth (Clerk or Supabase).
 
 **Before selling it**
 5. Server-side PDF. Currently `window.print()` with a proper stylesheet. A WeasyPrint-style
@@ -465,8 +507,9 @@ available: run it, look at it, and fix what's ugly.
    Migration 8 added `vertical`, `volume_unit`, `receivable_label`; the components don't
    read them yet. Until then this is a home-care product — which may be the better
    strategy anyway.
-7. Row-level security, with the Postgres cutover. Tenancy belongs in the database, not
-   only in application code.
+7. Row-level security on by default with the Postgres cutover. The policies exist in
+   `docs/postgres-rls.sql` and pass their proof; on SQLite there is no database-level
+   isolation at all, so today tenancy rests entirely on application code.
 8. Tax layer. You're a CPA firm and there's nothing on estimates, reasonable comp, or
    distributions.
 
