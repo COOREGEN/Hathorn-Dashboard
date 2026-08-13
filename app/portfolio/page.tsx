@@ -226,7 +226,10 @@ export default async function Portfolio({ searchParams }: {
 
                     <div><Spark points={r.trend} /></div>
 
-                    <div className="tnum book-num">
+                    {/* data-label carries the column heading down into the stacked
+                        layout: below 1180px the header row is hidden, and an
+                        unlabelled figure on a financial screen is worse than none. */}
+                    <div className="tnum book-num" data-label="Revenue">
                       {money(r.revenue)}
                       {r.revenueChangePct !== null && (
                         <div className="book-delta" style={{
@@ -236,22 +239,22 @@ export default async function Portfolio({ searchParams }: {
                       )}
                     </div>
 
-                    <div className="tnum book-num" style={{
+                    <div className="tnum book-num" data-label="Net margin" style={{
                       color: (r.netMarginPct ?? 0) < 0 ? "#B94B22" : "var(--ink)" }}>
                       {r.netMarginPct !== null ? `${r.netMarginPct}%` : "—"}
                     </div>
 
-                    <div className="tnum book-num" style={{
+                    <div className="tnum book-num" data-label="Weeks cover" style={{
                       color: (r.weeksOfCover ?? 99) < 6 ? "#B94B22" : "var(--ink)" }}>
                       {r.weeksOfCover ?? "—"}
                     </div>
 
-                    <div className="tnum book-num" style={{
+                    <div className="tnum book-num" data-label="Confidence" style={{
                       color: (r.confidence ?? 100) < 60 ? "#B94B22" : "var(--ink)" }}>
                       {r.confidence !== null ? `${r.confidence}%` : "—"}
                     </div>
 
-                    <div className="tnum book-num" style={{
+                    <div className="tnum book-num" data-label="Open items" style={{
                       color: r.oldestCommitmentMonths >= 3 ? "#B94B22" : "var(--ink)" }}>
                       {r.openCommitments || "—"}
                     </div>
@@ -270,7 +273,7 @@ export default async function Portfolio({ searchParams }: {
                       )}
                     </div>
 
-                    <div style={{ textAlign: "right" }}>
+                    <div style={{ textAlign: "right" }} className="book-score-cell">
                       <span className="book-score" style={{ color: BAND[r.band].col }}>{r.attention}</span>
                     </div>
                   </div>

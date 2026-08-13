@@ -353,12 +353,27 @@ export default function ReviewPanel({
                         <input value={n.heading}
                           onChange={(e) => setNotes(notes.map((x) => x.id === n.id ? { ...x, heading: e.target.value } : x))}
                           style={{ flex: 1, fontFamily: "var(--utility)", fontSize: 11.5, fontWeight: 600, background: "transparent", border: "1px solid var(--hairline-dark)", padding: "5px 8px", color: "var(--paper)" }} placeholder="A number, a cause, an action…" />
-                        <button style={{ fontFamily: "var(--utility)", fontSize: 10, color: "#8C857A", cursor: "pointer" }} onClick={() => removeNote(n.id)}>✕</button>
+                        {/* A destructive control needs a hit area you can aim at:
+                            on a phone this was 8px wide next to the heading field. */}
+                        <button
+                          aria-label="Remove note"
+                          title="Remove note"
+                          style={{
+                            flex: "0 0 auto", width: 34, minHeight: 30,
+                            display: "grid", placeItems: "center",
+                            fontFamily: "var(--utility)", fontSize: 12, color: "#8C857A",
+                            border: "1px solid var(--hairline-dark)", background: "transparent",
+                            cursor: "pointer",
+                          }}
+                          onClick={() => removeNote(n.id)}
+                        >✕</button>
                       </div>
-                      <textarea value={n.body} rows={2}
+                      {/* The commentary is the product; a two-line window onto a
+                          four-line note is a poor place to write it on a phone. */}
+                      <textarea value={n.body} rows={3}
                         onChange={(e) => setNotes(notes.map((x) => x.id === n.id ? { ...x, body: e.target.value } : x))}
-                        style={{ width: "100%", fontFamily: "var(--editorial)", fontSize: 13, lineHeight: 1.55, background: "transparent", border: "1px solid var(--hairline-dark)", padding: "7px 9px", color: "#DCD6CB" }} />
-                      <button style={{ fontFamily: "var(--utility)", fontSize: 10, fontWeight: 600, marginTop: 6, cursor: "pointer", color: saved === n.id ? "#7FC29B" : "var(--gold-label)" }}
+                        style={{ width: "100%", minHeight: 92, fontFamily: "var(--editorial)", fontSize: 13, lineHeight: 1.55, background: "transparent", border: "1px solid var(--hairline-dark)", padding: "7px 9px", color: "#DCD6CB" }} />
+                      <button style={{ fontFamily: "var(--utility)", fontSize: 10, fontWeight: 600, marginTop: 6, padding: "7px 2px", cursor: "pointer", color: saved === n.id ? "#7FC29B" : "var(--gold-label)" }}
                         onClick={() => saveNote(notes.find((x) => x.id === n.id)!)}>
                         {saved === n.id ? "Saved ✓" : "Save note"}
                       </button>

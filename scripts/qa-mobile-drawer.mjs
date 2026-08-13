@@ -32,7 +32,10 @@ const SIZES = [["iphone-tall", 393, 852], ["iphone-short", 393, 620], ["small", 
   const puppeteer = require("puppeteer-core");
   const browser = await puppeteer.connect({ browserURL: `http://127.0.0.1:${port}` });
   const page = await browser.newPage();
-  await page.setCookie({ name: "ledger_session", value: token, domain: "127.0.0.1", path: "/", httpOnly: true });
+  await page.setCookie({
+    name: "ledger_session", value: token, path: "/", httpOnly: true,
+    domain: new URL(base).hostname,
+  });
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e.message)));
 
