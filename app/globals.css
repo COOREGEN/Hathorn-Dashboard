@@ -608,11 +608,40 @@ p.sec-q { font-family: var(--editorial); font-style: italic; font-size: 13.5px;
     padding: 15px 16px 15px 13px;
   }
   .book-row > div:nth-child(2) { grid-column: 2; grid-row: 1 / span 2; }
-  .book-row > div:nth-child(n+3):nth-child(-n+7) {
-    grid-column: 1; display: inline-flex; gap: 6px; text-align: left;
+  /* Each figure carries its own heading here, because the header row above is
+     hidden and a stack of bare numbers — 5.8%, 6.8, 81%, 3 — tells the reader
+     nothing about what any of them measures. */
+  .book-row > div[data-label] {
+    grid-column: 1;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    text-align: left;
+    padding-top: 4px;
   }
-  .book-row > div:nth-child(8) { grid-column: 1 / -1; }
-  .book-row > div:nth-child(9) { grid-column: 2; text-align: right; }
+  .book-row > div[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    min-width: 92px;
+    font-family: var(--utility);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .book-row > div:nth-child(8) { grid-column: 1 / -1; padding-top: 4px; }
+  .book-score-cell { grid-column: 2; text-align: right; align-self: end; }
+  .book-score-cell::after {
+    content: "score";
+    display: block;
+    font-family: var(--utility);
+    font-size: 8px;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
 }
 
 
