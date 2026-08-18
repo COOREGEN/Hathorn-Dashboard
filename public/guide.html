@@ -256,8 +256,10 @@ details .body{padding:12px 0 4px 20px}
   <div class="card ink">
     <h3 style="margin-bottom:4px">Sign in</h3>
     <p class="small" style="margin-bottom:14px">
-      <a id="link" href="https://luis-metric-decrease-score.trycloudflare.com/login">luis-metric-decrease-score.trycloudflare.com</a>
-      <button class="copy" data-copy="https://luis-metric-decrease-score.trycloudflare.com/login">copy link</button>
+      <!-- Relative, and rewritten to the live host on load: a guide with an
+           address hardcoded into it is a guide with a dead link in it. -->
+      <a id="link" href="/login">Open the sign-in page</a>
+      <button class="copy" id="copylink" data-copy="/login">copy link</button>
     </p>
     <table class="creds">
       <thead><tr><th>Role</th><th>Email</th><th>Lands on</th></tr></thead>
@@ -850,6 +852,16 @@ details .body{padding:12px 0 4px 20px}
     requestAnimationFrame(function(){ queued = false; frame(); });
   }, { passive: true });
   frame();
+
+  // Show and copy whatever host is actually serving this, so the address in the
+  // guide is always the one that works.
+  if (location.protocol.indexOf('http') === 0) {
+    var link = document.getElementById('link');
+    var cp = document.getElementById('copylink');
+    link.textContent = location.host + '/login';
+    link.href = location.origin + '/login';
+    cp.setAttribute('data-copy', location.origin + '/login');
+  }
 
   // Copy buttons — credentials are the thing people fumble.
   document.addEventListener('click', function(e){
