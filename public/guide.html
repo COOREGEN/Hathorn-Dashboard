@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hathorn Dashboard — Platform Guide</title>
+<meta name="description" content="What the Hathorn Dashboard platform is, how the monthly workflow runs, and how to use every screen." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ink:#0C0B0A; --ink-soft:#3A352E; --ink-mute:#6E675B;
+  --paper:#FBF8F1; --panel:#F4EFE3; --white:#FFFDF8; --hairline:#E4DCC9;
+  --gold:#D3AF37; --gold-deep:#9A7B1E; --gold-label:#B68F23;
+  --brand:#2C504D; --brand-deep:#1D342F; --accent:#DB5928; --accent-deep:#9E3F1D;
+  --display:"Cormorant Garamond",Georgia,serif;
+  --editorial:"EB Garamond",Georgia,serif;
+  --utility:"Libre Franklin",ui-sans-serif,system-ui,sans-serif;
+  --rail:266px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:32px}
+body{
+  margin:0; background:
+    radial-gradient(1100px 560px at 84% -10%,rgba(211,175,55,.07),transparent 60%),
+    linear-gradient(180deg,#FCFAF4 0%,var(--paper) 34%,#F7F2E7 100%);
+  color:var(--ink); font-family:var(--editorial); font-size:16px; line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.tnum,table,.fig{font-variant-numeric:tabular-nums lining-nums;font-feature-settings:"tnum" 1,"lnum" 1}
+
+/* ── type ─────────────────────────────────────────────── */
+h1,h2,h3,h4{font-family:var(--display);font-weight:300;letter-spacing:-.01em;margin:0}
+h2{font-size:31px;line-height:1.14}
+h3{font-size:22px;font-weight:400;line-height:1.2}
+h4{font-family:var(--utility);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute)}
+p{margin:0 0 14px}
+a{color:var(--brand-deep);text-decoration:none;border-bottom:1px solid rgba(44,80,77,.28)}
+a:hover{color:var(--accent-deep);border-bottom-color:var(--accent-deep)}
+.eyebrow{font-family:var(--utility);font-size:9.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-label)}
+.lead{font-size:19px;line-height:1.55;color:var(--ink-soft)}
+.small{font-family:var(--utility);font-size:12.5px;line-height:1.55;color:var(--ink-mute)}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:var(--panel);padding:1px 5px;border-radius:4px}
+strong{font-weight:600}
+
+/* ── shell ────────────────────────────────────────────── */
+.wrap{display:flex;align-items:flex-start;max-width:1240px;margin:0 auto;padding:0 26px}
+aside{
+  position:sticky;top:0;width:var(--rail);flex:0 0 var(--rail);
+  height:100vh;overflow-y:auto;padding:34px 22px 34px 0;
+}
+main{flex:1 1 auto;min-width:0;padding:34px 0 96px 40px;border-left:1px solid var(--hairline);max-width:760px}
+.mark{display:block;border-bottom:1px solid var(--hairline);padding-bottom:16px;margin-bottom:18px}
+.mark b{display:block;font-family:var(--display);font-size:25px;font-weight:400;letter-spacing:.12em;color:var(--ink)}
+.mark span{display:block;font-family:var(--utility);font-size:8px;font-weight:600;letter-spacing:.28em;text-transform:uppercase;color:var(--gold-label);margin-top:5px}
+nav ol{list-style:none;margin:0;padding:0;counter-reset:s}
+nav a{
+  display:flex;gap:10px;padding:6px 0;border:0;font-family:var(--utility);font-size:12.5px;
+  color:var(--ink-mute);text-decoration:none;line-height:1.35;
+}
+nav a:before{counter-increment:s;content:counter(s,decimal-leading-zero);font-size:9px;font-weight:600;color:var(--hairline);padding-top:3px;letter-spacing:.06em}
+nav a:hover{color:var(--ink)}
+nav a.on{color:var(--ink);font-weight:600}
+nav a.on:before{color:var(--gold-deep)}
+.tools{margin-top:20px;padding-top:16px;border-top:1px solid var(--hairline);display:flex;flex-direction:column;gap:8px}
+button.t{
+  font-family:var(--utility);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  background:var(--ink);color:var(--paper);border:1px solid var(--ink);border-radius:999px;padding:9px 14px;cursor:pointer;
+  transition:transform .15s,box-shadow .15s;
+}
+button.t:hover{transform:translateY(-1px);box-shadow:0 8px 20px -12px rgba(12,11,10,.7)}
+button.t.q{background:transparent;color:var(--ink);border-color:var(--hairline)}
+button.t.q:hover{border-color:var(--ink-mute)}
+.bar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--gold-deep),var(--gold));width:0;z-index:60}
+
+/* ── sections ─────────────────────────────────────────── */
+section{padding-top:26px;margin-bottom:44px;scroll-margin-top:24px}
+section>.eyebrow{margin-bottom:8px}
+.rule{height:1px;background:var(--hairline);border:0;margin:0 0 26px}
+.hero{border-bottom:1px solid var(--ink);padding-bottom:30px;margin-bottom:34px}
+.hero h1{font-size:clamp(38px,5.6vw,58px);line-height:1.02;letter-spacing:-.02em}
+.hero .sub{font-family:var(--utility);font-size:11px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-mute);margin-top:16px}
+
+/* ── components ───────────────────────────────────────── */
+.card{background:var(--white);border:1px solid var(--hairline);border-radius:12px;padding:22px 24px;margin:0 0 18px}
+.card.gold{border-left:3px solid var(--gold)}
+.card.ink{background:linear-gradient(178deg,#141210,#0C0B0A);color:#E8E2D6;border-color:#2A2620}
+.card.ink h3,.card.ink b{color:var(--paper)}
+.card.ink .small{color:#A8A196}
+.card.ink code{background:rgba(244,239,226,.1);color:#E8E2D6}
+.card.ink a{color:var(--gold);border-bottom-color:rgba(211,175,55,.4)}
+
+.note{border-left:2px solid var(--gold);padding:2px 0 2px 18px;margin:18px 0;font-family:var(--editorial);font-size:16.5px;color:var(--ink-soft)}
+.note b{color:var(--ink)}
+
+table{width:100%;border-collapse:collapse;margin:6px 0 18px;font-size:14.5px}
+th{
+  font-family:var(--utility);font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-mute);text-align:left;padding:0 12px 7px 0;border-bottom:1px solid var(--ink);
+}
+td{padding:9px 12px 9px 0;border-bottom:1px solid var(--hairline);vertical-align:top}
+td:first-child{font-family:var(--utility);font-size:13px;font-weight:500}
+.r{text-align:right}
+
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));margin:4px 0 20px}
+.stat{border-top:1px solid var(--hairline);padding-top:11px}
+.stat b{display:block;font-family:var(--display);font-size:29px;font-weight:400;line-height:1;letter-spacing:-.01em}
+.stat span{display:block;font-family:var(--utility);font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);margin-top:6px}
+
+ol.steps{counter-reset:n;list-style:none;margin:0 0 18px;padding:0}
+ol.steps>li{counter-increment:n;position:relative;padding:0 0 12px 34px;margin:0}
+ol.steps>li:before{
+  content:counter(n);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:999px;
+  background:var(--panel);border:1px solid var(--hairline);
+  font-family:var(--utility);font-size:10.5px;font-weight:700;color:var(--ink);
+  display:grid;place-items:center;
+}
+ul.plain{margin:0 0 16px;padding-left:20px}
+ul.plain li{margin-bottom:7px}
+
+.tag{
+  display:inline-block;font-family:var(--utility);font-size:8.5px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;padding:3px 8px;border:1px solid currentColor;border-radius:999px;margin-right:5px;
+}
+.tag.adv{color:var(--brand)} .tag.book{color:var(--gold-deep)} .tag.cli{color:var(--accent-deep)} .tag.adm{color:var(--ink-mute)}
+
+details{border-top:1px solid var(--hairline);padding:11px 0}
+details summary{
+  cursor:pointer;list-style:none;font-family:var(--utility);font-size:12px;font-weight:600;
+  letter-spacing:.06em;color:var(--ink);display:flex;gap:9px;align-items:center;
+}
+details summary::-webkit-details-marker{display:none}
+details summary:before{content:"+";color:var(--gold-deep);font-weight:700;width:11px}
+details[open] summary:before{content:"–"}
+details .body{padding:12px 0 4px 20px}
+
+.page{border:1px solid var(--hairline);border-radius:12px;background:var(--white);padding:20px 22px;margin-bottom:14px}
+.page h3{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.page h3 em{font-family:var(--utility);font-size:10px;font-style:normal;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-mute)}
+.page .why{font-size:16px;color:var(--ink-soft);margin:8px 0 12px}
+
+.kv{display:grid;grid-template-columns:118px 1fr;gap:6px 14px;font-size:14.5px;margin:0 0 6px}
+.kv dt{font-family:var(--utility);font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-mute);padding-top:4px}
+.kv dd{margin:0}
+
+.copy{
+  font-family:var(--utility);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  background:transparent;border:1px solid rgba(244,239,226,.28);color:#A8A196;border-radius:999px;
+  padding:3px 9px;cursor:pointer;margin-left:8px;
+}
+.copy:hover{color:var(--gold);border-color:rgba(211,175,55,.5)}
+.creds{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:6px}
+.creds th{color:#8C857A;border-bottom-color:#2A2620}
+.creds td{border-bottom-color:#221F1B;padding:9px 12px 9px 0}
+.creds td:first-child{color:var(--paper)}
+.creds code{white-space:nowrap}
+
+.flow{width:100%;height:auto;margin:6px 0 20px}
+.foot{border-top:1px solid var(--hairline);margin-top:40px;padding-top:18px}
+
+/* ── responsive ───────────────────────────────────────── */
+@media (max-width:1000px){
+  .wrap{display:block;padding:0 20px}
+  aside{position:static;width:auto;height:auto;padding:24px 0 0;overflow:visible}
+  nav ol{display:flex;flex-wrap:wrap;gap:2px 16px}
+  main{padding:22px 0 72px;border-left:0;max-width:none}
+  .tools{flex-direction:row;flex-wrap:wrap}
+}
+@media (max-width:560px){
+  body{font-size:15.5px}
+  .kv{grid-template-columns:1fr;gap:2px}
+  .kv dt{padding-top:8px}
+  table{font-size:13.5px}
+}
+
+/* ── print: this is the PDF ───────────────────────────── */
+@media print{
+  @page{size:A4;margin:16mm 15mm 18mm}
+  html{scroll-behavior:auto}
+  body{background:#fff!important;font-size:10.6pt;line-height:1.5}
+  aside,.tools,.bar,button,.copy{display:none!important}
+  .wrap{display:block;max-width:none;padding:0}
+  main{padding:0;border:0;max-width:none}
+  a{color:var(--brand-deep)!important;border:0}
+  h2{font-size:19pt} h3{font-size:13pt} .hero h1{font-size:30pt}
+  .lead{font-size:12pt}
+  section{padding-top:0;margin-bottom:16pt;break-inside:auto}
+  section.brk{break-before:page}
+  .card,.page,table,.note,ol.steps>li,.stat{break-inside:avoid}
+  .card,.page{border-radius:0;box-shadow:none}
+  .card.ink{background:#0C0B0A!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .card.ink,.card.ink *{color:#E8E2D6!important}
+  .card.ink code{background:#241F1A!important}
+  details{border-top:1px solid var(--hairline)}
+  details summary:before{content:""}
+  details>.body{display:block!important;padding-left:0}
+  details:not([open])>.body{display:block!important}
+  .stat b{font-size:17pt}
+  thead{display:table-header-group}
+}
+</style>
+</head>
+<body>
+<span class="bar" id="bar"></span>
+
+<div class="wrap">
+<aside>
+  <span class="mark"><b>HATHORN</b><span>Advisory Group</span></span>
+  <nav>
+    <ol id="toc">
+      <li><a href="#access">Demo access</a></li>
+      <li><a href="#what">What this is</a></li>
+      <li><a href="#workflow">The monthly workflow</a></li>
+      <li><a href="#gate">The gate</a></li>
+      <li><a href="#roles">Who sees what</a></li>
+      <li><a href="#briefing">Screens · Briefing</a></li>
+      <li><a href="#clients">Screens · Clients</a></li>
+      <li><a href="#close">Screens · The close</a></li>
+      <li><a href="#advisory">Screens · Advisory</a></li>
+      <li><a href="#firm">Screens · Firm</a></li>
+      <li><a href="#review">The review screen</a></li>
+      <li><a href="#portal">What the client sees</a></li>
+      <li><a href="#numbers">How the numbers behave</a></li>
+      <li><a href="#verticals">Industry profiles</a></li>
+      <li><a href="#tour">Five-minute tour</a></li>
+      <li><a href="#state">State of the build</a></li>
+    </ol>
+  </nav>
+  <div class="tools">
+    <a class="t" href="Hathorn-Dashboard-Guide.pdf" download
+       style="text-align:center;border-bottom:0">Download PDF</a>
+    <button class="t q" onclick="window.print()">Print this page</button>
+    <button class="t q" id="expand">Expand all detail</button>
+  </div>
+</aside>
+
+<main>
+
+<header class="hero">
+  <p class="eyebrow">Platform guide · August 2026</p>
+  <h1>Hathorn&nbsp;Dashboard</h1>
+  <p class="lead" style="margin-top:18px;max-width:34rem">
+    The monthly financial statement and advisory platform for Hathorn Advisory Group.
+    A bookkeeper uploads the close, an automated gate refuses anything that does not tie,
+    an advisor writes the explanation and approves it, and the client reads a branded
+    statement in their own portal.
+  </p>
+  <p class="sub">Overview · Workflow · Screen-by-screen guide</p>
+</header>
+
+<section id="access">
+  <p class="eyebrow">01</p>
+  <h2>Demo access</h2>
+  <hr class="rule" />
+  <div class="card ink">
+    <h3 style="margin-bottom:4px">Sign in</h3>
+    <p class="small" style="margin-bottom:14px">
+      <!-- Relative, and rewritten to the live host on load: a guide with an
+           address hardcoded into it is a guide with a dead link in it. -->
+      <a id="link" href="/login">Open the sign-in page</a>
+      <button class="copy" id="copylink" data-copy="/login">copy link</button>
+    </p>
+    <table class="creds">
+      <thead><tr><th>Role</th><th>Email</th><th>Lands on</th></tr></thead>
+      <tbody>
+        <tr><td>Admin</td><td><code>regen@hathornadvisorygroup.com</code><button class="copy" data-copy="regen@hathornadvisorygroup.com">copy</button></td><td>Today</td></tr>
+        <tr><td>Advisor</td><td><code>jeremiah@hathornadvisorygroup.com</code><button class="copy" data-copy="jeremiah@hathornadvisorygroup.com">copy</button></td><td>Today</td></tr>
+        <tr><td>Bookkeeper</td><td><code>books@hathornadvisorygroup.com</code><button class="copy" data-copy="books@hathornadvisorygroup.com">copy</button></td><td>Upload</td></tr>
+        <tr><td>Client</td><td><code>owner@northbridge.example</code><button class="copy" data-copy="owner@northbridge.example">copy</button></td><td>Portal</td></tr>
+      </tbody>
+    </table>
+    <p class="small" style="margin:14px 0 0">
+      Password for every account: <code>ledger2026</code>
+      <button class="copy" data-copy="ledger2026">copy</button>
+    </p>
+  </div>
+  <p class="small">
+    This is a demonstration environment with four invented client businesses. Judge the
+    shape of the work and the language, not the figures. Nothing here touches a real
+    client's books. The address above belongs to a temporary demo host and changes when
+    the demo is restarted — ask Regen for the current one if it does not open.
+  </p>
+  <div class="note">
+    <b>Start as the advisor.</b> Sign in as Jeremiah. That is the seat the product is
+    designed around, and the whole month runs through it.
+  </div>
+</section>
+
+<section id="what">
+  <p class="eyebrow">02</p>
+  <h2>What this is</h2>
+  <hr class="rule" />
+  <p>
+    Clients of the firm never open QuickBooks. As far as they are concerned, this platform
+    <em>is</em> the books: one statement a month, branded to them, with the explanation
+    written by their advisor.
+  </p>
+  <p>
+    Around that sits the work a reporting tool cannot do — which of the firm's clients needs
+    attention this month and why, what changed and whether it is timing or operations, the
+    thirteen-week cash position, budget variance, commitments carried forward from prior
+    months, and the close management that gets the numbers ready in the first place.
+  </p>
+  <div class="note">
+    <b>The product thesis.</b> Anyone can draw the chart. The explanation is what the client
+    is paying for. Every design decision follows from that — the commentary is set as
+    editorial prose with a rule down the left, not as dashboard callout boxes.
+  </div>
+  <div class="grid">
+    <div class="stat"><b class="fig">57</b><span>Screens</span></div>
+    <div class="stat"><b class="fig">10</b><span>Industry profiles</span></div>
+    <div class="stat"><b class="fig">94</b><span>Database tables</span></div>
+    <div class="stat"><b class="fig">447</b><span>Automated checks passing</span></div>
+  </div>
+  <h4 style="margin:22px 0 8px">Built on</h4>
+  <p class="small" style="margin:0">
+    Next.js 14 and TypeScript, server-rendered so the financial computation never runs in
+    the browser. SQLite today with a proven Postgres path. Charts are hand-drawn SVG rather
+    than a charting library, because a library would cost us the typography. Sessions are
+    signed cookies with two-factor authentication available and required for staff in
+    production.
+  </p>
+</section>
+
+<section id="workflow" class="brk">
+  <p class="eyebrow">03</p>
+  <h2>The monthly workflow</h2>
+  <hr class="rule" />
+  <p>Five steps, in order, every month, for every client.</p>
+
+  <svg class="flow" viewBox="0 0 720 156" role="img"
+       aria-label="The month runs bookkeeper uploads, the gate validates, the advisor reviews, the advisor publishes, the client reads.">
+    <defs><marker id="a" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0 0L7 3.5L0 7z" fill="#9A7B1E"/></marker></defs>
+    <g font-family="Libre Franklin" font-size="8.5" font-weight="600" letter-spacing="1.2" fill="#6E675B">
+      <text x="8" y="13">BOOKKEEPER</text><text x="148" y="13">AUTOMATIC</text><text x="288" y="13">ADVISOR</text>
+      <text x="428" y="13">ADVISOR</text><text x="568" y="13">CLIENT</text>
+    </g>
+    <g fill="#FFFDF8" stroke="#E4DCC9">
+      <rect x="8" y="22" width="128" height="60" rx="8"/><rect x="148" y="22" width="128" height="60" rx="8"/>
+      <rect x="288" y="22" width="128" height="60" rx="8"/><rect x="428" y="22" width="128" height="60" rx="8"/>
+      <rect x="568" y="22" width="128" height="60" rx="8"/>
+    </g>
+    <g><rect x="8" y="22" width="3" height="60" fill="#2C504D"/><rect x="148" y="22" width="3" height="60" fill="#D3AF37"/>
+      <rect x="288" y="22" width="3" height="60" fill="#2C504D"/><rect x="428" y="22" width="3" height="60" fill="#DB5928"/>
+      <rect x="568" y="22" width="3" height="60" fill="#2C504D"/></g>
+    <g font-family="Cormorant Garamond" font-size="17" fill="#0C0B0A">
+      <text x="22" y="47">Upload</text><text x="162" y="47">Gate</text><text x="302" y="47">Review</text>
+      <text x="442" y="47">Publish</text><text x="582" y="47">Portal</text></g>
+    <g font-family="Libre Franklin" font-size="9" fill="#6E675B">
+      <text x="22" y="64">Four CSVs, or</text><text x="22" y="75">QuickBooks</text>
+      <text x="162" y="64">Does everything</text><text x="162" y="75">tie?</text>
+      <text x="302" y="64">Write the</text><text x="302" y="75">explanation</text>
+      <text x="442" y="64">Freeze the</text><text x="442" y="75">statement</text>
+      <text x="582" y="64">The client</text><text x="582" y="75">reads it</text></g>
+    <g stroke="#9A7B1E" stroke-width="1.2" marker-end="url(#a)">
+      <path d="M138 52h6"/><path d="M278 52h6"/><path d="M418 52h6"/><path d="M558 52h6"/></g>
+    <g font-family="Libre Franklin" font-size="9.5" font-weight="600" fill="#9E3F1D">
+      <text x="148" y="104">A failed check stops the month here. There is no override.</text></g>
+    <g font-family="Libre Franklin" font-size="9.5" fill="#6E675B">
+      <text x="148" y="126">Every figure the client sees is a frozen copy taken at publication.</text>
+      <text x="148" y="142">Later edits to the working ledger cannot change a statement already sent.</text></g>
+  </svg>
+
+  <ol class="steps">
+    <li><b>Upload.</b> The bookkeeper submits the month's close on the Upload screen — four
+      CSVs as standard (profit &amp; loss, payroll register, receivables ageing, bank
+      balances), with optional files for balance sheet, volume, and budget. QuickBooks can
+      replace the first two files where it is connected.</li>
+    <li><b>The gate runs automatically.</b> It checks that the numbers tie: labour against
+      the payroll register, the balance sheet balances, balance-sheet cash agrees with the
+      bank statement, and more depending on the industry. A failure blocks the month —
+      there is no override.</li>
+    <li><b>The advisor reviews.</b> On the review screen they see the full statement as the
+      client will, with the gate result beside it. They write the commentary: a number, a
+      cause, an action. An optional draft can be generated from detected signals, and the
+      advisor always edits it.</li>
+    <li><b>Publish.</b> One button. The gate is re-run at that moment, and if it passes the
+      statement is frozen — figures, commentary, branding and all — and the client is
+      notified.</li>
+    <li><b>The client reads it</b> in their portal, alongside every prior published month.
+      They never see a draft.</li>
+  </ol>
+
+  <h4 style="margin:24px 0 8px">Correcting a published month</h4>
+  <p>
+    Accountants amend rather than overwrite, and the software works the same way. An
+    <b>amendment</b> creates a new version that supersedes the previous one and records why;
+    the original stays live until the replacement is published. A <b>withdrawal</b> removes
+    the statement from the portal entirely. Both require a stated reason, and superseded
+    versions are kept permanently — so "what did you send me in June" always has an answer.
+  </p>
+  <details>
+    <summary>The four states a month moves through</summary>
+    <div class="body">
+      <table>
+        <thead><tr><th>State</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td>Awaiting</td><td>Figures uploaded, gate not yet satisfied.</td></tr>
+          <tr><td>Gated</td><td>A check failed. Blocked from publication until it is fixed.</td></tr>
+          <tr><td>In review</td><td>Everything ties. Waiting on the advisor's commentary and approval.</td></tr>
+          <tr><td>Published</td><td>Frozen and visible to the client. Locked against edits.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>
+
+<section id="gate">
+  <p class="eyebrow">04</p>
+  <h2>The gate</h2>
+  <hr class="rule" />
+  <p>
+    The single most important control in the system, and the reason a client can trust what
+    they are reading. It is the release authority: nothing reaches a client without passing
+    it, and it is re-run at the moment of publication rather than trusted from a screen the
+    advisor looked at earlier.
+  </p>
+  <table>
+    <thead><tr><th>Check</th><th>Applies to</th></tr></thead>
+    <tbody>
+      <tr><td>Revenue, cash and receivables present</td><td>Every client</td></tr>
+      <tr><td>Every active business reported</td><td>Every client</td></tr>
+      <tr><td>Margin within a plausible range</td><td>Every client</td></tr>
+      <tr><td>Labour ties to the payroll register, per business</td><td>Labour-based businesses</td></tr>
+      <tr><td>Payroll sits inside direct cost, per business</td><td>Restaurants, contractors</td></tr>
+      <tr><td>Balance sheet balances</td><td>Anyone submitting one</td></tr>
+      <tr><td>Balance-sheet cash agrees with the bank</td><td>Anyone submitting one</td></tr>
+      <tr><td>Occupancy within capacity</td><td>Short-term rental</td></tr>
+      <tr><td>Enrolment within licensed capacity</td><td>Childcare</td></tr>
+      <tr><td>Pass-through identified, management bridge closes</td><td>Property management</td></tr>
+      <tr><td>Fee recovery reported</td><td>Property management</td></tr>
+      <tr><td>Distributions recorded</td><td>NIL athlete</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <b>Publishing is blocked by more than arithmetic.</b> A month will also refuse to publish
+    with no real commentary on it, with no figures at all, or as an amendment with no stated
+    reason. Softer conditions — not yet reconciled, low confidence, open cleanup items — are
+    shown as warnings the advisor can proceed past deliberately.
+  </div>
+</section>
+
+<section id="roles">
+  <p class="eyebrow">05</p>
+  <h2>Who sees what</h2>
+  <hr class="rule" />
+  <table>
+    <thead><tr><th>Role</th><th>Can</th><th>Cannot</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag adm">Admin</span></td>
+        <td>Everything, plus firm settings, the activity log, storage and backups.</td>
+        <td>—</td></tr>
+      <tr><td><span class="tag adv">Advisor</span></td>
+        <td>The whole book: review, write commentary, publish, amend, all client dashboards, close, uploads, planning, tax, guidance.</td>
+        <td>Platform operations.</td></tr>
+      <tr><td><span class="tag book">Bookkeeper</span></td>
+        <td>Upload closes, work the close checklist, exceptions, reconciliations, documents, integrations.</td>
+        <td>Advisory screens, the client book, publishing.</td></tr>
+      <tr><td><span class="tag cli">Client</span></td>
+        <td>Read their own published statements, insights, reports and shared documents. Ask questions on a metric.</td>
+        <td>See drafts, see another client, change anything.</td></tr>
+    </tbody>
+  </table>
+  <p class="small">
+    Every client is a separate tenant, and separation is enforced at the query level rather
+    than by hiding buttons. One firm cannot reach another firm's book even by editing the
+    address bar; there are permanent automated attacks in the test suite that try exactly
+    that on every run.
+  </p>
+</section>
+
+<section id="briefing" class="brk">
+  <p class="eyebrow">06</p>
+  <h2>Screens · Briefing</h2>
+  <hr class="rule" />
+  <p class="small">Where an advisor starts the day. Reached from the top of the left rail.</p>
+
+  <div class="page">
+    <h3>Today <em>advisor · admin</em></h3>
+    <p class="why">Answers one question: what needs me this morning?</p>
+    <dl class="kv">
+      <dt>You see</dt><dd>A greeting, three counted figures (clients in the book, clients waiting on you, items needing you today), then the single most urgent item with its client, the reason, and one button that takes you to the work. Beneath it, up to three more.</dd>
+      <dt>To use it</dt><dd>Read the top item. Press its button. That is the whole design — it is a briefing, not a register.</dd>
+      <dt>Note</dt><dd>Every figure is counted from the same rows the queue is built from. Nothing here is decorative.</dd>
+    </dl>
+  </div>
+
+  <div class="page">
+    <h3>Attention <em>advisor · admin</em></h3>
+    <p class="why">The entire book ranked by how much advisory attention it needs.</p>
+    <dl class="kv">
+      <dt>You see</dt><dd>One row per client with revenue and its movement, net margin, weeks of cash cover, a confidence percentage, open commitments, the loudest reason for concern, and a score from 0 to 100 banded urgent, watch or steady.</dd>
+      <dt>To use it</dt><dd>Read down the score column. Tap a reason to expand every reason behind that score. Use <b>Filter and sort</b> to narrow by industry, tag or band — the cohort statistics at the top follow the filter, so you are always comparing like with like. Sort by steepest decline, fastest growth, or weakest evidence.</dd>
+      <dt>Note</dt><dd>A bare score would be a horoscope, so every score decomposes into named reasons you can disagree with. Metrics with no agreed target are excluded from scoring rather than judged against an invented band.</dd>
+    </dl>
+  </div>
+
+  <div class="page">
+    <h3>Ask Hathorn <em>all staff</em></h3>
+    <p class="why">A question box over the firm's own data.</p>
+    <dl class="kv">
+      <dt>To use it</dt><dd>Pick a suggested question or type your own — "which closes are blocked", "what needs attention today". Optionally scope it to one client first.</dd>
+      <dt>Note</dt><dd>It answers only from what the platform has computed, and refuses to estimate or invent. It cannot change a figure or publish anything.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="clients">
+  <p class="eyebrow">07</p>
+  <h2>Screens · Clients</h2>
+  <hr class="rule" />
+
+  <div class="page">
+    <h3>Clients <em>advisor · admin</em></h3>
+    <p class="why">The roster, arranged by where each engagement has got to.</p>
+    <dl class="kv">
+      <dt>You see</dt><dd>Every client with their industry, how many businesses and published months they have, their lifecycle stage — discovery, cleanup, alignment, advisory — and shortcuts to their dashboard, engagement record, portal and settings.</dd>
+      <dt>To use it</dt><dd><b>Add a client</b> to create one. <b>Manage</b> opens full settings: businesses, users, goals, branding, integrations.</dd>
+    </dl>
+  </div>
+
+  <div class="page">
+    <h3>Dashboard <em>advisor · admin</em></h3>
+    <p class="why">One client's month in depth. This is the working surface for a call.</p>
+    <dl class="kv">
+      <dt>Controls</dt><dd>Top of the screen: which client, which month, what to compare against, and which business (or consolidated). A confidence badge sits beside them and expands to show how it was arrived at.</dd>
+      <dt>Views</dt><dd><b>Overview</b> — headline figures and what changed. <b>Financials</b> — the profit &amp; loss detail and payroll composition. <b>Businesses</b> — the entities side by side. <b>Cash</b> — bank, receivables ageing, thirteen-week projection. <b>Comparison</b> — the chosen comparison in full. <b>Alerts</b> — everything the engine thinks is wrong. <b>Metrics</b> — the client's KPIs against agreed targets. <b>Volume</b>, <b>Position</b>, <b>Management basis</b>, <b>Reports</b>, <b>Settings</b>.</dd>
+      <dt>To use it</dt><dd>Set client and month, read Overview, then follow whatever looks wrong into its view. The state of the screen lives in the address, so any view of any month can be pasted into a message and it opens exactly as you left it.</dd>
+      <dt>Note</dt><dd>Two views are deliberately empty in places and say so. <b>Vendors</b> needs transaction-level detail that a monthly close does not carry; it arrives with QuickBooks. <b>Position</b> disappears when a month has no balance sheet, rather than showing figures nobody should trust.</dd>
+    </dl>
+  </div>
+
+  <div class="page">
+    <h3>Client Experience <em>advisor · admin</em></h3>
+    <p class="why">Curating what each client sees in their portal.</p>
+    <dl class="kv">
+      <dt>To use it</dt><dd>Choose which portal sections are switched on for this client. Publish an insight or a report. Post a question for management, and decide whether they may answer in the portal. Request a document. Then use <b>Preview as client</b> to see the result exactly as they will — a green banner reminds you that you are previewing, with <b>Exit preview</b> to leave.</dd>
+    </dl>
+  </div>
+
+  <div class="page">
+    <h3>Intelligence &nbsp;·&nbsp; Engagement <em>advisor · admin</em></h3>
+    <dl class="kv">
+      <dt>Intelligence</dt><dd>Signals, trends and drivers computed across a client's history — what is moving, what is anomalous, what is worth raising.</dd>
+      <dt>Engagement</dt><dd>The work before advisory begins, in four tabs: <b>Discovery</b> (what the client said they need), <b>Cleanup</b> (what the books need first), <b>Alignment</b> (the targets agreed with them — these are what makes judgement possible later), and <b>Sessions</b> (the meeting record).</dd>
+      <dt>Why alignment matters</dt><dd>A target recorded here is what lets the platform say a figure is good or bad. Without one it reports the number and explicitly declines to judge it, because an invented benchmark is worse than none.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="close">
+  <p class="eyebrow">08</p>
+  <h2>Screens · The close</h2>
+  <hr class="rule" />
+
+  <div class="page">
+    <h3>Upload <em>bookkeeper · advisor · admin</em></h3>
+    <p class="why">Getting a month's figures into the system.</p>
+    <ol class="steps">
+      <li>Choose the client, year and month.</li>
+      <li>Attach the four required files: profit &amp; loss by business, payroll register, receivables ageing, bank balances. Attach the optional ones if you have them — balance sheet, volume, budget.</li>
+      <li>Submit. The gate runs immediately.</li>
+      <li>Read the result. Each check is named and either passes or explains the difference, with the amount. Fix the source data and upload again — there is no limit on re-uploads until the month is published.</li>
+    </ol>
+    <p class="small" style="margin:0">Headers are matched automatically where an export uses different names. A published month cannot be overwritten; it must be amended deliberately.</p>
+  </div>
+
+  <div class="page">
+    <h3>Close <em>bookkeeper · advisor · admin</em></h3>
+    <p class="why">Managing the month across the whole book.</p>
+    <dl class="kv">
+      <dt>You see</dt><dd>Every client for a given month with their checklist progress and anything blocking them.</dd>
+      <dt>To use it</dt><dd>Open a client's close run to work its checklist, record manual checks, waive an item with a reason, or reopen a run. It feeds the release but never publishes on its own.</dd>
+    </dl>
+  </div>
+
+  <div class="page">
+    <h3>Exceptions &nbsp;·&nbsp; Reconciliations &nbsp;·&nbsp; Documents &nbsp;·&nbsp; Integrations</h3>
+    <dl class="kv">
+      <dt>Exceptions</dt><dd>One queue of open work across the firm, gathered from reconciliations, documents, variance and close checks. Assignable.</dd>
+      <dt>Reconciliations</dt><dd>Tie-outs computed deterministically. An AI reading can be attached to explain a difference, but it cannot alter a control total — a test asserts exactly that.</dd>
+      <dt>Documents</dt><dd>Upload source documents; spreadsheets and CSVs are parsed and their figures extracted. Extractions always land as <b>needs review</b> and never post to the ledger by themselves.</dd>
+      <dt>Integrations</dt><dd>Per client: connect QuickBooks, see every sync attempt and its outcome, and reconnect when a token expires. Payroll stays a file upload — those APIs are partner-gated.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="advisory">
+  <p class="eyebrow">09</p>
+  <h2>Screens · Advisory</h2>
+  <hr class="rule" />
+  <div class="page">
+    <h3>Planning <em>advisor · admin</em></h3>
+    <p class="why">Forecasts and scenarios built from the client's own history.</p>
+    <dl class="kv">
+      <dt>To use it</dt><dd>Create a scenario, set its assumptions, read the projection. Share it to the client's portal when you want them to see it; unshared scenarios stay internal.</dd>
+    </dl>
+  </div>
+  <div class="page">
+    <h3>Tax &nbsp;·&nbsp; Guidance <em>advisor · admin</em></h3>
+    <dl class="kv">
+      <dt>Tax</dt><dd>A tracker for tax issues with the deterministic rules that apply to them. Every analysis is marked as requiring professional review, and citations are checked against known authorities rather than accepted from a model.</dd>
+      <dt>Guidance</dt><dd>Technical accounting research with sources attached. Journal entries can be drafted and are validated, but nothing posts to a client's books from here.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="firm">
+  <p class="eyebrow">10</p>
+  <h2>Screens · Firm</h2>
+  <hr class="rule" />
+  <div class="page">
+    <h3>Firm &nbsp;·&nbsp; Ops &nbsp;·&nbsp; Security</h3>
+    <dl class="kv">
+      <dt>Firm</dt><dd>The firm's own profile, branding and team.</dd>
+      <dt>Ops</dt><dd>Integration status, storage and backups, and the <b>activity log</b> — an append-only record of who did what, searchable by person, client and action.</dd>
+      <dt>Security</dt><dd>Your own account: enrol two-factor authentication and keep backup codes. Required for staff in production.</dd>
+    </dl>
+  </div>
+</section>
+
+<section id="review">
+  <p class="eyebrow">11</p>
+  <h2>The review screen</h2>
+  <hr class="rule" />
+  <p>
+    Where the advisory work actually happens, and the only place a statement can be
+    published. Reached from Today, from Attention, or from a client's dashboard.
+  </p>
+  <ol class="steps">
+    <li><b>Read the gate panel.</b> It states plainly how many checks passed. If any failed,
+      the figures are not trustworthy yet and publishing is impossible — fix the source and
+      re-upload.</li>
+    <li><b>Read the warnings above the story.</b> Things that do not block publication but
+      that you should know: not yet reconciled, no agreed targets, low confidence.</li>
+    <li><b>Write the story.</b> Each note has a tone (info, warn, bad), a heading and a body.
+      The heading should carry a number, a cause and an action — "CDS claims lag — $58.3K
+      (timing)" rather than "revenue down". Save each note as you finish it.</li>
+    <li><b>Optionally draft first.</b> <b>Draft the story</b> detects signals in the month —
+      revenue swings, hours changes, labour band breaches, aged receivables, cash coverage —
+      and proposes notes from them. It is a starting point; the advisor always edits, and it
+      can never publish.</li>
+    <li><b>Preview.</b> The statement below the panel is exactly what the client will read.</li>
+    <li><b>Publish to portal.</b> The gate re-runs, the statement freezes, the client is
+      notified.</li>
+    <li><b>Afterwards</b> the same screen offers <b>Amend</b> (new version, reason required)
+      and <b>Withdraw</b> (remove from the portal), with the full version history.</li>
+  </ol>
+  <div class="note">
+    <b>Why the commentary is enforced.</b> A month cannot be published with boilerplate or an
+    empty note. The explanation is the deliverable; the figures are the evidence for it.
+  </div>
+</section>
+
+<section id="portal">
+  <p class="eyebrow">12</p>
+  <h2>What the client sees</h2>
+  <hr class="rule" />
+  <p>
+    A calm, branded document rather than a dashboard: their mark in the masthead, their two
+    accent colours on rules and charts, and the firm's typography throughout. Sign in as the
+    client to see it, or use <b>Preview as client</b> from Client Experience.
+  </p>
+  <table>
+    <thead><tr><th>Section</th><th>Contains</th></tr></thead>
+    <tbody>
+      <tr><td>Overview</td><td>Headline figures for the published month, what changed, anything needing their attention, open questions.</td></tr>
+      <tr><td>Financials</td><td>The full statement — up to ten numbered sections, from headline figures through payroll, volume, cash and collections, balance sheet position, open commitments and business comparison. Sections with no data disappear rather than showing zeros.</td></tr>
+      <tr><td>Insights</td><td>Written pieces the advisor has published to them.</td></tr>
+      <tr><td>Reports</td><td>Monthly advisory reports.</td></tr>
+      <tr><td>Planning</td><td>Only the forecasts explicitly shared with them.</td></tr>
+      <tr><td>Documents</td><td>Documents made visible to them, and anything the firm has requested.</td></tr>
+    </tbody>
+  </table>
+  <h4 style="margin:20px 0 8px">What they can do</h4>
+  <ul class="plain">
+    <li>Choose the month and the business, and what to compare against.</li>
+    <li>Ask a question against a specific metric; the advisor answers and both are kept.</li>
+    <li>Download or print the statement as a PDF.</li>
+    <li>Three further interactions are switchable per client and <b>off by default</b>:
+      answering management questions, uploading requested documents, and the Ask panel.</li>
+  </ul>
+  <h4 style="margin:20px 0 8px">What they cannot do</h4>
+  <p class="small" style="margin:0">
+    See a draft or an unpublished month. Change a figure or a note. Build their own analysis
+    or pick arbitrary date ranges. That last one is a deliberate product decision, not a
+    missing feature: the curated story is what the firm is selling, and a client building
+    their own pivot table is a different and worse product.
+  </p>
+</section>
+
+<section id="numbers" class="brk">
+  <p class="eyebrow">13</p>
+  <h2>How the numbers behave</h2>
+  <hr class="rule" />
+  <p>
+    Six rules run through the whole engine. They are worth knowing because they explain
+    things that would otherwise look like bugs.
+  </p>
+  <details open>
+    <summary>A comparison that cannot be trusted is removed, not shown with a caveat</summary>
+    <div class="body"><p style="margin:0">Two figures can both be correct and still not be comparable — a different accounting basis, a different currency, an unpublished basis, or months of very different length. Where that is true the comparison is suppressed and the reason given. A delta nobody should believe is worse present than absent. A softer case: when a client opens a new business mid-year, every consolidated comparison across that month is mixing a two-business figure with a three-business one, so the platform names the business and stops objecting once you scope to a single entity.</p></div>
+  </details>
+  <details>
+    <summary>Good and bad follow the metric, not the sign</summary>
+    <div class="body"><p style="margin:0">Overhead falling is good; revenue falling is not. A labour ratio has both a floor and a ceiling — a home-care agency dropping from 68% to 55% is not an improvement, it means hours were not delivered or costs are posting to the wrong account. Range metrics are judged on movement toward the band, and crossing from one side to the other is never an improvement.</p></div>
+  </details>
+  <details>
+    <summary>Small movements read as flat</summary>
+    <div class="body"><p style="margin:0">Each metric carries a materiality threshold. Movement below it renders grey and says "flat" rather than being dressed as good or bad news, because colouring a $200 change green teaches people to ignore the colours.</p></div>
+  </details>
+  <details>
+    <summary>Confidence sits beside the figure and never changes it</summary>
+    <div class="body"><p style="margin:0">A badge in the masthead scores the evidence behind the month — close status, tie-out, reconciliation, completeness, freshness — and expands into the reasons. Revenue was what it was regardless of how good the books are; what changes is what is reported next to it, and whether an unsound comparison is shown at all.</p></div>
+  </details>
+  <details>
+    <summary>Percentages move in points</summary>
+    <div class="body"><p style="margin:0">A labour ratio going from 78% to 80% is <b>+2 points</b>, never "up 2.6%".</p></div>
+  </details>
+  <details>
+    <summary>Flows add up; balances do not</summary>
+    <div class="body"><p style="margin:0">Year-to-date adds revenue and payroll, but takes the closing figure for cash and receivables. Summing twelve months of bank balance produces a number that means nothing.</p></div>
+  </details>
+</section>
+
+<section id="verticals">
+  <p class="eyebrow">14</p>
+  <h2>Industry profiles</h2>
+  <hr class="rule" />
+  <p>
+    The platform was built from one home-care client, which made three things look universal
+    that are not: that direct cost equals payroll, that volume means hours, and that
+    receivables are owed by payers. Ten profiles now carry their own opinion about what to
+    measure, which gate checks apply, and what to call things — so a childcare statement
+    never says "hours paid".
+  </p>
+  <table>
+    <thead><tr><th>Profile</th><th>Direct cost</th><th>Volume</th></tr></thead>
+    <tbody>
+      <tr><td>Home care</td><td>Payroll only</td><td>Hours</td></tr>
+      <tr><td>Childcare</td><td>Payroll only</td><td>Enrolled children</td></tr>
+      <tr><td>Short-term rental</td><td>Property costs</td><td>Nights</td></tr>
+      <tr><td>Property management</td><td>Management basis</td><td>Nights managed</td></tr>
+      <tr><td>Professional services</td><td>Payroll only</td><td>Billable hours</td></tr>
+      <tr><td>Restaurant</td><td>Payroll plus cost of goods</td><td>Covers</td></tr>
+      <tr><td>Contractor</td><td>Payroll plus materials</td><td>Jobs</td></tr>
+      <tr><td>Retail</td><td>Cost of goods</td><td>Orders</td></tr>
+      <tr><td>NIL athlete</td><td>None</td><td>Deals</td></tr>
+      <tr><td>General business</td><td>Payroll plus cost of goods</td><td>Units</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <b>Property management is not short-term rental.</b> A manager's gross bookings flow
+    through their account but are not their revenue — tax goes to the state, the balance is
+    disbursed to owners, and they keep a fee. Book revenue can be five times management
+    revenue. Report the gross figure and the owner thinks the business is enormous; report
+    only the fee and it will not tie to the return. The platform builds the bridge between
+    them and refuses to publish if it does not reconcile.
+  </div>
+</section>
+
+<section id="tour">
+  <p class="eyebrow">15</p>
+  <h2>Five-minute tour</h2>
+  <hr class="rule" />
+  <p class="small">Sign in as Jeremiah and follow this path.</p>
+  <ol class="steps">
+    <li><b>Today.</b> Read the single item at the top. Ask yourself whether it is genuinely
+      what you would do first.</li>
+    <li><b>Attention</b> in the left rail. Read the scores, then expand a reason on the top
+      client to see the argument behind it.</li>
+    <li>Click <b>Northbridge Home Care</b> to open its dashboard. Change the month in the
+      top bar and watch the whole statement move with it. Open <b>Cash</b> for the
+      thirteen-week projection.</li>
+    <li>Back on <b>Today</b>, open the item that says a month is <b>ready to publish</b>.
+      Read the gate panel, edit a note, and publish it.</li>
+    <li><b>Client Experience</b> → <b>Preview as client</b>. This is the statement the owner
+      reads. Use <b>Exit preview</b> to come back.</li>
+    <li>Press <b>/</b> anywhere to jump to any screen by name.</li>
+  </ol>
+</section>
+
+<section id="state">
+  <p class="eyebrow">16</p>
+  <h2>State of the build</h2>
+  <hr class="rule" />
+  <p>Said plainly, because a confident claim about untested work is worse than no claim.</p>
+  <h4 style="margin:0 0 8px">Proven by execution</h4>
+  <p>
+    447 automated checks pass: 239 covering the full workflow end to end over HTTP, 11
+    release smoke checks, 168 unit checks across thirteen subsystems, and 29 more proving
+    database-level tenant isolation and that financial totals survive a database migration
+    unchanged. The workflow suite passes on both database engines. Response times sit
+    between 12 and 29 milliseconds on the main screens.
+  </p>
+  <p>
+    That covers the gate, all the metric arithmetic, every comparison mode, tenant
+    isolation, publishing and amendment, session security, encryption, backups and restore,
+    and how the system behaves under hostile or malformed input.
+  </p>
+  <h4 style="margin:22px 0 8px">Written but not yet exercised against the real thing</h4>
+  <ul class="plain">
+    <li><b>QuickBooks.</b> Built to Intuit's documented shapes and unit-tested, but never
+      connected to a live company file. The first connection is where we learn whether the
+      report format matches. Until then the bookkeeper uploads files — about ten minutes a
+      month.</li>
+    <li><b>Email notifications.</b> Written and switchable; no key has been attached yet.</li>
+    <li><b>The AI drafting layer.</b> Every AI feature falls back to deterministic output
+      when no model key is present, and that fallback is what the tests exercise. Worth
+      knowing: the product works with the model switched off entirely.</li>
+    <li><b>A real client's numbers.</b> Everything in the demo is invented. The first real
+      close is the most valuable test available and no amount of automated checking
+      substitutes for it.</li>
+  </ul>
+  <h4 style="margin:22px 0 8px">Deliberately not built</h4>
+  <p style="margin-bottom:0">
+    Self-service analytics for clients, automatic publishing without a human approving the
+    language, and peer benchmarking against other clients. Each is a considered product
+    decision rather than a gap: the first two would undermine what the firm is selling, and
+    the third needs a signed agreement with every client before it is anything but theatre.
+  </p>
+  <div class="foot small">
+    Hathorn Dashboard · platform guide · prepared August 2026 · management-prepared and
+    unaudited demonstration data throughout.
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+(function(){
+  // Scroll progress, matching the chrome in the product itself.
+  var bar = document.getElementById('bar');
+  var links = [].slice.call(document.querySelectorAll('#toc a'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+
+  function frame(){
+    var max = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.width = (max > 0 ? (window.scrollY / max) * 100 : 0) + '%';
+    var i = 0;
+    for (var s = 0; s < sections.length; s++) {
+      if (sections[s] && sections[s].getBoundingClientRect().top <= 120) i = s;
+    }
+    links.forEach(function(a, n){ a.classList.toggle('on', n === i); });
+  }
+  var queued = false;
+  window.addEventListener('scroll', function(){
+    if (queued) return; queued = true;
+    requestAnimationFrame(function(){ queued = false; frame(); });
+  }, { passive: true });
+  frame();
+
+  // Show and copy whatever host is actually serving this, so the address in the
+  // guide is always the one that works.
+  if (location.protocol.indexOf('http') === 0) {
+    var link = document.getElementById('link');
+    var cp = document.getElementById('copylink');
+    link.textContent = location.host + '/login';
+    link.href = location.origin + '/login';
+    cp.setAttribute('data-copy', location.origin + '/login');
+  }
+
+  // Copy buttons — credentials are the thing people fumble.
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('.copy');
+    if (!b) return;
+    var text = b.getAttribute('data-copy');
+    var done = function(){ var was = b.textContent; b.textContent = 'copied'; setTimeout(function(){ b.textContent = was; }, 1400); };
+    if (navigator.clipboard) { navigator.clipboard.writeText(text).then(done, done); }
+    else {
+      var t = document.createElement('textarea');
+      t.value = text; document.body.appendChild(t); t.select();
+      try { document.execCommand('copy'); } catch (err) {}
+      document.body.removeChild(t); done();
+    }
+  });
+
+  // One switch for every collapsed explanation, so the printed copy is complete.
+  var all = document.getElementById('expand');
+  all.addEventListener('click', function(){
+    var items = [].slice.call(document.querySelectorAll('details'));
+    var open = items.every(function(d){ return d.open; });
+    items.forEach(function(d){ d.open = !open; });
+    all.textContent = open ? 'Expand all detail' : 'Collapse detail';
+  });
+
+  // Printing must never hide an explanation.
+  window.addEventListener('beforeprint', function(){
+    [].slice.call(document.querySelectorAll('details')).forEach(function(d){ d.open = true; });
+  });
+})();
+</script>
+</body>
+</html>

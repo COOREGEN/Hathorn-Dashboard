@@ -1,0 +1,9 @@
+# Optional Document Intelligence worker dependencies.
+# Full Docling pulls Torch/CUDA and is NOT required for Hathorn to run.
+#
+# Lite path (recommended for most deploys):
+openpyxl>=3.1.0
+pypdf>=4.0.0
+#
+# Heavy path (optional — only if you accept the ML stack):
+# docling>=2.0.0
