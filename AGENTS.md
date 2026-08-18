@@ -10,6 +10,11 @@ is built, what is proven, and what is blocking a first real client.
 Where this file and the code disagree, the code wins and this file is wrong: it has been
 corrected three times already for exactly that reason.
 
+**`main` is still the empty initial commit (README only).** The working product lives on
+the stacked Cursor branches, not on `main`. Check out the latest tip (currently
+`cursor/platform-guide-c8e9`, or a refresh branch based on it) before `npm install`.
+An agent that installs against `main` will see an empty tree.
+
 ---
 
 ## Run it
