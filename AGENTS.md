@@ -27,9 +27,11 @@ Other seeded logins: `jeremiah@` (advisor), `books@` (bookkeeper),
 `natosha@criterionihc.com` (client). Same password.
 
 ```bash
-npm run start & npm run proof   # 239 assertions — the full workflow
+npm run start & npm run proof   # 249 assertions — the full workflow
 npm run smoke                   #  11 assertions — release-candidate smoke
-npm run backup                # verified snapshot + prune
+npm run stress                  # 112 assertions — adversarial; writes rubbish on purpose
+npm run probe:tenancy           # every staff route, called as another firm
+npm run backup                  # verified snapshot + prune
 ```
 
 **Re-seed between suites.** Several suites mutate the book — publishing, amending,
@@ -38,7 +40,8 @@ interference rather than regression:
 
 ```bash
 npm run seed && npm run proof    # then
-npm run seed && npm run smoke
+npm run seed && npm run smoke    # then
+npm run seed && npm run stress   # last: it publishes, breaks the gate, writes junk
 ```
 
 Thirteen more suites run offline against temporary databases, no server needed:
@@ -111,6 +114,19 @@ a number that means nothing.
 **7. Validate on write, not on read.** Sanitising at render leaves garbage in the
 database for the next component that forgets to check. `lib/validate.ts` guards the
 boundary.
+
+**7a. Authorise on the resource, never on the role alone.** Every firm's admin carries
+the ADMIN role, so `requireRole("ADMIN")` on a route that accepts a client or period id
+is not a wall — it is a doorway for anyone who can guess an id. Resolve the id to its
+owning firm and demand membership: `requireClientInFirm(clientId)` or
+`requirePeriodInFirm(periodId)` in `lib/auth.ts`.
+
+Seven staff routes were in exactly that state and an adversarial run found them: another
+firm's admin could publish, amend or withdraw a client's statement, draft commentary into
+it, add an entity, and **create a portal login inside a client that was not theirs**. The
+read paths had probes and passed; the write paths had none and were assumed safe. If you
+add a route that names a client or a period, add a probe to `scripts/probe-tenancy.sh`
+and a write assertion to section 17 of the proof.
 
 **8. Typography is locked.** Hathorn v2026.1: Cormorant Garamond display ≥16pt only,
 EB Garamond editorial body, Libre Franklin for anything <10.5pt and all labels, tabular
@@ -455,6 +471,12 @@ comparability, confidence, role walls, cross-tenant isolation, session revocatio
 encryption round-trip, rate limits, backup create/verify/prune and restore drills,
 retention windows, CSV parsing, injection and malformed-input handling, concurrency,
 empty states.
+
+**The adversarial suite exists now.** `npm run stress` — 112 assertions across injection,
+malformed bodies, degenerate numbers, forged and tampered credentials, cross-tenant and
+role probes, business-logic abuse, publish races, oversized payloads, empty states and an
+integrity sweep. It writes rubbish deliberately; re-seed after it. Earlier versions of this
+file described a `stress.sh` that did not exist.
 
 **Also verified, contrary to what this file used to say:**
 - **Postgres runs the whole application.** `POSTGRES_RUNTIME_ENABLED=1` with a

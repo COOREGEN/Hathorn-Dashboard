@@ -36,7 +36,9 @@
     "client-portal:test": "tsx scripts/client-portal-unit.ts",
     "ops:test": "tsx scripts/ops-unit.ts",
     "security:test": "tsx scripts/security-unit.ts",
-    "smoke": "bash scripts/rc-smoke.sh"
+    "smoke": "bash scripts/rc-smoke.sh",
+    "stress": "bash scripts/stress.sh",
+    "probe:tenancy": "bash scripts/probe-tenancy.sh"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

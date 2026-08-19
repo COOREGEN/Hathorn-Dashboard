@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { publish, openAmendment, revoke } from "@/lib/release";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requirePeriodInFirm, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { db } from "@/lib/db";
 import { sendPeriodPublished } from "@/lib/email";
@@ -9,9 +9,13 @@ export async function POST(req: Request) {
   try {
     // Auth and body parsing both live inside the try: a validation failure must be a
     // 400 with a reason, never an unhandled 500.
-    const s = await requireRole("ADMIN", "ADVISOR");
+    //
+    // The period is resolved to its owning firm before anything else. Publishing is
+    // the most consequential write in the system — it puts a statement in front of a
+    // client — and a role check alone let any firm's admin do it to any book.
     const body = await jsonObject(req);
     const { periodId } = body;
+    const s = await requirePeriodInFirm(periodId, "ADMIN", "ADVISOR");
     // Amending is the only route back into a locked period.
     if (String(body.action || "") === "amend") {
       try {

@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { db, uid } from "@/lib/db";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requireRole, requireClientInFirm, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { hashPassword, validatePassword } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-  const s = await requireRole("ADMIN");
   const { email, name, role, clientId, password } = await jsonObject(req);
+  // Creating a user against a client id is creating a login into that client's
+  // portal. Without the firm check, any firm's admin could mint themselves an
+  // account inside another firm's client and read their financials.
+  const s = clientId
+    ? await requireClientInFirm(clientId, "ADMIN")
+    : await requireRole("ADMIN");
   const id = uid();
   const pwErr = validatePassword(password);
     if (pwErr) return NextResponse.json({ ok: false, error: pwErr }, { status: 400 });

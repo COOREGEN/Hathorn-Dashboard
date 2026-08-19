@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { revokePeriod } from "@/lib/release";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requirePeriodInFirm, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 
 export async function POST(req: Request) {
   try {
-    const s = await requireRole("ADMIN", "ADVISOR");
     const body = await jsonObject(req);
     const { periodId } = body;
+    // Withdrawing removes a statement a client may already have read.
+    const s = await requirePeriodInFirm(periodId, "ADMIN", "ADVISOR");
     const reason = String(body.reason || "Withdrawn from the advisory book").trim();
     revokePeriod(periodId, s.userId, reason);
     audit(s.userId, "PERIOD_REVOKE", periodId);

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole, audit, AuthError } from "@/lib/auth";
+import { requirePeriodInFirm, audit, AuthError } from "@/lib/auth";
 import { ValidationError, jsonObject } from "@/lib/validate";
 import { rateLimit, RateLimited, LIMITS } from "@/lib/security";
 import { draftStory } from "@/lib/story-agent";
@@ -12,11 +12,14 @@ import { db, uid } from "@/lib/db";
  */
 export async function POST(req: Request) {
   try {
-    const s = await requireRole("ADMIN", "ADVISOR");
+    const { periodId, replace } = await jsonObject(req);
+    // This route reads a period's figures and writes commentary into it, so the
+    // firm check belongs before either. A role check alone let another firm's
+    // admin draft notes straight into this book.
+    const s = await requirePeriodInFirm(periodId, "ADMIN", "ADVISOR");
     // The agent calls a metered API on an authenticated route; a stuck retry loop
     // must not be able to bill the firm indefinitely.
     rateLimit({ action: "storyDraft", subject: s.userId, ...LIMITS.storyDraft });
-    const { periodId, replace } = await jsonObject(req);
 
     const period: any = db().prepare("SELECT * FROM periods WHERE id=?").get(periodId);
     if (!period) return NextResponse.json({ ok: false, error: "Period not found" }, { status: 404 });
