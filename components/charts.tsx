@@ -178,9 +178,12 @@ export function StackedH({ rows, colors, legend }:
 }
 
 export function BulletBar({ label, value, bandLo, bandHi, max = 100, note }:
-  { label: string; value: number; bandLo: number; bandHi: number; max?: number; note?: string }) {
+  { label: string; value: number; bandLo: number | null; bandHi: number | null; max?: number; note?: string }) {
   const pct = (v: number) => Math.min((100 * v) / max, 100);
-  const bad = value > bandHi;
+  // No agreed band: draw the value alone rather than a band from nowhere, and
+  // pass no verdict on it.
+  const hasBand = bandLo != null && bandHi != null;
+  const bad = hasBand && value > bandHi!;
   return (
     <div style={{ marginBottom: 20 }}>
       <div className="flex justify-between items-baseline" style={{ marginBottom: 7 }}>
@@ -189,14 +192,21 @@ export function BulletBar({ label, value, bandLo, bandHi, max = 100, note }:
           color: bad ? "var(--accent-text)" : "var(--brand-text)" }}>{value.toFixed(1)}%</span>
       </div>
       <div style={{ position: "relative", height: 10, background: "#E8E2D4" }}>
-        <div style={{ position: "absolute", top: 0, bottom: 0, left: `${pct(bandLo)}%`,
-          width: `${pct(bandHi - bandLo)}%`, background: "var(--brand)", opacity: 0.2 }} />
+        {hasBand && (
+          <div style={{ position: "absolute", top: 0, bottom: 0, left: `${pct(bandLo!)}%`,
+            width: `${pct(bandHi! - bandLo!)}%`, background: "var(--brand)", opacity: 0.2 }} />
+        )}
         <div style={{ position: "absolute", top: 2, bottom: 2, left: 0, width: `${pct(value)}%`,
           background: bad ? "var(--accent)" : "var(--brand)" }} />
-        <div style={{ position: "absolute", top: -3, bottom: -3, width: 1, left: `${pct(bandHi)}%`,
-          background: "var(--ink)" }} />
+        {hasBand && (
+          <div style={{ position: "absolute", top: -3, bottom: -3, width: 1, left: `${pct(bandHi!)}%`,
+            background: "var(--ink)" }} />
+        )}
       </div>
       {note && <div className="caption" style={{ marginTop: 6 }}>{note}</div>}
+      {!hasBand && !note && (
+        <div className="caption" style={{ marginTop: 6 }}>No agreed band — reported, not judged.</div>
+      )}
     </div>
   );
 }
