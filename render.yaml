@@ -1,0 +1,147 @@
+# Deployment blueprint — Render.
+#
+# Chosen over Vercel for one concrete reason: this app writes to disk. Uploaded
+# documents live under DATA_DIR/documents and verified backups under BACKUP_DIR,
+# and a serverless filesystem loses both between requests. Render gives a
+# persistent disk and an always-on process, which is also what the background job
+# queue needs.
+#
+# Deploying: New → Blueprint → pick this repository. Render reads this file,
+# creates the service, the database and the two scheduled jobs, and asks only for
+# the values marked sync:false below.
+#
+# See docs/DEPLOY.md for the ten-minute walkthrough.
+
+databases:
+  - name: hathorn-db
+    databaseName: hathorn
+    user: hathorn
+    plan: basic-256mb          # smallest paid tier; the free one expires after 30 days
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: hathorn-dashboard
+    runtime: node
+    plan: starter              # always on; the free plan sleeps and the first visitor waits
+    region: ohio
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health/live
+    disk:
+      name: hathorn-data
+      mountPath: /var/data     # documents, logos and backups survive a redeploy here
+      sizeGB: 10
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV
+        value: PRODUCTION
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+
+      # Generated once by Render and then held. Rotating AUTH_SECRET signs every
+      # live session out; rotating ENCRYPTION_KEY makes stored QuickBooks tokens
+      # and MFA secrets unreadable unless ENCRYPTION_KEY_PREVIOUS is set.
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+
+      # Backups must not share the database's fate. Same disk is still better than
+      # no copy; move BACKUP_DIR to object storage when there is a real client on it.
+      - key: DATA_DIR
+        value: /var/data
+      - key: BACKUP_DIR
+        value: /var/data/backups
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hathorn-db
+          property: connectionString
+      - key: POSTGRES_RUNTIME_ENABLED
+        value: "1"
+
+      # Set after the first deploy, once Render has issued the address, or
+      # straight away if a custom domain is attached.
+      - key: NEXT_PUBLIC_BASE_URL
+        sync: false
+
+      # Optional. Everything works with all three absent — email sends become
+      # silent no-ops, AI features fall back to deterministic output, and the
+      # bookkeeper uploads CSVs instead of syncing QuickBooks.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: QBO_CLIENT_ID
+        sync: false
+      - key: QBO_CLIENT_SECRET
+        sync: false
+      - key: QBO_ENVIRONMENT
+        sync: false
+
+  # There is no in-process scheduler by design, so these have to exist. Without
+  # the first, the background queue never drains; without the second, there are
+  # no backups.
+  - type: cron
+    name: hathorn-jobs
+    runtime: node
+    plan: starter
+    region: ohio
+    branch: main
+    schedule: "*/5 * * * *"
+    buildCommand: npm ci
+    startCommand: npm run jobs:tick
+    envVars:
+      - key: APP_ENV
+        value: PRODUCTION
+      - key: DATA_DIR
+        value: /var/data
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hathorn-db
+          property: connectionString
+      - key: POSTGRES_RUNTIME_ENABLED
+        value: "1"
+      - key: AUTH_SECRET
+        fromService:
+          type: web
+          name: hathorn-dashboard
+          envVarKey: AUTH_SECRET
+      - key: ENCRYPTION_KEY
+        fromService:
+          type: web
+          name: hathorn-dashboard
+          envVarKey: ENCRYPTION_KEY
+
+  - type: cron
+    name: hathorn-backup
+    runtime: node
+    plan: starter
+    region: ohio
+    branch: main
+    schedule: "0 3 * * *"
+    buildCommand: npm ci
+    startCommand: npm run backup
+    envVars:
+      - key: APP_ENV
+        value: PRODUCTION
+      - key: DATA_DIR
+        value: /var/data
+      - key: BACKUP_DIR
+        value: /var/data/backups
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hathorn-db
+          property: connectionString
+      - key: POSTGRES_RUNTIME_ENABLED
+        value: "1"
+      - key: AUTH_SECRET
+        fromService:
+          type: web
+          name: hathorn-dashboard
+          envVarKey: AUTH_SECRET

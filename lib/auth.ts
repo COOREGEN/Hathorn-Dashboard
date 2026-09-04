@@ -386,6 +386,43 @@ export async function requireClientAccess(clientId: string): Promise<Session> {
   return s;
 }
 
+/**
+ * Staff guard for any route that names a client in its body or query.
+ *
+ * `requireRole` is not enough on its own and never was: every firm's admin carries
+ * the ADMIN role, so a check that stops at "is this an admin?" lets one firm act on
+ * another's book by naming an id. An adversarial probe found seven staff routes in
+ * exactly that state — one of them could create a portal login inside another
+ * firm's client. Resolve the id to its owning firm, then demand membership.
+ *
+ * Platform admin is deliberately not a bypass here; `requirePlatformAdmin` covers
+ * the operations console, and firm books are not browsable from it.
+ */
+export async function requireClientInFirm(clientId: string, ...roles: Role[] | string[]): Promise<Session> {
+  const allowed = roles.length ? roles : ["ADMIN", "ADVISOR"];
+  const s = await requireRole(...(allowed as string[]));
+  const id = String(clientId || "").trim();
+  // "Resource not found" rather than "forbidden": a refusal must not confirm that
+  // an id exists in someone else's book.
+  if (!id) throw new AuthError(403, "Resource not found.");
+  const owner: any = db().prepare("SELECT firm_id FROM clients WHERE id=?").get(id);
+  if (!owner?.firm_id) throw new AuthError(403, "Resource not found.");
+  const membership: any = db().prepare(
+    `SELECT 1 FROM firm_memberships WHERE user_id=? AND firm_id=? AND status='ACTIVE'`,
+  ).get(s.userId, owner.firm_id);
+  if (!membership) throw new AuthError(403, "Resource not found.");
+  return s;
+}
+
+/** The same guard, resolved through the period's owning client. */
+export async function requirePeriodInFirm(periodId: string, ...roles: Role[] | string[]): Promise<Session> {
+  const id = String(periodId || "").trim();
+  if (!id) throw new AuthError(403, "Resource not found.");
+  const period: any = db().prepare("SELECT client_id FROM periods WHERE id=?").get(id);
+  if (!period?.client_id) throw new AuthError(403, "Resource not found.");
+  return requireClientInFirm(period.client_id, ...roles);
+}
+
 export function audit(userId: string, action: string, detail = "", opts?: {
   firmId?: string | null;
   clientId?: string | null;

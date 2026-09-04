@@ -255,11 +255,16 @@ details .body{padding:12px 0 4px 20px}
   <hr class="rule" />
   <div class="card ink">
     <h3 style="margin-bottom:4px">Sign in</h3>
-    <p class="small" style="margin-bottom:14px">
+    <p class="small" style="margin-bottom:6px">
       <!-- Relative, and rewritten to the live host on load: a guide with an
            address hardcoded into it is a guide with a dead link in it. -->
       <a id="link" href="/login">Open the sign-in page</a>
       <button class="copy" id="copylink" data-copy="/login">copy link</button>
+    </p>
+    <p class="small" id="hoststamp" style="margin:0 0 14px;font-size:11px;opacity:.75">
+      <!-- The printed copy has to carry the address AND the date it was true on.
+           A PDF that prints a temporary host as if it were permanent is a document
+           that turns into a dead link without telling the reader why. -->
     </p>
     <table class="creds">
       <thead><tr><th>Role</th><th>Email</th><th>Lands on</th></tr></thead>
@@ -861,6 +866,11 @@ details .body{padding:12px 0 4px 20px}
     link.textContent = location.host + '/login';
     link.href = location.origin + '/login';
     cp.setAttribute('data-copy', location.origin + '/login');
+    var when = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('hoststamp').textContent =
+      'Address correct on ' + when + '. The demonstration host is temporary and its address '
+      + 'changes when it restarts — if this does not open, ask for the current one. '
+      + 'Nothing about the platform has changed when that happens.';
   }
 
   // Copy buttons — credentials are the thing people fumble.

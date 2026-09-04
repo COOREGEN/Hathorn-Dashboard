@@ -961,6 +961,46 @@ assert "Example active firm is not Hathorn" test "$EX_FIRM_NAME" = "Example CPA 
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" "$BASE/api/platform/firms")
 assert "Firm admin blocked from platform firms API" test "$CODE" = "403"
 
+
+# ── Write paths, not just reads ────────────────────────────────────────────────
+# The read probes above existed and passed while SEVEN staff write routes had no
+# firm check at all: another firm's admin could publish, amend or withdraw a
+# statement, draft commentary into it, and create an entity or a portal LOGIN
+# inside a client that was not theirs. Reads were probed; writes were assumed.
+# An adversarial run found it. These assertions are why it cannot return.
+EX_NOTES_BEFORE=$(ledger_sql "SELECT COUNT(*) FROM story_notes WHERE period_id='$MAY_ID'")
+EX_STATUS_BEFORE=$(ledger_sql "SELECT status FROM periods WHERE id='$MAY_ID'")
+
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" -X POST "$BASE/api/approve" \
+  -H 'content-type: application/json' -d "{\"periodId\":\"$MAY_ID\"}")
+assert "Firm B cannot publish Firm A's period" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" -X POST "$BASE/api/approve" \
+  -H 'content-type: application/json' -d "{\"action\":\"amend\",\"periodId\":\"$MAY_ID\",\"reason\":\"probe\"}")
+assert "Firm B cannot amend Firm A's period" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" -X POST "$BASE/api/admin/unpublish" \
+  -H 'content-type: application/json' -d "{\"periodId\":\"$MAY_ID\",\"reason\":\"probe\"}")
+assert "Firm B cannot withdraw Firm A's statement" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" -X POST "$BASE/api/story/draft" \
+  -H 'content-type: application/json' -d "{\"periodId\":\"$MAY_ID\"}")
+assert "Firm B cannot draft commentary into Firm A's period" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" -X POST "$BASE/api/admin/entities" \
+  -H 'content-type: application/json' -d "{\"clientId\":\"$CLIENT_ID\",\"name\":\"Probe Co\"}")
+assert "Firm B cannot add an entity to Firm A's client" test "$CODE" = "403"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/exadmin.jar" -X POST "$BASE/api/admin/users" \
+  -H 'content-type: application/json' \
+  -d "{\"clientId\":\"$CLIENT_ID\",\"email\":\"probe-proof@example.com\",\"name\":\"Probe\",\"role\":\"CLIENT\",\"password\":\"Probe12345\"}")
+assert "Firm B cannot create a login inside Firm A's client" test "$CODE" = "403"
+
+# Effect, not just status: nothing above may have changed Firm A's book.
+assert "Firm A period status unchanged by the probes" \
+  test "$(ledger_sql "SELECT status FROM periods WHERE id='$MAY_ID'")" = "$EX_STATUS_BEFORE"
+assert "Firm A commentary unchanged by the probes" \
+  test "$(ledger_sql "SELECT COUNT(*) FROM story_notes WHERE period_id='$MAY_ID'")" = "$EX_NOTES_BEFORE"
+assert "no probe entity landed in Firm A's client" \
+  test "$(ledger_sql "SELECT COUNT(*) FROM entities WHERE client_id='$CLIENT_ID' AND name='Probe Co'")" = "0"
+assert "no probe login landed in Firm A's client" \
+  test "$(ledger_sql "SELECT COUNT(*) FROM users WHERE client_id='$CLIENT_ID' AND email='probe-proof@example.com'")" = "0"
+
 echo
 echo "18. Ask Hathorn (Copilot)"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' -b "$COOKIE_DIR/admin.jar" "$BASE/ask")

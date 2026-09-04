@@ -418,7 +418,10 @@ six queries concurrently.
 
 ## Testing
 
-> **`test.sh` and `stress.sh` no longer exist.** They were replaced by `npm run proof`,
+> **`test.sh` no longer exists; `stress.sh` now does.** `npm run stress` is a real
+> 112-assertion adversarial suite (see below).
+>
+> **Historical note:** They were replaced by `npm run proof`,
 > `npm run smoke` and thirteen offline unit suites. This section is corrected; anything
 > elsewhere in this file still naming those scripts is wrong.
 

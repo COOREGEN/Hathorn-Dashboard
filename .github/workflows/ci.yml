@@ -61,3 +61,18 @@ jobs:
             sleep 1
           done
           REQUIRE_STAFF_MFA=0 npm run proof
+
+      # Cross-tenant probe of every staff route that names a client or period.
+      # Seven of them had no firm check at all until an adversarial run found it,
+      # so this gate is not optional.
+      - name: Cross-tenant probe
+        run: |
+          npm run seed
+          REQUIRE_STAFF_MFA=0 npm run probe:tenancy
+
+      # Adversarial suite. Writes rubbish deliberately, so it re-seeds first and
+      # runs last.
+      - name: Stress (adversarial)
+        run: |
+          npm run seed
+          REQUIRE_STAFF_MFA=0 ENABLE_MOCK_INTEGRATION=1 npm run stress

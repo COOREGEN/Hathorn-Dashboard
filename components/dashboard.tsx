@@ -25,7 +25,12 @@ import { PeriodControls, ComparisonTable, YtdStrip } from "./comparison";
 export type ClientMeta = {
   name: string; template: string; brandPrimary: string; brandAccent: string;
   logoText: string; logoSub: string; logoUrl?: string | null;
-  targetLaborLo: number; targetLaborHi: number;
+  /**
+   * Null until a band is agreed with the client in the alignment session. The type
+   * used to claim `number`, which is how "Healthy band null–null%" reached a
+   * client-facing statement.
+   */
+  targetLaborLo: number | null; targetLaborHi: number | null;
   /** Accounting firm that prepares the statement (tenant branding). */
   firmName?: string;
   reportFooter?: string;
@@ -178,13 +183,21 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
 
   const comparison = useMemo(
     () => (cur ? buildComparison(cur, periods, mode, budgetBasis, {
-      laborTarget: { lo: client.targetLaborLo, hi: client.targetLaborHi },
+      // Null when no band was agreed: the comparison then reports the ratio and
+      // declines to call the movement good or bad, which is the honest answer.
+      laborTarget: client.targetLaborLo != null && client.targetLaborHi != null
+        ? { lo: client.targetLaborLo, hi: client.targetLaborHi }
+        : null,
       // The gate ran on the server, where period context is readable; the client looks
       // the verdict up rather than recomputing it.
       checkPair: (a, b, m) => comparabilityByPair[`${a.periodId}::${b.periodId}::${m}`]
         ?? { comparable: true, issues: [], reliability: 1 },
     }) : null),
     [cur, periods, mode, budgetBasis, comparabilityByPair, client.targetLaborLo, client.targetLaborHi]);
+
+  // A band exists only once both sides were agreed. Everything that judges the
+  // labour ratio has to ask this first.
+  const hasLaborBand = client.targetLaborLo != null && client.targetLaborHi != null;
 
   const confidence = cur ? confidenceByPeriod[cur.periodId] : undefined;
   const perDay = cur ? perDayByPeriod[cur.periodId] : undefined;
@@ -365,14 +378,25 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
               detail={[{ label: "Gross profit", value: fmt(view.grossProfit) },
                        { label: "Overhead", value: fmt(view.opex) },
                        { label: "Net", value: fmt(view.netIncome) }]} />
+            {/* A band is only real once it has been agreed in the alignment session, so
+                both sides can be null. Interpolating them anyway printed "Healthy band
+                null–null%" on a client's statement. No band means the figure is
+                reported and explicitly not judged — the same rule the metric registry
+                follows, and the honest state for a new engagement. */}
             <KPI label={client.language?.laborRatioLabel || "Labor ratio"} value={pct(view.laborPct)}
-              sub={`Healthy band ${client.targetLaborLo}–${client.targetLaborHi}%`}
+              sub={hasLaborBand
+                ? `Healthy band ${client.targetLaborLo}–${client.targetLaborHi}%`
+                : "Reported — no agreed band yet"}
               // Both sides of the band are wrong. Below it usually means hours were not
               // delivered as billed, or costs are landing in the wrong account.
-              tone={view.laborPct > client.targetLaborHi || view.laborPct < client.targetLaborLo ? "bad" : "ok"}
+              tone={!hasLaborBand ? "n"
+                : view.laborPct > client.targetLaborHi! || view.laborPct < client.targetLaborLo! ? "bad" : "ok"}
               detail={[{ label: "Direct labor", value: fmt(view.directCost) },
                        { label: "Revenue", value: fmt(view.revenue) },
-                       { label: "Healthy band", value: `${client.targetLaborLo}–${client.targetLaborHi}%` }]} />
+                       { label: "Healthy band",
+                         value: hasLaborBand
+                           ? `${client.targetLaborLo}–${client.targetLaborHi}%`
+                           : "Not yet agreed" }]} />
             <KPI label={client.language?.revenueLabel || "Revenue"} value={fmt(view.revenue)}
               sub={revLine ? `${revLine.deltaPct !== null && revLine.deltaPct >= 0 ? "▲" : "▼"} ${
                      revLine.deltaPct === null ? "—" : Math.abs(revLine.deltaPct).toFixed(1) + "%"
@@ -443,7 +467,8 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
                         <div className="tnum" style={{
                           fontFamily: "var(--utility)", fontSize: 13, fontWeight: 600, marginTop: 3,
                           color: (i === 1 && e.netIncome < 0) ||
-                                 (i === 2 && e.revenue > 0 && e.laborPct > client.targetLaborHi)
+                                 (i === 2 && e.revenue > 0 && hasLaborBand
+                                   && e.laborPct > client.targetLaborHi!)
                             ? "var(--accent-text)" : "var(--ink)",
                         }}>{v}</div>
                       </div>
@@ -557,8 +582,10 @@ export default function Dashboard({ client, periods, goals, selectedId, userRole
             <KPI label="Overhead" value={fmt(view.opex)} sub="Below the line" />
           </div>
           <div className="grid lg:grid-cols-2 gap-6" style={{ marginTop: 32 }}>
-            <Panel title="Labor ratio vs healthy band"
-              sub="Both sides of the band are a problem, for different reasons">
+            <Panel title={hasLaborBand ? "Labor ratio vs healthy band" : "Labor ratio"}
+              sub={hasLaborBand
+                ? "Both sides of the band are a problem, for different reasons"
+                : "Reported without a verdict — no band has been agreed yet"}>
               {activeEntities.filter((e) => e.revenue > 0).map((e) => (
                 <BulletBar key={e.id} label={e.name} value={e.laborPct}
                   bandLo={client.targetLaborLo} bandHi={client.targetLaborHi} />
